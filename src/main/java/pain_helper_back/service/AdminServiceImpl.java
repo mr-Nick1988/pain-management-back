@@ -3,26 +3,29 @@ package pain_helper_back.service;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
-import pain_helper_back.dto.PersonDto;
+import pain_helper_back.dto.PersonDTO;
 import pain_helper_back.dto.PersonRegisterRequestDTO;
 import pain_helper_back.entity.Person;
 import pain_helper_back.repository.PersonRepository;
+import org.springframework.boot.CommandLineRunner;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class AdminServiceImpl implements AdminService {
+public class AdminServiceImpl implements AdminService, CommandLineRunner {
     private final PersonRepository personRepository;
     private final ModelMapper modelMapper;
 
     @Override
-    public PersonDto createPerson(PersonRegisterRequestDTO dto) {
+    public PersonDTO createPerson(PersonRegisterRequestDTO dto) {
+        if (personRepository.existsByPersonId(dto.getPersonId())) {
+            throw new RuntimeException("Person with this personId already exists");
+        }
         if (personRepository.existsByLogin(dto.getLogin())) {
             throw new RuntimeException("Person with this login already exists");
         }
-
         Person person = new Person();
         person.setFirstName(dto.getFirstName());
         person.setLastName(dto.getLastName());
@@ -31,26 +34,34 @@ public class AdminServiceImpl implements AdminService {
         person.setRole(dto.getRole());
         person.setTemporaryCredentials(true);
 
-        Person savedPerson = personRepository.save(person);
-        return modelMapper.map(savedPerson, PersonDto.class);
+        personRepository.save(person);
+        return modelMapper.map(person, PersonDTO.class);
     }
 
     @Override
-    public List<PersonDto> getAllPersons() {
+    public List<PersonDTO> getAllPersons() {
         return personRepository.findAll().stream()
-                .map(person -> modelMapper.map(person, PersonDto.class))
+                .map(person -> modelMapper.map(person, PersonDTO.class))
                 .collect(Collectors.toList());
     }
 
     @Override
-    public PersonDto getPersonById(Long id) {
+    public PersonDTO getPersonByPersonId(String personId) {
+        Person person = personRepository.findByPersonId(personId)
+                .orElseThrow(() -> new RuntimeException("Person not found"));
+        return modelMapper.map(person, PersonDTO.class);
+    }
+
+
+    @Override
+    public PersonDTO getPersonById(Long id) {
         Person person = personRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Person not found"));
-        return modelMapper.map(person, PersonDto.class);
+        return modelMapper.map(person, PersonDTO.class);
     }
 
     @Override
-    public PersonDto updatePerson(Long id, PersonRegisterRequestDTO dto) {
+    public PersonDTO updatePerson(Long id, PersonRegisterRequestDTO dto) {
         Person person = personRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Person not found"));
 
@@ -69,11 +80,10 @@ public class AdminServiceImpl implements AdminService {
             person.setPassword(dto.getPassword());
             person.setTemporaryCredentials(true);
         }
-
         person.setRole(dto.getRole());
 
-        Person updatedPerson = personRepository.save(person);
-        return modelMapper.map(updatedPerson, PersonDto.class);
+        personRepository.save(person);
+        return modelMapper.map(person, PersonDTO.class);
     }
 
     @Override
@@ -82,5 +92,23 @@ public class AdminServiceImpl implements AdminService {
             throw new RuntimeException("Person not found");
         }
         personRepository.deleteById(id);
+    }
+
+    @Override
+    public void run(String... args) throws Exception {
+        if (!personRepository.existsByLogin("admin")) {
+            Person admin = new Person();
+            admin.setPersonId("admin123");
+            admin.setFirstName("Admin");
+            admin.setLastName("User");
+            admin.setLogin("admin");
+            admin.setPassword("admin");
+            admin.setRole("ADMIN");
+            admin.setTemporaryCredentials(false);
+            personRepository.save(admin);
+            System.out.println("Admin user created successfully");
+        } else {
+            System.out.println("Admin user already exists");
+        }
     }
 }
