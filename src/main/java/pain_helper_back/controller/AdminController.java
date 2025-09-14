@@ -10,7 +10,8 @@ import pain_helper_back.service.AdminServiceImpl;
 import java.util.List;
 
 @RestController
-@RequestMapping("/admin/persons")
+@RequestMapping("api/admin/persons")
+@CrossOrigin(origins = "http://localhost:5173")
 @RequiredArgsConstructor
 public class AdminController {
     private final AdminServiceImpl adminService;

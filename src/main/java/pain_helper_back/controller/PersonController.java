@@ -8,8 +8,11 @@ import pain_helper_back.dto.ChangeCredentialsDTO;
 import pain_helper_back.dto.PersonLoginRequestDTO;
 import pain_helper_back.dto.PersonLoginResponseDTO;
 import pain_helper_back.service.PersonService;
+
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/api")
+@CrossOrigin(origins = "http://localhost:5173")
 public class PersonController {
 
     private final PersonService personService;
