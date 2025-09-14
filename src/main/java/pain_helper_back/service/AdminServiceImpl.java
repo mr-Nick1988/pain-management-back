@@ -27,6 +27,7 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
             throw new RuntimeException("Person with this login already exists");
         }
         Person person = new Person();
+        person.setPersonId(dto.getPersonId());
         person.setFirstName(dto.getFirstName());
         person.setLastName(dto.getLastName());
         person.setLogin(dto.getLogin());
