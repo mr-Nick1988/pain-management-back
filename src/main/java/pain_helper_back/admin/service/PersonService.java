@@ -1,13 +1,13 @@
-package pain_helper_back.service;
+package pain_helper_back.admin.service;
 
-import pain_helper_back.dto.ChangeCredentialsDTO;
-import pain_helper_back.dto.PersonLoginRequestDTO;
+import pain_helper_back.admin.dto.ChangeCredentialsDTO;
+import pain_helper_back.admin.dto.PersonLoginRequestDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import pain_helper_back.dto.PersonLoginResponseDTO;
+import pain_helper_back.admin.dto.PersonLoginResponseDTO;
 import org.modelmapper.ModelMapper;
-import pain_helper_back.repository.PersonRepository;
-import pain_helper_back.entity.Person;
+import pain_helper_back.admin.repository.PersonRepository;
+import pain_helper_back.admin.entity.Person;
 
 
 @Service

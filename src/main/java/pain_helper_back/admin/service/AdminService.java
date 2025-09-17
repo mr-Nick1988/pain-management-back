@@ -1,7 +1,7 @@
-package pain_helper_back.service;
+package pain_helper_back.admin.service;
 
-import pain_helper_back.dto.PersonDTO;
-import pain_helper_back.dto.PersonRegisterRequestDTO;
+import pain_helper_back.admin.dto.PersonDTO;
+import pain_helper_back.admin.dto.PersonRegisterRequestDTO;
 
 import java.util.List;
 

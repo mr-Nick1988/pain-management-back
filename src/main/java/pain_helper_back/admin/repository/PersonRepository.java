@@ -1,7 +1,7 @@
-package pain_helper_back.repository;
+package pain_helper_back.admin.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import pain_helper_back.entity.Person;
+import pain_helper_back.admin.entity.Person;
 
 import java.util.Optional;
 

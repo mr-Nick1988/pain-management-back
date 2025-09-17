@@ -1,4 +1,4 @@
-package pain_helper_back.entity;
+package pain_helper_back.admin.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;

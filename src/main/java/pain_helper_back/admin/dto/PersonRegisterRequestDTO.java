@@ -1,6 +1,5 @@
-package pain_helper_back.dto;
+package pain_helper_back.admin.dto;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 

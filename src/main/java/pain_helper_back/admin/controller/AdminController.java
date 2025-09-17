@@ -1,11 +1,11 @@
-package pain_helper_back.controller;
+package pain_helper_back.admin.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import pain_helper_back.dto.PersonDTO;
-import pain_helper_back.dto.PersonRegisterRequestDTO;
-import pain_helper_back.service.AdminServiceImpl;
+import pain_helper_back.admin.dto.PersonDTO;
+import pain_helper_back.admin.dto.PersonRegisterRequestDTO;
+import pain_helper_back.admin.service.AdminServiceImpl;
 
 import java.util.List;
 

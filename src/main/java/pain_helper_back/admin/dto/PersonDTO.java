@@ -1,4 +1,4 @@
-package pain_helper_back.dto;
+package pain_helper_back.admin.dto;
 
 import lombok.Data;
 

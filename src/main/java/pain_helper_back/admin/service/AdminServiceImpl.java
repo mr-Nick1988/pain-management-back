@@ -1,12 +1,13 @@
-package pain_helper_back.service;
+package pain_helper_back.admin.service;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
-import pain_helper_back.dto.PersonDTO;
-import pain_helper_back.dto.PersonRegisterRequestDTO;
-import pain_helper_back.entity.Person;
-import pain_helper_back.repository.PersonRepository;
+import pain_helper_back.admin.dto.PersonDTO;
+import pain_helper_back.admin.dto.PersonRegisterRequestDTO;
+import pain_helper_back.admin.entity.Person;
+import pain_helper_back.admin.repository.PersonRepository;
 import org.springframework.boot.CommandLineRunner;
 
 import java.util.List;
@@ -19,6 +20,7 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
     private final ModelMapper modelMapper;
 
     @Override
+    @Transactional
     public PersonDTO createPerson(PersonRegisterRequestDTO dto) {
         if (personRepository.existsByPersonId(dto.getPersonId())) {
             throw new RuntimeException("Person with this personId already exists");
@@ -26,15 +28,8 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
         if (personRepository.existsByLogin(dto.getLogin())) {
             throw new RuntimeException("Person with this login already exists");
         }
-        Person person = new Person();
-        person.setPersonId(dto.getPersonId());
-        person.setFirstName(dto.getFirstName());
-        person.setLastName(dto.getLastName());
-        person.setLogin(dto.getLogin());
-        person.setPassword(dto.getPassword());
-        person.setRole(dto.getRole());
+        Person person = modelMapper.map(dto, Person.class);
         person.setTemporaryCredentials(true);
-
         personRepository.save(person);
         return modelMapper.map(person, PersonDTO.class);
     }
@@ -62,6 +57,7 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
     }
 
     @Override
+    @Transactional
     public PersonDTO updatePerson(Long id, PersonRegisterRequestDTO dto) {
         Person person = personRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Person not found"));
@@ -88,6 +84,7 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
     }
 
     @Override
+    @Transactional
     public void deletePerson(Long id) {
         if (!personRepository.existsById(id)) {
             throw new RuntimeException("Person not found");

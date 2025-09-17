@@ -1,4 +1,4 @@
-package pain_helper_back.dto;
+package pain_helper_back.admin.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PersonLoginResponseDTO {
-    private String token;
+    private String firstName;
     private String role;
     private boolean isTemporaryCredentials;
 }
