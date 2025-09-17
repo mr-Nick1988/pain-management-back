@@ -1,10 +1,10 @@
-package pain_helper_back.admin.service;
+package pain_helper_back.common.service;
 
-import pain_helper_back.admin.dto.ChangeCredentialsDTO;
-import pain_helper_back.admin.dto.PersonLoginRequestDTO;
+import pain_helper_back.common.dto.ChangeCredentialsDTO;
+import pain_helper_back.common.dto.PersonLoginRequestDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import pain_helper_back.admin.dto.PersonLoginResponseDTO;
+import pain_helper_back.common.dto.PersonLoginResponseDTO;
 import org.modelmapper.ModelMapper;
 import pain_helper_back.admin.repository.PersonRepository;
 import pain_helper_back.admin.entity.Person;
@@ -23,12 +23,10 @@ public class PersonService {
         if (!person.getPassword().equals(loginRequest.getPassword())) {
             throw new RuntimeException("Invalid login or password");
         }
-        String token = "fake-token" + System.currentTimeMillis();
         PersonLoginResponseDTO response = new PersonLoginResponseDTO();
-        response.setToken(token);
+        response.setFirstName(person.getFirstName());
         response.setRole(person.getRole());
         response.setTemporaryCredentials(person.isTemporaryCredentials());
-
         return response;
 
     }

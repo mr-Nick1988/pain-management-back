@@ -1,12 +1,12 @@
-package pain_helper_back.admin.controller;
+package pain_helper_back.common.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import pain_helper_back.admin.dto.ChangeCredentialsDTO;
-import pain_helper_back.admin.dto.PersonLoginRequestDTO;
-import pain_helper_back.admin.dto.PersonLoginResponseDTO;
-import pain_helper_back.admin.service.PersonService;
+import pain_helper_back.common.dto.ChangeCredentialsDTO;
+import pain_helper_back.common.dto.PersonLoginRequestDTO;
+import pain_helper_back.common.dto.PersonLoginResponseDTO;
+import pain_helper_back.common.service.PersonService;
 
 @RestController
 @RequiredArgsConstructor

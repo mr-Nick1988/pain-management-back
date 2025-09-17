@@ -1,4 +1,4 @@
-package pain_helper_back.admin.entity;
+package pain_helper_back.nurse.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;

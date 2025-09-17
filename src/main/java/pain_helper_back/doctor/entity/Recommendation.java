@@ -1,7 +1,9 @@
-package pain_helper_back.admin.entity;
+package pain_helper_back.doctor.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
 import lombok.Data;
+
 import java.time.LocalDateTime;
 
 @Entity

@@ -1,4 +1,4 @@
-package pain_helper_back.admin.dto;
+package pain_helper_back.common.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
