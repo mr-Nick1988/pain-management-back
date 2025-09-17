@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 @Entity
 
 @Data
-public class Recommendation {
+public class AnesthesiologistRecommendation {
     @Id
     private Long id;
     private Long patientId;

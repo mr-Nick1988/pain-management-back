@@ -1,6 +1,7 @@
 package pain_helper_back.admin.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 @Data
@@ -9,6 +10,7 @@ public class PersonRegisterRequestDTO {
     private String personId;
     
     @NotBlank(message = "Role is required")
+    @Pattern(regexp = "ADMIN|DOCTOR|NURSE|ANESTHESIOLOGIST", message = "Invalid role")
     private String role;
     
     @NotBlank(message = "First name is required")

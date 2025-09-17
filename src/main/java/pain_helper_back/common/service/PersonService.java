@@ -25,7 +25,7 @@ public class PersonService {
         }
         PersonLoginResponseDTO response = new PersonLoginResponseDTO();
         response.setFirstName(person.getFirstName());
-        response.setRole(person.getRole());
+        response.setRole(person.getRole().name());
         response.setTemporaryCredentials(person.isTemporaryCredentials());
         return response;
 

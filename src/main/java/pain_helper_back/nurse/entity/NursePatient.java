@@ -8,7 +8,7 @@ import java.time.LocalDate;
 @Entity
 
 @Data
-public class Patient {
+public class NursePatient {
     @Id
 
     private Long id;
