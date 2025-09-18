@@ -86,12 +86,12 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
 
     @Override
     @Transactional
-    public void deletePerson(Long id) {
-        if (!personRepository.existsById(id)) {
-            throw new RuntimeException("Person not found");
-        }
-        personRepository.deleteById(id);
+    public void deletePerson(String personId) {
+        Person person = personRepository.findByPersonId(personId)
+                .orElseThrow(() -> new RuntimeException("Person not found"));
+        personRepository.delete(person);
     }
+
 
     @Override
     public void run(String... args) throws Exception {
