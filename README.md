@@ -8,3 +8,30 @@
 -  Перетащил общий контроллер для всех из admin PersonalController в папку common/controller и PersonService в папку common/service.
 -  Перетащил из admin/entity Approval в папку doctor/entity и anethesiologist/entity (может пригодиться).
 -  Перетащил из admin/entity Patient и VAS в папку nurse/entity (может пригодиться).
+
+ Nurse-logic:
+ - Создал DTO со следующей структурой:
+ * PatientDTO — базовые данные пациента + коллекции emr, vas, recommendations.
+ * EmrDTO — медицинская карта (анализы, показатели организма).
+ * VasDTO — жалобы на боль (VAS шкала).
+ * RecommendationDTO — одна рекомендация (связана с конкретным случаем/жалобой).
+ * DrugRecommendationDTO — конкретное лекарство внутри одной рекомендации.
+
+## 18.09.2025
+ Евгений:
+ - Создал папку external_service с DTO и Service для реализации в будущем получения EMR данных пациента извне.
+
+   Nurse-logic:
+ - Создал Entity по схожей с DTO структурой.
+ - Создал отдельные Repositories на все Entities.
+ - Создал Controller со всеми эндпоинтами
+ - Создал Service со всеми методами для Nurse (частично имплементировали)
+ - Создал директорию treatment-protocol для хранения протокола лечения (Exel таблица)
+
+## 19.09.2025
+ Евгений:
+ - Сделал папку nurse/dto/exceptions для красивых ошибок.
+   Nurse-logic:
+ - Реализовал все методы в Sevice. 
+   Treatment Protocol:
+ - 
