@@ -4,8 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
 
-@Entity
-
+@Entity (name = "anesthesiologist_approval")
+@Table(name = "anesthesiologist_approval")
 @Data
 public class Approval {
     @Id

@@ -42,6 +42,7 @@ public class TreatmentProtocol {
     private String sodium;
 
     private String avoidIfSensitivity;
+    @Column(length = 1000)
     private String contraindications;
 
 }

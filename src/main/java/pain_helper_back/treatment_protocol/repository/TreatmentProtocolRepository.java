@@ -8,5 +8,5 @@ import java.util.List;
 
 @Repository
 public interface TreatmentProtocolRepository extends JpaRepository<TreatmentProtocol, Long> {
-    List<TreatmentProtocol> findByPainLevel(String painLevel);
+//    List<TreatmentProtocol> findByPainLevel(String painLevel);
 }

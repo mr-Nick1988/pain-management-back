@@ -34,4 +34,11 @@
    Nurse-logic:
  - Реализовал все методы в Sevice. 
    Treatment Protocol:
- - 
+ - добавил библиотеку в pom.xml liquibase для создания в будущем changelog таблицы инструкций лечения
+ - добавил библиотеку Apache POI для считывания файлов .xlsx(Excel) формата
+
+## 20.09.2025
+  Евгений:
+  - Создал папку excel_loader и клас TreatmentProtocolLoader implements CommandLineRunner.
+  - В этом же классе использовал интерфейс библиотеки Apache POI Workbook workbook и его класс реализацию для Excel - XSSFWorkbook 
+    для считывания протокола лечения и переноса в БД.
