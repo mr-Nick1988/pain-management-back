@@ -17,6 +17,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class DoctorServiceImpl implements DoctorService {
     private final RecommendationRepository recommendationRepository;
     private final PatientRepository patientRepository;
@@ -24,6 +25,7 @@ public class DoctorServiceImpl implements DoctorService {
     private final ModelMapper modelMapper;
 
     @Override
+    @Transactional(readOnly = true)
     public List<RecommendationDTO> getAllRecommendations() {
         List<Recommendation> recommendations = recommendationRepository.findAllByOrderByCreatedAtDesc();
         return recommendations.stream()
@@ -32,13 +34,13 @@ public class DoctorServiceImpl implements DoctorService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public RecommendationDTO getRecommendationById(Long id) {
         Recommendation recommendation = recommendationRepository.findById(id).orElseThrow(() -> new RuntimeException("Recommendation not found"));
         return modelMapper.map(recommendation, RecommendationDTO.class);
     }
 
     @Override
-    @Transactional
     public RecommendationDTO createRecommendation(RecommendationRequestDTO dto, String createdByLogin) {
         Person createdBy = personRepository.findByLogin(createdByLogin).orElseThrow(() -> new RuntimeException("Person not found"));
         Patient patient = patientRepository.findById(dto.getPatientId()).orElseThrow(() -> new RuntimeException("Patient not found"));
@@ -54,7 +56,6 @@ public class DoctorServiceImpl implements DoctorService {
     }
 
     @Override
-    @Transactional
     public RecommendationDTO approveRecommendation(Long id, RecommendationApprovalDTO dto, String approvedByLogin) {
         Recommendation recommendation = recommendationRepository.findById(id).orElseThrow(() -> new RuntimeException("Recommendation not found"));
         if (!recommendation.getStatus().equals(RecommendationStatus.PENDING)) {
@@ -69,7 +70,6 @@ public class DoctorServiceImpl implements DoctorService {
     }
 
     @Override
-    @Transactional
     public RecommendationDTO rejectRecommendation(Long id, RecommendationApprovalDTO dto, String rejectedByLogin) {
         Recommendation recommendation = recommendationRepository.findById(id).orElseThrow(() -> new RuntimeException("Recommendation not found"));
         if (!recommendation.getStatus().equals(RecommendationStatus.PENDING)) {
@@ -79,7 +79,6 @@ public class DoctorServiceImpl implements DoctorService {
             throw new RuntimeException("Rejected reason is required");
         }
         Person updatedBy = personRepository.findByLogin(rejectedByLogin).orElseThrow(() -> new RuntimeException("Person not found"));
-
         recommendation.setStatus(RecommendationStatus.REJECTED);
         recommendation.setRejectionReason(dto.getRejectedReason());
         recommendation.setDoctorComment(dto.getComment());
@@ -89,7 +88,6 @@ public class DoctorServiceImpl implements DoctorService {
     }
 
     @Override
-    @Transactional
     public RecommendationDTO deleteRecommendation(Long id, String deletedByLogin) {
         Recommendation recommendation = recommendationRepository.findById(id).orElseThrow(() -> new RuntimeException("Recommendation not found"));
         recommendationRepository.delete(recommendation);
@@ -97,7 +95,6 @@ public class DoctorServiceImpl implements DoctorService {
     }
 
     @Override
-    @Transactional
     public RecommendationDTO updateRecommendation(Long id, RecommendationRequestDTO dto, String updatedByLogin) {
         Recommendation recommendation = recommendationRepository.findById(id).orElseThrow(() -> new RuntimeException("Recommendation not found"));
         Person updatedBy = personRepository.findByLogin(updatedByLogin).orElseThrow(() -> new RuntimeException("Person not found"));
@@ -112,6 +109,7 @@ public class DoctorServiceImpl implements DoctorService {
 
     //Patient methods
     @Override
+    @Transactional(readOnly = true)
     public List<PatientResponseDTO> getAllPatients() {
         List<Patient> patients = patientRepository.findByActiveTrueOrderByCreatedAtDesc();
         return patients.stream()
@@ -120,6 +118,7 @@ public class DoctorServiceImpl implements DoctorService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PatientResponseDTO getPatientById(Long id) {
         Patient patient = patientRepository.findById(id).orElseThrow(() -> new RuntimeException("Patient not found"));
         return modelMapper.map(patient, PatientResponseDTO.class);
@@ -158,7 +157,6 @@ public class DoctorServiceImpl implements DoctorService {
     }
 
     @Override
-    @Transactional
     public PatientResponseDTO deletePatient(Long id, String deletedByLogin) {
         Patient patient = patientRepository.findById(id).orElseThrow(() -> new RuntimeException("Patient not found"));
         patient.setActive(false);

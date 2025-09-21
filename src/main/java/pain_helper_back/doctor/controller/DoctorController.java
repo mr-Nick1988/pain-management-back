@@ -2,6 +2,7 @@ package pain_helper_back.doctor.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import pain_helper_back.doctor.dto.*;
 import pain_helper_back.doctor.service.DoctorService;
@@ -15,6 +16,7 @@ import java.util.List;
 @RequestMapping("api/doctor")
 @CrossOrigin(origins = "http://localhost:5173")
 @RequiredArgsConstructor
+@Slf4j
 public class DoctorController {
     private final DoctorService doctorService;
 
@@ -34,6 +36,7 @@ public class DoctorController {
     public RecommendationDTO createRecommendation(
             @RequestBody @Valid RecommendationRequestDTO dto,
             @RequestParam(defaultValue = "system") String createdBy) {
+        log.info("Attempting to create recommendation. createdBy: '{}'", createdBy);
         return doctorService.createRecommendation(dto, createdBy);
     }
 
@@ -42,6 +45,7 @@ public class DoctorController {
             @PathVariable Long id,
             @RequestBody @Valid RecommendationApprovalDTO dto,
             @RequestParam(defaultValue = "system") String approvedBy) {
+        log.info("Attempting to approve recommendation. approvedBy: '{}'", approvedBy);
         return doctorService.approveRecommendation(id, dto, approvedBy);
     }
 
@@ -50,6 +54,7 @@ public class DoctorController {
             @PathVariable Long id,
             @RequestBody @Valid RecommendationApprovalDTO dto,
             @RequestParam(defaultValue = "system") String rejectedBy) {
+        log.info("Attempting to reject recommendation. rejectedBy: '{}'", rejectedBy);
         return doctorService.rejectRecommendation(id, dto, rejectedBy);
     }
 
@@ -58,6 +63,7 @@ public class DoctorController {
             @PathVariable Long id,
             @RequestBody @Valid RecommendationRequestDTO dto,
             @RequestParam(defaultValue = "system") String updatedBy) {
+        log.info("Attempting to update recommendation. updatedBy: '{}'", updatedBy);
         return doctorService.updateRecommendation(id, dto, updatedBy);
     }
 
@@ -65,6 +71,7 @@ public class DoctorController {
     public RecommendationDTO deleteRecommendation(
             @PathVariable Long id,
             @RequestParam(defaultValue = "system") String deletedBy) {
+        log.info("Attempting to delete recommendation. deletedBy: '{}'", deletedBy);
         return doctorService.deleteRecommendation(id, deletedBy);
     }
 
@@ -81,17 +88,20 @@ public class DoctorController {
     }
 
     @PostMapping("/patients")
-    public PatientResponseDTO createPatient(@RequestBody @Valid PatientCreationDTO dto, @RequestParam(defaultValue = "system") String createdBy) {
+    public PatientResponseDTO createPatient(@RequestBody @Valid PatientCreationDTO dto, @RequestParam String createdBy) {
+        log.info("Attempting to create patient. createdBy: '{}'", createdBy);
         return doctorService.createPatient(dto, createdBy);
     }
 
     @PatchMapping("/patients/{id}")
     public PatientResponseDTO updatePatient(@PathVariable Long id, @RequestBody PatientResponseDTO dto, @RequestParam(defaultValue = "system") String updatedBy) {
+        log.info("Attempting to update patient. updatedBy: '{}'", updatedBy);
         return doctorService.updatePatient(id, dto, updatedBy);
     }
 
     @DeleteMapping("/patients/{id}")
     public PatientResponseDTO deletePatient(@PathVariable Long id, @RequestParam(defaultValue = "system") String deletedBy) {
+        log.info("Attempting to delete patient. deletedBy: '{}'", deletedBy);
         return doctorService.deletePatient(id, deletedBy);
     }
 }
