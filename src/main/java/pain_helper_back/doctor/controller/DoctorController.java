@@ -8,7 +8,9 @@ import pain_helper_back.doctor.service.DoctorService;
 
 import java.util.List;
 
-
+/**
+ * Controller for handling doctor-related operations.
+ */
 @RestController
 @RequestMapping("api/doctor")
 @CrossOrigin(origins = "http://localhost:5173")
@@ -38,7 +40,7 @@ public class DoctorController {
     @PostMapping("/recommendations/{id}/approve")
     public RecommendationDTO approveRecommendation(
             @PathVariable Long id,
-            @RequestBody RecommendationApprovalDTO dto,
+            @RequestBody @Valid RecommendationApprovalDTO dto,
             @RequestParam(defaultValue = "system") String approvedBy) {
         return doctorService.approveRecommendation(id, dto, approvedBy);
     }
@@ -46,7 +48,7 @@ public class DoctorController {
     @PostMapping("/recommendations/{id}/reject")
     public RecommendationDTO rejectRecommendation(
             @PathVariable Long id,
-            @RequestBody RecommendationApprovalDTO dto,
+            @RequestBody @Valid RecommendationApprovalDTO dto,
             @RequestParam(defaultValue = "system") String rejectedBy) {
         return doctorService.rejectRecommendation(id, dto, rejectedBy);
     }
