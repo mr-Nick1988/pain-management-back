@@ -16,8 +16,8 @@ public class DrugRecommendation {
     private String drugName;
     @Column(name = "active_moiety")
     private String activeMoiety;
-    @Column(name = "dosage")
-    private String dosage;
+    @Column(name = "dosing")
+    private String dosing;
     @Column(name = "interval")
     private String interval;
     @Column(name = "route")

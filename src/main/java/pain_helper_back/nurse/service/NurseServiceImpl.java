@@ -152,10 +152,11 @@ public class NurseServiceImpl implements NurseService {
         Vas vas = patient.getVas().getLast();
 
         // 🔹 Алгоритм генерации рекомендации
-        Recommendation recommendation = treatmentProtocolService.generateRecommendation(emr, vas);
+        Recommendation recommendation = treatmentProtocolService.generateRecommendation(emr, vas,patient);
 
         recommendation.setPatient(patient);
         patient.getRecommendations().add(recommendation);
+
 
         return modelMapper.map(recommendation, RecommendationDto.class);
     }

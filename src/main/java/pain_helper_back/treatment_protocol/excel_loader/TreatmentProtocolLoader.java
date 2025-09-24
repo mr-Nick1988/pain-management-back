@@ -56,7 +56,6 @@ public class TreatmentProtocolLoader implements CommandLineRunner {
                 treatmentProtocol.setContraindications(dataFormatter.formatCellValue(row.getCell(22)));
 
                 treatmentProtocolRepository.save(treatmentProtocol);
-                System.out.println(treatmentProtocol);
             }
         }
     }

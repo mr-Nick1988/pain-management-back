@@ -2,7 +2,7 @@ package pain_helper_back.nurse.dto;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-import pain_helper_back.nurse.RecommendationStatus;
+import pain_helper_back.common.RecommendationStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -14,12 +14,13 @@ public class RecommendationDto {
     private int regimenHierarchy; // первая линия лекарства, вторая ,если не помогло и т.д.
 
     private List<DrugRecommendationDto> drugs; // здесь будут 1-е, 2-е и т.д. препараты
+    private List<DrugRecommendationDto> alternativeDrugs; // здесь будут альтернативные препараты
 
     private List<String> avoidIfSensitivity;   // избегать если аллергия
     private List<String> contraindications;    // противопоказания
 
     private RecommendationStatus status;     // Статус рекомендации: pending, approved, rejected
-    private String notes;      // свободные комментарии
+    private List<String> notes;      // свободные комментарии
     private LocalDateTime createdAt = LocalDateTime.now();
 
 

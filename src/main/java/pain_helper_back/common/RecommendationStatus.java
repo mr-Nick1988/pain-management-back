@@ -1,4 +1,4 @@
-package pain_helper_back.nurse;
+package pain_helper_back.common;
 
 public enum RecommendationStatus {
     PENDING,

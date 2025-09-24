@@ -6,6 +6,7 @@ import pain_helper_back.nurse.PatientsGenders;
 
 
 import java.time.LocalDate;
+import java.time.Period;
 import java.util.List;
 
 @Entity
@@ -24,7 +25,7 @@ public class Patient {
     private String firstName;
     @Column(name = "last_name")
     private String lastName;
-    @Column(name = "person_id" , unique = true , nullable = false)
+    @Column(name = "person_id", unique = true, nullable = false)
     private String personId;
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
@@ -42,5 +43,7 @@ public class Patient {
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Recommendation> recommendations;
 
-
+    public int getAge() {
+        return Period.between(dateOfBirth, LocalDate.now()).getYears();
+    }
 }
