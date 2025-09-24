@@ -3,12 +3,13 @@ package pain_helper_back.admin.service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Service;
 import pain_helper_back.admin.dto.PersonDTO;
 import pain_helper_back.admin.dto.PersonRegisterRequestDTO;
 import pain_helper_back.admin.entity.Person;
 import pain_helper_back.admin.repository.PersonRepository;
-import org.springframework.boot.CommandLineRunner;
+import pain_helper_back.enums.Roles;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -77,7 +78,7 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
             person.setPassword(dto.getPassword());
             person.setTemporaryCredentials(true);
         }
-        person.setRole(dto.getRole());
+        person.setRole(Roles.valueOf(dto.getRole()));
 
         personRepository.save(person);
         return modelMapper.map(person, PersonDTO.class);
@@ -85,12 +86,12 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
 
     @Override
     @Transactional
-    public void deletePerson(Long id) {
-        if (!personRepository.existsById(id)) {
-            throw new RuntimeException("Person not found");
-        }
-        personRepository.deleteById(id);
+    public void deletePerson(String personId) {
+        Person person = personRepository.findByPersonId(personId)
+                .orElseThrow(() -> new RuntimeException("Person not found"));
+        personRepository.delete(person);
     }
+
 
     @Override
     public void run(String... args) throws Exception {
@@ -101,7 +102,7 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
             admin.setLastName("User");
             admin.setLogin("admin");
             admin.setPassword("admin");
-            admin.setRole("ADMIN");
+            admin.setRole(Roles.ADMIN);
             admin.setTemporaryCredentials(false);
             personRepository.save(admin);
             System.out.println("Admin user created successfully");

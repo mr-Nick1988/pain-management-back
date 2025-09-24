@@ -5,8 +5,10 @@ import lombok.Data;
 
 @Data
 public class ChangeCredentialsDTO {
-    @NotBlank(message = "Login is required")
-    private String login;
+    @NotBlank(message = "Current login is required")
+    private String currentLogin;
+    @NotBlank(message = "New login is required")
+    private String newLogin;
     @NotBlank(message = "Old password is required")
     private String oldPassword;
     @NotBlank(message = "New password is required")

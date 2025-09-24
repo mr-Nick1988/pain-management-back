@@ -10,5 +10,5 @@ import lombok.NoArgsConstructor;
 public class PersonLoginResponseDTO {
     private String firstName;
     private String role;
-    private boolean isTemporaryCredentials;
+    private boolean temporaryCredentials;
 }

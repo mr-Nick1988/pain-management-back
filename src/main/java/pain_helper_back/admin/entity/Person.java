@@ -2,6 +2,7 @@ package pain_helper_back.admin.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import pain_helper_back.enums.Roles;
 
 @Entity
 @Data
@@ -18,8 +19,8 @@ public class Person {
     
     @Column(nullable = false, unique = true)
     private String login;
-    
+
     private String password;
-    private String role;
+    private Roles role;
     private boolean temporaryCredentials = true;
 }

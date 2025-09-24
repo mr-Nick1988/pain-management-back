@@ -11,6 +11,6 @@ public interface AdminService {
     PersonDTO getPersonById(Long id);
     PersonDTO getPersonByPersonId(String personId);
     PersonDTO updatePerson(Long id, PersonRegisterRequestDTO dto);
-    void deletePerson(Long id);
+    void deletePerson(String personId);
 }
 

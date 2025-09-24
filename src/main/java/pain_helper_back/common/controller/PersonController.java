@@ -16,12 +16,12 @@ public class PersonController {
 
     private final PersonService personService;
 
-    @PostMapping("/login")
+    @PostMapping("/person/login")
     public PersonLoginResponseDTO login(@RequestBody @Valid PersonLoginRequestDTO loginRequest) {
         return personService.login(loginRequest);
     }
 
-    @PostMapping("/change-credentials")
+    @PostMapping("/person/change-credentials")
     public void changeCredentials(@RequestBody @Valid ChangeCredentialsDTO request) {
         personService.changeCredentials(request);
     }

@@ -25,20 +25,21 @@ public class PersonService {
         }
         PersonLoginResponseDTO response = new PersonLoginResponseDTO();
         response.setFirstName(person.getFirstName());
-        response.setRole(person.getRole());
+        response.setRole(person.getRole().name());
         response.setTemporaryCredentials(person.isTemporaryCredentials());
         return response;
 
     }
 
     public void changeCredentials(ChangeCredentialsDTO request) {
-        Person person = personRepository.findByLogin(request.getLogin())
+        Person person = personRepository.findByLogin(request.getCurrentLogin())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         // В дальнейшем здесь должна быть проверка пароля с использованием хеширования
         if (!person.getPassword().equals(request.getOldPassword())) {
             throw new RuntimeException("Invalid old password");
         }
+        person.setLogin(request.getNewLogin());
         person.setPassword(request.getNewPassword());
         person.setTemporaryCredentials(false);
         personRepository.save(person);
