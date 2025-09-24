@@ -9,7 +9,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Data
-public class PatientDto {
+public class PatientDTO {
     @NotBlank(message = "Name is required")
     private String firstName;
     @NotBlank(message = "Name is required")
@@ -26,11 +26,11 @@ public class PatientDto {
     private Double weight;
 
 
-    private List<EmrDto> emr;
+    private List<EmrDTO> emr;
 
-    private List<VasDto> vas;
+    private List<VasDTO> vas;
 
-    private List<RecommendationDto> recommendations;
+    private List<RecommendationDTO> recommendations;
 
 
 }

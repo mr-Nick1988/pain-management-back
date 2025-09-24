@@ -9,7 +9,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-public class VasDto {
+public class VasDTO {
     @Size(max = 25, message = "Pain place must be at most 25 characters long")
     private String painPlace;
     @NotNull(message = "Pain level is required")

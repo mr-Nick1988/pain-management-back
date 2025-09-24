@@ -6,7 +6,7 @@ import lombok.Data;
 import java.time.LocalDate;
 
 @Data
-public class EmrDto {
+public class EmrDTO {
     @NotNull(message = "GFR is required")
     private String gfr; //(функция почек)
     @NotNull(message = "Child pugh score is required")

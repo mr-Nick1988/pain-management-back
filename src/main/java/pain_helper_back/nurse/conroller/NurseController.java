@@ -17,17 +17,17 @@ public class NurseController {
     private final NurseService nurseService;
 
     @PostMapping("/patients")
-    public PatientDto createPatient(@Valid @RequestBody PatientDto patientDto) {
+    public PatientDTO createPatient(@Valid @RequestBody PatientDTO patientDto) {
         return nurseService.createPatient(patientDto);
     }
 
     @GetMapping("/patients/{personId}")
-    public PatientDto getPatientById(@PathVariable String personId) {
+    public PatientDTO getPatientById(@PathVariable String personId) {
         return nurseService.getPatientById(personId);
     }
 
     @GetMapping("/patients")
-    public List<PatientDto> getAllPatients() {
+    public List<PatientDTO> getAllPatients() {
         return nurseService.getAllPatients();
     }
 
@@ -38,32 +38,32 @@ public class NurseController {
     }
 
     @PatchMapping("/patients/{personId}")
-    public PatientDto updatePatient(@PathVariable String personId, @Valid @RequestBody PatientUpdateDto patientUpdateDto) {
+    public PatientDTO updatePatient(@PathVariable String personId, @Valid @RequestBody PatientUpdateDTO patientUpdateDto) {
         return nurseService.updatePatient(personId, patientUpdateDto);
     }
 
     @PostMapping("/patients/{personId}/emr")
-    public EmrDto createEmr(@PathVariable String personId, @Valid @RequestBody EmrDto emrDTO) {
+    public EmrDTO createEmr(@PathVariable String personId, @Valid @RequestBody EmrDTO emrDTO) {
         return nurseService.createEmr(personId, emrDTO);
     }
 
     @GetMapping("/patients/{personId}/emr")
-    public EmrDto getEmrByPatientId(@PathVariable String personId) {
+    public EmrDTO getEmrByPatientId(@PathVariable String personId) {
         return nurseService.getLastEmrByPatientId(personId);
     }
 
     @PatchMapping("/patients/{personId}/emr")
-    public EmrDto updateEmr(@PathVariable String personId, @Valid @RequestBody EmrUpdateDto emrUpdateDto) {
+    public EmrDTO updateEmr(@PathVariable String personId, @Valid @RequestBody EmrUpdateDTO emrUpdateDto) {
         return nurseService.updateEmr(personId, emrUpdateDto);
     }
 
     @PostMapping("/patients/{personId}/vas")
-    public VasDto createVAS(@PathVariable String personId, @Valid @RequestBody VasDto vasDto) {
+    public VasDTO createVAS(@PathVariable String personId, @Valid @RequestBody VasDTO vasDto) {
         return nurseService.createVAS(personId, vasDto);
     }
 
     @PatchMapping("/patients/{personId}/vas")
-    public VasDto updateVAS(@PathVariable String personId, @Valid @RequestBody VasDto vasDto) {
+    public VasDTO updateVAS(@PathVariable String personId, @Valid @RequestBody VasDTO vasDto) {
         return nurseService.updateVAS(personId, vasDto);
     }
 //
@@ -74,7 +74,7 @@ public class NurseController {
 //    }
 
     @PostMapping("/patients/{personId}/recommendation")
-    public RecommendationDto createRecommendation(@PathVariable String personId, @Valid @RequestBody RecommendationDto recommendationDTO) {
+    public RecommendationDTO createRecommendation(@PathVariable String personId, @Valid @RequestBody RecommendationDTO recommendationDTO) {
         return nurseService.createRecommendation(personId);
     }
 }

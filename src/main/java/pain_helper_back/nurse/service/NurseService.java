@@ -5,27 +5,27 @@ import pain_helper_back.nurse.dto.*;
 import java.util.List;
 
 public interface NurseService {
-    PatientDto createPatient(PatientDto patientDto);
+    PatientDTO createPatient(PatientDTO patientDto);
 
-    PatientDto getPatientById(String personId);
+    PatientDTO getPatientById(String personId);
 
-    List<PatientDto> getAllPatients();
+    List<PatientDTO> getAllPatients();
 
     void deletePatient(String personId);
 
-    PatientDto updatePatient(String personId, PatientUpdateDto patientUpdateDto);
+    PatientDTO updatePatient(String personId, PatientUpdateDTO patientUpdateDto);
 
-    EmrDto createEmr(String personId, EmrDto emrDto);
+    EmrDTO createEmr(String personId, EmrDTO emrDto);
 
-    EmrDto getLastEmrByPatientId(String personId);
+    EmrDTO getLastEmrByPatientId(String personId);
 
-    EmrDto updateEmr(String personId, EmrUpdateDto emrUpdateDto);
+    EmrDTO updateEmr(String personId, EmrUpdateDTO emrUpdateDto);
 
-    VasDto createVAS(String personId, VasDto vasDto);
+    VasDTO createVAS(String personId, VasDTO vasDto);
 
-    VasDto updateVAS(String personId, VasDto vasDto);
+    VasDTO updateVAS(String personId, VasDTO vasDto);
 
 //    void deleteVAS(String personId);
 
-    RecommendationDto createRecommendation(String personId);
+    RecommendationDTO createRecommendation(String personId);
 }

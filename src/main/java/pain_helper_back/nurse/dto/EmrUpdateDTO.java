@@ -5,7 +5,7 @@ import lombok.Data;
 import java.time.LocalDate;
 
 @Data
-public class EmrUpdateDto {
+public class EmrUpdateDTO {
     private String gfr;
     private String childPughScore;
     private Double plt;

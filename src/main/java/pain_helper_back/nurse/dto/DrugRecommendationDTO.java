@@ -1,7 +1,7 @@
 package pain_helper_back.nurse.dto;
 
 
-public class DrugRecommendationDto {
+public class DrugRecommendationDTO {
 
     private String DrugName;
 
