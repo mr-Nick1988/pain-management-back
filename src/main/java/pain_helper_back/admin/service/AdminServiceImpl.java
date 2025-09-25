@@ -1,10 +1,11 @@
 package pain_helper_back.admin.service;
 
-import jakarta.transaction.Transactional;
+
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import pain_helper_back.admin.dto.PersonDTO;
 import pain_helper_back.admin.dto.PersonRegisterRequestDTO;
 import pain_helper_back.admin.entity.Person;
@@ -16,12 +17,12 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class AdminServiceImpl implements AdminService, CommandLineRunner {
     private final PersonRepository personRepository;
     private final ModelMapper modelMapper;
 
     @Override
-    @Transactional
     public PersonDTO createPerson(PersonRegisterRequestDTO dto) {
         if (personRepository.existsByPersonId(dto.getPersonId())) {
             throw new RuntimeException("Person with this personId already exists");
@@ -36,6 +37,7 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<PersonDTO> getAllPersons() {
         return personRepository.findAll().stream()
                 .map(person -> modelMapper.map(person, PersonDTO.class))
@@ -43,6 +45,7 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PersonDTO getPersonByPersonId(String personId) {
         Person person = personRepository.findByPersonId(personId)
                 .orElseThrow(() -> new RuntimeException("Person not found"));
@@ -51,6 +54,7 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
 
 
     @Override
+    @Transactional(readOnly = true)
     public PersonDTO getPersonById(Long id) {
         Person person = personRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Person not found"));
@@ -58,9 +62,8 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
     }
 
     @Override
-    @Transactional
-    public PersonDTO updatePerson(Long id, PersonRegisterRequestDTO dto) {
-        Person person = personRepository.findById(id)
+    public PersonDTO updatePerson(String personId, PersonRegisterRequestDTO dto) {
+        Person person = personRepository.findByPersonId(personId)
                 .orElseThrow(() -> new RuntimeException("Person not found"));
 
         // Проверяем, не занят ли новый логин
@@ -85,7 +88,6 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
     }
 
     @Override
-    @Transactional
     public void deletePerson(String personId) {
         Person person = personRepository.findByPersonId(personId)
                 .orElseThrow(() -> new RuntimeException("Person not found"));

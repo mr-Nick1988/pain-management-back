@@ -10,7 +10,7 @@ public interface AdminService {
     List<PersonDTO> getAllPersons();
     PersonDTO getPersonById(Long id);
     PersonDTO getPersonByPersonId(String personId);
-    PersonDTO updatePerson(Long id, PersonRegisterRequestDTO dto);
+    PersonDTO updatePerson(String personId, PersonRegisterRequestDTO dto);
     void deletePerson(String personId);
 }
 
