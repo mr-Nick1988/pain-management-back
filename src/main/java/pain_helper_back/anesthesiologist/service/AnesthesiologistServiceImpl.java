@@ -7,11 +7,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pain_helper_back.anesthesiologist.dto.*;
 import pain_helper_back.anesthesiologist.entity.Escalation;
-import pain_helper_back.anesthesiologist.entity.TreatmentProtocol;
+import pain_helper_back.anesthesiologist.entity.TreatmentsProtocol;
 import pain_helper_back.anesthesiologist.entity.TreatmentProtocolComment;
 import pain_helper_back.anesthesiologist.repository.ProtocolCommentRepository;
 import pain_helper_back.anesthesiologist.repository.TreatmentEscalationRepository;
-import pain_helper_back.anesthesiologist.repository.TreatmentProtocolRepository;
+import pain_helper_back.anesthesiologist.repository.TreatmentsProtocolRepository;
 import pain_helper_back.enums.EscalationPriority;
 import pain_helper_back.enums.EscalationStatus;
 import pain_helper_back.enums.ProtocolStatus;
@@ -24,7 +24,7 @@ import java.util.List;
 @Transactional
 public class AnesthesiologistServiceImpl implements AnesthesiologistServiceInterface {
     private final TreatmentEscalationRepository escalationRepository;
-    private final TreatmentProtocolRepository protocolRepository;
+    private final TreatmentsProtocolRepository protocolRepository;
     private final ProtocolCommentRepository commentRepository;
     private final ModelMapper modelMapper;
 
@@ -79,32 +79,32 @@ public class AnesthesiologistServiceImpl implements AnesthesiologistServiceInter
 
     @Override
     public ProtocolResponseDTO createProtocol(ProtocolRequestDTO protocolRequest) {
-        TreatmentProtocol protocol = modelMapper.map(protocolRequest, TreatmentProtocol.class);
+        TreatmentsProtocol protocol = modelMapper.map(protocolRequest, TreatmentsProtocol.class);
         protocol.setStatus(ProtocolStatus.DRAFT);
         protocol.setVersion(1);
-        TreatmentProtocol savedProtocol = protocolRepository.save(protocol);
+        TreatmentsProtocol savedProtocol = protocolRepository.save(protocol);
         return modelMapper.map(savedProtocol, ProtocolResponseDTO.class);
     }
 
     @Override
     public ProtocolResponseDTO approveProtocol(Long protocolId, String approvedBy) {
-        TreatmentProtocol protocol = protocolRepository.findById(protocolId)
+        TreatmentsProtocol protocol = protocolRepository.findById(protocolId)
                 .orElseThrow(() -> new RuntimeException("Protocol not found with id: " + protocolId));
 
         protocol.setStatus(ProtocolStatus.APPROVED);
         protocol.setApprovedBy(approvedBy);
         protocol.setApprovedAt(LocalDateTime.now());
-        TreatmentProtocol savedProtocol = protocolRepository.save(protocol);
+        TreatmentsProtocol savedProtocol = protocolRepository.save(protocol);
         return modelMapper.map(savedProtocol, ProtocolResponseDTO.class);
     }
 
     @Override
     public ProtocolResponseDTO rejectProtocol(Long protocolId, String rejectedReason, String rejectedBy) {
-        TreatmentProtocol protocol = protocolRepository.findById(protocolId)
+        TreatmentsProtocol protocol = protocolRepository.findById(protocolId)
                 .orElseThrow(() -> new RuntimeException("Protocol not found with id: " + protocolId));
         protocol.setStatus(ProtocolStatus.REJECTED);
         protocol.setRejectedReason(rejectedReason);
-        TreatmentProtocol savedProtocol = protocolRepository.save(protocol);
+        TreatmentsProtocol savedProtocol = protocolRepository.save(protocol);
         return modelMapper.map(savedProtocol, ProtocolResponseDTO.class);
     }
 

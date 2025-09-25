@@ -17,7 +17,7 @@ public class Recommendation {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "patient_id", nullable = false)
-    private Patient patient;
+    private Patients patients;
 
     @Column(nullable = false, length = 2000)
     private String description;
