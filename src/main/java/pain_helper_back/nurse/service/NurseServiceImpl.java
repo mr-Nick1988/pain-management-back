@@ -25,7 +25,6 @@ public class NurseServiceImpl implements NurseService {
     private final PatientRepository patientRepository;
     private final TreatmentProtocolService treatmentProtocolService;
     private final EmrRepository emrRepository;
-
     private final RecommendationRepository recommendationRepository;
     private final ModelMapper modelMapper;
 

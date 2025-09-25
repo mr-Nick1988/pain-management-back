@@ -2,7 +2,7 @@ package pain_helper_back.nurse.dto;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-import pain_helper_back.common.RecommendationStatus;
+import pain_helper_back.enums.RecommendationStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;

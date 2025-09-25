@@ -6,6 +6,7 @@ import lombok.Data;
 import pain_helper_back.enums.PatientsGenders;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -25,6 +26,7 @@ public class PatientDTO {
     @NotNull(message = "Weight is required")
     private Double weight;
 
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     private List<EmrDTO> emr;
 
