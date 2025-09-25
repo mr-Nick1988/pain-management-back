@@ -7,7 +7,7 @@ import pain_helper_back.enums.RecommendationStatus;
 
 import java.time.LocalDateTime;
 
-@Entity
+@Entity(name = "doctor_recommendation")
 
 @Data
 public class Recommendation {

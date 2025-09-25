@@ -1,32 +1,36 @@
 package pain_helper_back.nurse.dto;
 
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import pain_helper_back.nurse.PatientsGenders;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Data
 public class PatientDTO {
     @NotBlank(message = "Name is required")
-    @Size(max = 100, message = "Name must not exceed 100 characters")
-    private String name;
-
+    private String firstName;
+    @NotBlank(message = "Name is required")
+    private String lastName;
+    @NotBlank(message = "Person ID is required")
+    private String personId;
     @NotNull(message = "Date of birth is required")
-    @Past(message = "Date of birth must be in the past")
     private LocalDate dateOfBirth;
-
+    @NotNull(message = "Gender is required")
+    private PatientsGenders gender;
+    @NotNull(message = "Height is required")
+    private Double height;
     @NotNull(message = "Weight is required")
-    @Positive(message = "Weight must be positive")
     private Double weight;
 
-    @NotNull(message = "Age is required")
-    @Positive(message = "Age must be positive")
-    @Max(value = 150, message = "Age must be realistic")
-    private Integer age;
 
-    @Size(max = 50, message = "GFR must not exceed 50 characters")
-    private String gfr;
+    private List<EmrDTO> emr;
 
-    @Size(max = 50, message = "Child Pugh Score must not exceed 50 characters")
-    private String childPughScore;
+    private List<VasDTO> vas;
+
+    private List<RecommendationDTO> recommendations;
+
+
 }
