@@ -1,11 +1,12 @@
 package pain_helper_back.admin.controller;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import pain_helper_back.admin.dto.PersonDTO;
 import pain_helper_back.admin.dto.PersonRegisterRequestDTO;
 import pain_helper_back.admin.service.AdminServiceImpl;
+import pain_helper_back.validation.ValidationGroups;
 
 import java.util.List;
 
@@ -17,7 +18,7 @@ public class AdminController {
     private final AdminServiceImpl adminService;
 
     @PostMapping
-    public PersonDTO createPerson(@RequestBody @Valid PersonRegisterRequestDTO personRegisterRequestDTO) {
+    public PersonDTO createPerson(@RequestBody @Validated(ValidationGroups.Create.class) PersonRegisterRequestDTO personRegisterRequestDTO) {
         return adminService.createPerson(personRegisterRequestDTO);
     }
 
@@ -31,9 +32,9 @@ public class AdminController {
         return adminService.getPersonById(id);
     }
 
-    @PatchMapping("/{id}")
-    public PersonDTO updatePerson(@PathVariable Long id, @RequestBody @Valid PersonRegisterRequestDTO personRegisterRequestDTO) {
-        return adminService.updatePerson(id, personRegisterRequestDTO);
+    @PatchMapping("/{personId}")
+    public PersonDTO updatePerson(@PathVariable String personId, @RequestBody @Validated(ValidationGroups.Update.class) PersonRegisterRequestDTO personRegisterRequestDTO) {
+        return adminService.updatePerson(personId, personRegisterRequestDTO);
     }
 
     @DeleteMapping("/{id}")

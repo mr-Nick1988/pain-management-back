@@ -125,7 +125,6 @@ public class DoctorServiceImpl implements DoctorService {
     }
 
     @Override
-    @Transactional
     public PatientResponseDTO createPatient(PatientCreationDTO dto, String createdByLogin) {
         if (patientsRepository.existsByEmrNumber((dto.getEmrNumber()))) {
             throw new RuntimeException("Patient with emr number " + dto.getEmrNumber() + " already exists");
@@ -137,6 +136,7 @@ public class DoctorServiceImpl implements DoctorService {
         patients.setEmrNumber(dto.getEmrNumber());
         patients.setAdditionalInfo(dto.getAdditionalInfo());
         patients.setCreatedBy(createdBy);
+        patients.setPersonId(dto.getEmrNumber());
         patientsRepository.save(patients);
         return modelMapper.map(patients, PatientResponseDTO.class);
     }

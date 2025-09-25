@@ -15,6 +15,10 @@ public class Patients {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "person_id", nullable = false, unique = true)
+    private String personId;
+
+
     @Column(nullable = false, unique = true)
     private String emrNumber;
 
