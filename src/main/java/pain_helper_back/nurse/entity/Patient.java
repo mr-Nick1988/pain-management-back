@@ -2,7 +2,7 @@ package pain_helper_back.nurse.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import pain_helper_back.nurse.PatientsGenders;
+import pain_helper_back.enums.PatientsGenders;
 
 
 import java.time.LocalDate;
@@ -13,7 +13,6 @@ import java.util.List;
 @Table(name = "patients")
 @Getter
 @Setter
-@ToString
 @RequiredArgsConstructor
 @EqualsAndHashCode(of = "personId")
 public class Patient {

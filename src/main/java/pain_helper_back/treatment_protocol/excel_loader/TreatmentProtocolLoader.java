@@ -54,7 +54,6 @@ public class TreatmentProtocolLoader implements CommandLineRunner {
                 treatmentProtocol.setSodium(dataFormatter.formatCellValue(row.getCell(20)));
                 treatmentProtocol.setAvoidIfSensitivity(dataFormatter.formatCellValue(row.getCell(21)));
                 treatmentProtocol.setContraindications(dataFormatter.formatCellValue(row.getCell(22)));
-
                 treatmentProtocolRepository.save(treatmentProtocol);
             }
         }

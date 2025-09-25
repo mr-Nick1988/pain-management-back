@@ -1,7 +1,7 @@
 package pain_helper_back.nurse.dto;
 
 import lombok.Data;
-import pain_helper_back.nurse.PatientsGenders;
+import pain_helper_back.enums.PatientsGenders;
 
 import java.util.List;
 

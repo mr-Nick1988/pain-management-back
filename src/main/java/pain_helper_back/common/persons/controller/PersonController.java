@@ -1,13 +1,13 @@
-package pain_helper_back.common.controller;
+package pain_helper_back.common.persons.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
-import pain_helper_back.common.dto.ChangeCredentialsDTO;
-import pain_helper_back.common.dto.PersonLoginRequestDTO;
-import pain_helper_back.common.dto.PersonLoginResponseDTO;
-import pain_helper_back.common.service.PersonService;
+import pain_helper_back.common.persons.dto.ChangeCredentialsDTO;
+import pain_helper_back.common.persons.dto.PersonLoginRequestDTO;
+import pain_helper_back.common.persons.dto.PersonLoginResponseDTO;
+import pain_helper_back.common.persons.service.PersonService;
 
 @RestController
 @RequiredArgsConstructor

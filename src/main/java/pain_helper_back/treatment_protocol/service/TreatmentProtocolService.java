@@ -2,7 +2,7 @@ package pain_helper_back.treatment_protocol.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import pain_helper_back.common.RecommendationStatus;
+import pain_helper_back.enums.RecommendationStatus;
 import pain_helper_back.nurse.entity.*;
 import pain_helper_back.treatment_protocol.entity.TreatmentProtocol;
 import pain_helper_back.treatment_protocol.repository.TreatmentProtocolRepository;

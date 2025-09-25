@@ -3,7 +3,7 @@ package pain_helper_back.nurse.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-import pain_helper_back.nurse.PatientsGenders;
+import pain_helper_back.enums.PatientsGenders;
 
 import java.time.LocalDate;
 import java.util.List;

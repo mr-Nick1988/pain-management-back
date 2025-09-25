@@ -1,4 +1,4 @@
-package pain_helper_back.common.dto;
+package pain_helper_back.common.persons.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;

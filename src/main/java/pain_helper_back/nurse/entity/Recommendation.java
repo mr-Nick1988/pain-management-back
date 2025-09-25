@@ -3,7 +3,7 @@ package pain_helper_back.nurse.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
-import pain_helper_back.common.RecommendationStatus;
+import pain_helper_back.enums.RecommendationStatus;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
