@@ -4,8 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import pain_helper_back.admin.entity.Person;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-
 
 @Entity
 @Table(name = "patients")
@@ -15,12 +15,8 @@ public class Patients {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "person_id", nullable = false, unique = true)
-    private String personId;
-
-
-    @Column(nullable = false, unique = true)
-    private String emrNumber;
+    @Column(name = "mrn", nullable = false, unique = true)
+    private String MRN;
 
     @Column(name = "first_name", nullable = false)
     private String firstName;
@@ -28,12 +24,34 @@ public class Patients {
     @Column(name = "last_name", nullable = false)
     private String lastName;
 
+    @Column(name = "date_of_birth", nullable = false)
+    private LocalDate dateOfBirth;
+
+    @Column(nullable = false)
+    private String gender;
+
+    @Column(name = "insurance_policy_number")
+    private String insurancePolicyNumber;
+
+    @Column
+    private String phoneNumber;
+
+    @Column
+    private String email;
+
+    @Column(length = 500)
+    private String address;
+
     @Column(length = 1000)
     private String additionalInfo;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
     private Person createdBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by")
+    private Person updatedBy;
 
     @Column(nullable = false)
     private boolean active = true;

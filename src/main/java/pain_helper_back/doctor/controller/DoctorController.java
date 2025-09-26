@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import pain_helper_back.doctor.dto.*;
 import pain_helper_back.doctor.service.DoctorService;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -86,6 +87,14 @@ public class DoctorController {
     @PostMapping("/patients")
     public PatientResponseDTO createPatient(@RequestBody @Valid PatientCreationDTO dto, @RequestParam String createdBy) {
         return doctorService.createPatient(dto, createdBy);
+    }
+    @GetMapping("/patients/search")
+    public List<PatientResponseDTO> searchPatients(@RequestParam(required = false) String firstName,
+                                                   @RequestParam(required = false) String lastName,
+                                                   @RequestParam(required = false) LocalDate dateOfBirth,
+                                                   @RequestParam(required = false) String insurance,
+                                                   @RequestParam(required = false) String mrn) {
+        return doctorService.searchPatients(firstName, lastName, dateOfBirth, insurance, mrn);
     }
 
     @PatchMapping("/patients/{id}")
