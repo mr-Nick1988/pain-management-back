@@ -2,6 +2,8 @@ package pain_helper_back.doctor.service;
 
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pain_helper_back.admin.entity.Person;
@@ -30,6 +32,7 @@ public class DoctorServiceImpl implements DoctorService {
     private final PersonRepository personRepository;
     private final AuditTrailRepository auditTrailRepository;
     private final ModelMapper modelMapper;
+    private static final Logger log = LoggerFactory.getLogger(DoctorServiceImpl.class);
 
     @Override
     @Transactional(readOnly = true)
@@ -152,7 +155,6 @@ public class DoctorServiceImpl implements DoctorService {
     public PatientResponseDTO createPatient(PatientCreationDTO dto, String createdByLogin) {
         //Find doctor, who created patient
         Person createdBy = personRepository.findByLogin(createdByLogin).orElseThrow(() -> new RuntimeException("Person not found"));
-
         //search by insurance policy number
         if (dto.getInsurancePolicyNumber() != null && !dto.getInsurancePolicyNumber().trim().isEmpty()) {
             Optional<Patients> existing = patientsRepository.findByFirstNameAndLastNameAndDateOfBirthAndInsurancePolicyNumber(

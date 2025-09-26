@@ -85,7 +85,7 @@ public class DoctorController {
     }
 
     @PostMapping("/patients")
-    public PatientResponseDTO createPatient(@RequestBody @Valid PatientCreationDTO dto, @RequestParam String createdBy) {
+    public PatientResponseDTO createPatient(@RequestBody @Valid PatientCreationDTO dto, @RequestParam(defaultValue = "system") String createdBy) {
         return doctorService.createPatient(dto, createdBy);
     }
     @GetMapping("/patients/search")
