@@ -10,8 +10,8 @@ import java.util.Optional;
 
 @Repository
 public interface PatientsRepository extends JpaRepository<Patients, Long> {
-    boolean existsByMRN(String mrn);
-    Optional<Patients> findByMRN(String mrn);
+    boolean existsByMrn(String mrn);
+    Optional<Patients> findByMrn(String mrn);
     Optional<Patients> findByFirstNameAndLastNameAndDateOfBirth(String firstName, String lastName, LocalDate dateOfBirth);
     Optional<Patients> findByFirstNameAndLastNameAndDateOfBirthAndInsurancePolicyNumber(String firstName, String lastName, LocalDate dateOfBirth, String insurancePolicyNumber);
     List<Patients> findByInsurancePolicyNumber(String insurancePolicyNumber);

@@ -130,7 +130,7 @@ public class DoctorServiceImpl implements DoctorService {
         List<Patients> patients = new ArrayList<>();
         //Search by MRN
         if (mrn != null && !mrn.trim().isEmpty()) {
-            patientsRepository.findByMRN(mrn).ifPresent(patients::add);
+            patientsRepository.findByMrn(mrn).ifPresent(patients::add);
             //if MRN not found search by insurance policy number
         } else if (insurance != null && !insurance.trim().isEmpty()) {
             patients.addAll(patientsRepository.findByInsurancePolicyNumber(insurance));
@@ -187,7 +187,7 @@ public class DoctorServiceImpl implements DoctorService {
         patientsRepository.save(patients);//save to get ID (DB)
 
         //Generate unique MRN (medical record number) for hospital
-        patients.setMRN("MRN-" + patients.getId());
+        patients.setMrn("MRN-" + patients.getId());
         patientsRepository.save(patients);//renew with MRN
         //Audit trail: fixing registration for compliance
         AuditTrail audit = new AuditTrail();
@@ -202,12 +202,12 @@ public class DoctorServiceImpl implements DoctorService {
     @Override
     public PatientResponseDTO updatePatient(Long id, PatientResponseDTO dto, String updatedByLogin) {
         Patients patients = patientsRepository.findById(id).orElseThrow(() -> new RuntimeException("Patient not found"));
-        if (!patients.getMRN().equals(dto.getMRN()) && patientsRepository.existsByMRN(dto.getMRN())) {
-            throw new RuntimeException("Patient with  medical record number " + dto.getMRN() + " already exists");
+        if (!patients.getMrn().equals(dto.getMrn()) && patientsRepository.existsByMrn(dto.getMrn())) {
+            throw new RuntimeException("Patient with  medical record number " + dto.getMrn() + " already exists");
         }
         patients.setFirstName(dto.getFirstName());
         patients.setLastName(dto.getLastName());
-        patients.setMRN(dto.getMRN());
+        patients.setMrn(dto.getMrn());
         patients.setAdditionalInfo(dto.getAdditionalInfo());
         patientsRepository.save(patients);
         return modelMapper.map(patients, PatientResponseDTO.class);

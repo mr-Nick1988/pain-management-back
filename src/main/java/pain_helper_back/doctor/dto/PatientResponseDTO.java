@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 @Data
 public class PatientResponseDTO {
     private Long id;
-    private String MRN;
+    private String mrn;
     private String firstName;
     private String lastName;
     private LocalDate dateOfBirth;
