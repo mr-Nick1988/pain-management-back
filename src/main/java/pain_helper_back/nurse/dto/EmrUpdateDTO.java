@@ -2,7 +2,7 @@ package pain_helper_back.nurse.dto;
 
 import lombok.Data;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 public class EmrUpdateDTO {
@@ -12,5 +12,6 @@ public class EmrUpdateDTO {
     private Double wbc;
     private Double sat;
     private Double sodium;
-    private LocalDate createdAt = LocalDate.now();
+    private LocalDateTime updatedAt;
+    private String updatedBy;
 }

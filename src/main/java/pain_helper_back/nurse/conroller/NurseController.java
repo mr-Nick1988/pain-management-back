@@ -66,12 +66,12 @@ public class NurseController {
     public VasDTO updateVAS(@PathVariable String personId, @Valid @RequestBody VasDTO vasDto) {
         return nurseService.updateVAS(personId, vasDto);
     }
-//
-//    @DeleteMapping("/patients/{personId}/vas")
-//    @ResponseStatus(HttpStatus.NO_CONTENT)
-//    public void deleteVAS(@PathVariable String personId) {
-//        nurseService.deleteVAS(personId);
-//    }
+
+    @DeleteMapping("/patients/{personId}/vas")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteVAS(@PathVariable String personId) {
+        nurseService.deleteVAS(personId);
+    }
 
     @PostMapping("/patients/{personId}/recommendation")
     public RecommendationDTO createRecommendation(@PathVariable String personId, @Valid @RequestBody RecommendationDTO recommendationDTO) {

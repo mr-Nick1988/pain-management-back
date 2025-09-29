@@ -21,7 +21,11 @@ public class RecommendationDTO {
 
     private RecommendationStatus status;     // Статус рекомендации: pending, approved, rejected
     private List<String> notes;      // свободные комментарии
-    private LocalDateTime createdAt = LocalDateTime.now();
+
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private String updatedBy;
+    private String createdBy;
 
 
 
