@@ -34,6 +34,9 @@ public class DoctorServiceImpl implements DoctorService {
     private final ModelMapper modelMapper;
     private static final Logger log = LoggerFactory.getLogger(DoctorServiceImpl.class);
 
+
+
+    //Recommendation methods
     @Override
     @Transactional(readOnly = true)
     public List<RecommendationDTO> getAllRecommendations() {
@@ -131,17 +134,30 @@ public class DoctorServiceImpl implements DoctorService {
     @Transactional(readOnly = true)
     public List<PatientResponseDTO> searchPatients(String firstName, String lastName, LocalDate dateOfBirth, String insurance, String mrn) {
         List<Patients> patients = new ArrayList<>();
-        //Search by MRN
+        // Search by MRN if provided
         if (mrn != null && !mrn.trim().isEmpty()) {
             patientsRepository.findByMrn(mrn).ifPresent(patients::add);
-            //if MRN not found search by insurance policy number
-        } else if (insurance != null && !insurance.trim().isEmpty()) {
-            patients.addAll(patientsRepository.findByInsurancePolicyNumber(insurance));
-            //if noting found search by name and DOB
-        } else if (dateOfBirth != null && firstName != null && lastName != null) {
-            patientsRepository.findByFirstNameAndLastNameAndDateOfBirth(firstName, lastName, dateOfBirth).ifPresent(patients::add);
         }
-        return patients.stream().map(p -> modelMapper.map(p, PatientResponseDTO.class)).toList();
+        // Search by insurance policy if provided
+        if (insurance != null && !insurance.trim().isEmpty()) {
+            patients.addAll(patientsRepository.findByInsurancePolicyNumber(insurance));
+        }
+        // Search by name and DOB if provided
+        if (firstName != null && !firstName.trim().isEmpty() &&
+                lastName != null && !lastName.trim().isEmpty()) {
+            if (dateOfBirth != null) {
+                patientsRepository.findByFirstNameAndLastNameAndDateOfBirth(firstName, lastName, dateOfBirth)
+                        .ifPresent(patients::add);
+            } else {
+                //Search without date of birth - find all patients with matching names
+                patients.addAll(patientsRepository.findByFirstNameAndLastName(firstName, lastName));
+            }
+        }
+        // Remove duplicates and return the list
+        return patients.stream()
+                .distinct()
+                .map(p -> modelMapper.map(p, PatientResponseDTO.class))
+                .toList();
     }
 
     @Override

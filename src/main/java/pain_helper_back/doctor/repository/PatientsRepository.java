@@ -15,7 +15,7 @@ public interface PatientsRepository extends JpaRepository<Patients, Long> {
     Optional<Patients> findByFirstNameAndLastNameAndDateOfBirth(String firstName, String lastName, LocalDate dateOfBirth);
     Optional<Patients> findByFirstNameAndLastNameAndDateOfBirthAndInsurancePolicyNumber(String firstName, String lastName, LocalDate dateOfBirth, String insurancePolicyNumber);
     List<Patients> findByInsurancePolicyNumber(String insurancePolicyNumber);
-
+    List<Patients> findByFirstNameAndLastName(String firstName, String lastName);
    // List<Patients> findByCreatedBy(Person createdBy);
    // List<Patients> findByActiveTrue();
     List<Patients> findByActiveTrueOrderByCreatedAtDesc();
