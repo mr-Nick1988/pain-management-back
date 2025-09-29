@@ -1,6 +1,7 @@
 package pain_helper_back.external_service.dto;
 import lombok.Data;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 // --------> Примерный вид медицинских данных из HIPI KFIR Patient API
 @Data
@@ -13,5 +14,5 @@ public class ExternalEmrDTO {
     private Double hemoglobin;       // гемоглобин (пример лабораторного показателя)
     private Double creatinine;       // креатинин (для оценки почек)
     private Double bilirubin;        // билирубин (для печени)
-    private LocalDate recordDate;
+    private LocalDateTime recordDate;
 }

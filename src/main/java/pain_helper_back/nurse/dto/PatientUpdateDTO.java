@@ -3,6 +3,7 @@ package pain_helper_back.nurse.dto;
 import lombok.Data;
 import pain_helper_back.enums.PatientsGenders;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -13,13 +14,9 @@ public class PatientUpdateDTO {
     private PatientsGenders gender;
     private Double height;
     private Double weight;
+    private LocalDateTime updatedAt;
+    private String updatedBy;
 
-
-    private List<EmrDTO> emr;
-
-    private List<VasDTO> vas;
-
-    private List<RecommendationDTO> recommendations;
 
 
 }

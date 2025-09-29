@@ -4,6 +4,7 @@ import pain_helper_back.external_service.dto.ExternalEmrDTO;
 import pain_helper_back.nurse.dto.EmrDTO;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public class ExternalServiceImpl implements ExternalEmrService {
 
@@ -17,7 +18,7 @@ public class ExternalServiceImpl implements ExternalEmrService {
         emrDTO.setWbc(5.0); // нет данных во внешней системе → дефолт
         emrDTO.setSat(98.0); // тоже дефолт
         emrDTO.setSodium(140.0); // дефолт
-        emrDTO.setCreatedAt(externalEmrDTO.getRecordDate() != null ? externalEmrDTO.getRecordDate() : LocalDate.now());
+        emrDTO.setCreatedAt(externalEmrDTO.getRecordDate() != null ? externalEmrDTO.getRecordDate() : LocalDateTime.now());
         return emrDTO;
     }
 }

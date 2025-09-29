@@ -26,7 +26,9 @@ public class PatientDTO {
     @NotNull(message = "Weight is required")
     private Double weight;
 
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
+    private String createdBy;
+
 
     private List<EmrDTO> emr;
 

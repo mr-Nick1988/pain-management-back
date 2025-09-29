@@ -2,8 +2,7 @@ package pain_helper_back.nurse.dto;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 public class EmrDTO {
@@ -19,5 +18,6 @@ public class EmrDTO {
     private Double sat;//(сатурация)
     @NotNull(message = "Sodium is required")
     private Double sodium;//(натрий)
-    private LocalDate createdAt = LocalDate.now();
+    private LocalDateTime createdAt;
+    private String createdBy;
 }

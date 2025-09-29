@@ -135,12 +135,12 @@ public class NurseServiceImpl implements NurseService {
         return modelMapper.map(vas, VasDTO.class);
     }
 
-//    @Override
-//    @Transactional
-//    public void deleteVAS(String personId) {
-//        Patient patient = findPatientOrThrow(personId);
-//        Vas vas = patient.getVas().removeLast();
-//    }
+    @Override
+    @Transactional
+    public void deleteVAS(String personId) {
+        Patient patient = findPatientOrThrow(personId);
+        Vas vas = patient.getVas().removeLast();
+    }
 
     @Override
     @Transactional

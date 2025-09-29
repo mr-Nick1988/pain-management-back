@@ -25,7 +25,7 @@ public interface NurseService {
 
     VasDTO updateVAS(String personId, VasDTO vasDto);
 
-//    void deleteVAS(String personId);
+    void deleteVAS(String personId);
 
     RecommendationDTO createRecommendation(String personId);
 }
