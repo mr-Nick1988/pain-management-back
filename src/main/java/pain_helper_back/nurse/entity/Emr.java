@@ -22,6 +22,10 @@ public class Emr {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "emr_id")
     private Long id;
+    @Column(name = "height")
+    private Double height;
+    @Column(name = "weight")
+    private Double weight;
     @Column(name = "glomerular_filtration_rate")
     private String gfr;
     @Column(name = "child_pugh_score")

@@ -12,8 +12,11 @@ public class PatientUpdateDTO {
     private String firstName;
     private String lastName;
     private PatientsGenders gender;
-    private Double height;
-    private Double weight;
+    private String insurancePolicyNumber;
+    private String phoneNumber;
+    private String email;
+    private String address;
+    private String additionalInfo;
     private LocalDateTime updatedAt;
     private String updatedBy;
 

@@ -12,26 +12,33 @@ import java.util.List;
 @Getter
 @Setter
 @RequiredArgsConstructor
-@EqualsAndHashCode(of = "personId")
+@EqualsAndHashCode(of = "mrn")
 public class Patient {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "patient_id")
     private Long id;
+    @Column(name = "mrn", unique = true)
+    private String mrn;
     @Column(name = "first_name")
     private String firstName;
     @Column(name = "last_name")
     private String lastName;
-    @Column(name = "person_id", unique = true, nullable = false)
-    private String personId;
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
     @Column(name = "gender")
     private PatientsGenders gender;
-    @Column(name = "height")
-    private Double height;
-    @Column(name = "weight")
-    private Double weight;
+    @Column(name = "insurance_policy_number")
+    private String insurancePolicyNumber;
+    @Column(name = "phone_number")
+    private String phoneNumber;
+    @Column(name = "email")
+    private String email;
+    @Column(name = "address")
+    private String address;
+    @Column(name = "additional_info")
+    private String additionalInfo;
+
 
     @Column(name = "created_by",updatable = false)
     private String createdBy;
@@ -65,4 +72,5 @@ public class Patient {
     public int getAge() {
         return Period.between(dateOfBirth, LocalDate.now()).getYears();
     }
+
 }

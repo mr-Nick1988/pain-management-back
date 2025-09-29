@@ -36,7 +36,7 @@ public class TreatmentProtocolService {
                 }).toList();
 
         Integer patientAge = patient.getAge();
-        Double patientWeight = patient.getWeight();
+        Double patientWeight = patient.getEmr().getLast().getWeight();
 
         List<Recommendation> recommendations = new ArrayList<>();
 

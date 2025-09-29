@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 
 @Data
 public class EmrUpdateDTO {
+    private Double weight;
+    private Double height;
     private String gfr;
     private String childPughScore;
     private Double plt;

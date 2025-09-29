@@ -23,7 +23,7 @@ public class NurseController {
 
     @GetMapping("/patients/{personId}")
     public PatientDTO getPatientById(@PathVariable String personId) {
-        return nurseService.getPatientById(personId);
+        return nurseService.getPatientByMrn(personId);
     }
 
     @GetMapping("/patients")
@@ -49,7 +49,7 @@ public class NurseController {
 
     @GetMapping("/patients/{personId}/emr")
     public EmrDTO getEmrByPatientId(@PathVariable String personId) {
-        return nurseService.getLastEmrByPatientId(personId);
+        return nurseService.getLastEmrByPatientMrn(personId);
     }
 
     @PatchMapping("/patients/{personId}/emr")

@@ -1,5 +1,6 @@
 package pain_helper_back.nurse.dto;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -11,20 +12,24 @@ import java.util.List;
 
 @Data
 public class PatientDTO {
+    private String mrn;
     @NotBlank(message = "Name is required")
     private String firstName;
     @NotBlank(message = "Name is required")
     private String lastName;
-    @NotBlank(message = "Person ID is required")
-    private String personId;
     @NotNull(message = "Date of birth is required")
     private LocalDate dateOfBirth;
     @NotNull(message = "Gender is required")
     private PatientsGenders gender;
-    @NotNull(message = "Height is required")
-    private Double height;
-    @NotNull(message = "Weight is required")
-    private Double weight;
+    @NotBlank(message = "Insurance Policy Number is required")
+    private String insurancePolicyNumber;
+    @NotBlank(message = "Phone Number is required")
+    private String phoneNumber;
+    @Email(message = "Email is required")
+    private String email;
+    @NotBlank(message = "Address is required")
+    private String address;
+    private String additionalInfo;
 
     private LocalDateTime createdAt;
     private String createdBy;
