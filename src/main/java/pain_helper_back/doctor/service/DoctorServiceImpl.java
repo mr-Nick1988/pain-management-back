@@ -2,8 +2,6 @@ package pain_helper_back.doctor.service;
 
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pain_helper_back.admin.entity.Person;
@@ -32,7 +30,7 @@ public class DoctorServiceImpl implements DoctorService {
     private final PersonRepository personRepository;
     private final AuditTrailRepository auditTrailRepository;
     private final ModelMapper modelMapper;
-    private static final Logger log = LoggerFactory.getLogger(DoctorServiceImpl.class);
+
 
 
 
@@ -215,7 +213,6 @@ public class DoctorServiceImpl implements DoctorService {
         auditTrailRepository.save(audit);
         return modelMapper.map(patients, PatientResponseDTO.class);
     }
-
 
     @Override
     public PatientResponseDTO updatePatient(Long id, PatientResponseDTO dto, String updatedByLogin) {
