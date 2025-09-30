@@ -30,6 +30,7 @@ public class PatientDTO {
     @NotBlank(message = "Address is required")
     private String address;
     private String additionalInfo;
+    private Boolean isActive;
 
     private LocalDateTime createdAt;
     private String createdBy;

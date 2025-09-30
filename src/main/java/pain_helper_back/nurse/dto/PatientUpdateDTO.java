@@ -4,7 +4,7 @@ import lombok.Data;
 import pain_helper_back.enums.PatientsGenders;
 
 import java.time.LocalDateTime;
-import java.util.List;
+
 
 @Data
 public class PatientUpdateDTO {
@@ -19,6 +19,7 @@ public class PatientUpdateDTO {
     private String additionalInfo;
     private LocalDateTime updatedAt;
     private String updatedBy;
+    private Boolean isActive;
 
 
 

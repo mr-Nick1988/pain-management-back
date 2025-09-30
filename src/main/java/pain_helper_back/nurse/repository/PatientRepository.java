@@ -1,9 +1,9 @@
 package pain_helper_back.nurse.repository;
 
-import jakarta.validation.constraints.NotBlank;
 import org.springframework.data.jpa.repository.JpaRepository;
 import pain_helper_back.nurse.entity.Patient;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,5 +21,7 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
     Optional<Patient> findByEmail(String email);
     Optional<Patient> findByPhoneNumber(String phoneNumber);
     List<Patient> getPatientsByFirstNameAndLastName(String firstName, String lastName);
+    List<Patient> findByIsActive(Boolean isActive);
+    List<Patient> findByDateOfBirth(LocalDate dateOfBirth);
 
 }

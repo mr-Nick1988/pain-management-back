@@ -44,7 +44,7 @@ public class Patient {
     private String createdBy;
     @Column(name="updated_by")
     private String updatedBy;
-
+    private Boolean isActive;
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
     @Column(name = "updated_at")

@@ -16,9 +16,9 @@ import pain_helper_back.nurse.repository.PatientRepository;
 import pain_helper_back.nurse.repository.RecommendationRepository;
 import pain_helper_back.treatment_protocol.service.TreatmentProtocolService;
 
+
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -62,12 +62,28 @@ public class NurseServiceImpl implements NurseService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PatientDTO> getAllPatients() {
-        List<Patient> patients = patientRepository.findAll();
-        return patients.stream()
-                .map(patient -> modelMapper.map(patient, PatientDTO.class))
-                .collect(Collectors.toList());
+    public List<PatientDTO> searchPatients(String firstName, String lastName, Boolean isActive, LocalDate birthDate) {
+        if (firstName != null && lastName != null) {
+            List<Patient> patients = patientRepository.getPatientsByFirstNameAndLastName(firstName, lastName);
+            return patients.stream().map(patient -> modelMapper.map(patient, PatientDTO.class)).collect(Collectors.toList());
+        }
+        if (isActive != null) {
+            List<Patient> patients = patientRepository.findByIsActive(isActive);
+            return patients.stream().map(p -> modelMapper.map(p, PatientDTO.class)).collect(Collectors.toList());
+        }
+        if (birthDate != null) {
+            List<Patient> patients = patientRepository.findByDateOfBirth(birthDate);
+            return patients.stream().map(p -> modelMapper.map(p, PatientDTO.class)).collect(Collectors.toList());
+        }
+        else {
+            List<Patient> patients = patientRepository.findAll();
+            return patients.stream()
+                    .map(patient -> modelMapper.map(patient, PatientDTO.class))
+                    .collect(Collectors.toList());
+        }
     }
+
+
 
     @Override
     @Transactional(readOnly = true)
@@ -85,12 +101,8 @@ public class NurseServiceImpl implements NurseService {
         return modelMapper.map(patient, PatientDTO.class);
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<PatientDTO> getPatientsByFullName(String firstName, String lastName) {
-        List<Patient> patients = patientRepository.getPatientsByFirstNameAndLastName(firstName, lastName);
-        return patients.stream().map(patient -> modelMapper.map(patient, PatientDTO.class)).collect(Collectors.toList());
-    }
+
+
 
     @Override
     @Transactional
@@ -114,6 +126,9 @@ public class NurseServiceImpl implements NurseService {
         if (patientUpdateDto.getAdditionalInfo() != null)
             patient.setAdditionalInfo(patientUpdateDto.getAdditionalInfo());
 
+        if (patientUpdateDto.getIsActive() != null) {
+            patient.setIsActive(patientUpdateDto.getIsActive());
+        }
         return modelMapper.map(patient, PatientDTO.class);
     }
 

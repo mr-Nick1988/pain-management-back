@@ -2,6 +2,7 @@ package pain_helper_back.nurse.service;
 
 import pain_helper_back.nurse.dto.*;
 
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -9,14 +10,15 @@ public interface NurseService {
     PatientDTO createPatient(PatientDTO patientDto);
 
     PatientDTO getPatientByMrn(String mrn);
-
-    List<PatientDTO> getAllPatients();
-
     PatientDTO getPatientByEmail(String email);
-
     PatientDTO getPatientByPhoneNumber(String phoneNumber);
 
-    List<PatientDTO> getPatientsByFullName(String firstName, String lastName);
+    List<PatientDTO> searchPatients(
+            String firstName,
+            String lastName,
+            Boolean active,
+            LocalDate birthDate
+    );
 
     void deletePatient(String mrn);
 
