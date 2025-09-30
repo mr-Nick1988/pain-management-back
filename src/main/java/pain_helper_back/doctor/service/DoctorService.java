@@ -3,6 +3,7 @@ package pain_helper_back.doctor.service;
 
 import pain_helper_back.doctor.dto.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface DoctorService {
@@ -23,6 +24,8 @@ public interface DoctorService {
 
     //patient methods
     List<PatientResponseDTO> getAllPatients();
+
+    List<PatientResponseDTO> searchPatients(String firstName, String lastName, LocalDate dateOfBirth, String insurance, String mrn);
 
     PatientResponseDTO getPatientById(Long id);
 
