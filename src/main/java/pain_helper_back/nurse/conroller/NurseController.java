@@ -23,17 +23,17 @@ public class NurseController {
         return nurseService.createPatient(patientDto);
     }
 
-    @GetMapping("/patients/{mrn}")
+    @GetMapping("/patients/mrn/{mrn}")
     public PatientDTO getPatientByMrn(@PathVariable String mrn) {
         return nurseService.getPatientByMrn(mrn);
     }
 
-    @GetMapping("/patients/{email}")
+    @GetMapping("/patients/email/{email}")
     public PatientDTO getPatientByEmail(@PathVariable String email) {
         return nurseService.getPatientByEmail(email);
     }
 
-    @GetMapping("/patients/{phoneNumber}")
+    @GetMapping("/patients/phoneNumber/{phoneNumber}")
     public PatientDTO getPatientByPhoneNumber(@PathVariable String phoneNumber) {
         return nurseService.getPatientByPhoneNumber(phoneNumber);
     }
