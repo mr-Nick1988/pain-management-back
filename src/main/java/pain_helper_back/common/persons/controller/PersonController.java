@@ -13,15 +13,15 @@ import pain_helper_back.common.persons.service.PersonService;
 @RequiredArgsConstructor
 @RequestMapping("/api")
 @CrossOrigin(origins = "http://localhost:5173")
-@Slf4j
+@Slf4j  // Это как черный ящик в самолёте — записывает шаги системы.
+// Если пользователь пишет "я не мог залогиниться" → смотришь лог: был ли запрос, с каким логином, была ли ошибка.
 public class PersonController {
 
     private final PersonService personService;
 
     @PostMapping("/person/login")
     public PersonLoginResponseDTO login(@RequestBody @Valid PersonLoginRequestDTO loginRequest) {
-        PersonLoginResponseDTO response = personService.login(loginRequest);
-        return response;
+        return personService.login(loginRequest);
     }
 
     @PostMapping("/person/change-credentials")

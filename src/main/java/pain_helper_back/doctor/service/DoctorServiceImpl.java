@@ -4,235 +4,270 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import pain_helper_back.admin.entity.Person;
-import pain_helper_back.admin.repository.PersonRepository;
+import pain_helper_back.common.patients.dto.*;
+import pain_helper_back.common.patients.dto.exceptions.EntityExistsException;
+import pain_helper_back.common.patients.dto.exceptions.NotFoundException;
+import pain_helper_back.common.patients.entity.Emr;
+import pain_helper_back.common.patients.entity.Patient;
+import pain_helper_back.common.patients.entity.Vas;
+import pain_helper_back.common.patients.repository.PatientRepository;
+import pain_helper_back.common.patients.repository.RecommendationRepository;
 import pain_helper_back.doctor.dto.*;
-import pain_helper_back.doctor.entity.AuditTrail;
-import pain_helper_back.doctor.entity.Patients;
-import pain_helper_back.doctor.entity.Recommendation;
-import pain_helper_back.doctor.repository.AuditTrailRepository;
-import pain_helper_back.doctor.repository.PatientsRepository;
-import pain_helper_back.doctor.repository.RecommendationsRepository;
-import pain_helper_back.enums.PatientRegistrationAuditAction;
+import pain_helper_back.common.patients.entity.Recommendation;
 import pain_helper_back.enums.RecommendationStatus;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class DoctorServiceImpl implements DoctorService {
-    private final RecommendationsRepository recommendationsRepository;
-    private final PatientsRepository patientsRepository;
-    private final PersonRepository personRepository;
-    private final AuditTrailRepository auditTrailRepository;
+    private final RecommendationRepository recommendationRepository;
+    private final PatientRepository patientRepository;
     private final ModelMapper modelMapper;
 
 
+    private Patient findPatientOrThrow(String mrn) {
+        return patientRepository.findByMrn(mrn)
+                .orElseThrow(() -> new NotFoundException("Patient with this " + mrn + " not found"));
+    }
 
+
+    @Override
+    public PatientDTO createPatient(PatientDTO patientDto) {
+        if (patientDto.getEmail() != null && patientRepository.existsByEmail(patientDto.getEmail())) {
+            throw new EntityExistsException("Patient with this email already exists");
+        }
+        if (patientRepository.existsByPhoneNumber(patientDto.getPhoneNumber())) {
+            throw new EntityExistsException("Patient with this phone number already exists");
+        }
+        Patient patient = modelMapper.map(patientDto, Patient.class);
+        patientRepository.save(patient);
+        String mrn = String.format("%06d", patient.getId());
+        patient.setMrn(mrn);
+        patientRepository.save(patient);
+        return modelMapper.map(patient, PatientDTO.class);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PatientDTO getPatientByMrn(String mrn) {
+        Patient patient = findPatientOrThrow(mrn);
+        return modelMapper.map(patient, PatientDTO.class);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PatientDTO getPatientByEmail(String email) {
+        Patient patient = patientRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("Patient with this email not found"));
+        return modelMapper.map(patient, PatientDTO.class);
+    }
+
+    @Override
+    public PatientDTO getPatientByPhoneNumber(String phoneNumber) {
+        Patient patient = patientRepository.findByPhoneNumber(phoneNumber)
+                .orElseThrow(() -> new NotFoundException("Patient with this phone number not found"));
+        return modelMapper.map(patient, PatientDTO.class);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PatientDTO> searchPatients(String firstName, String lastName, Boolean isActive, LocalDate birthDate) {
+        if (firstName != null && lastName != null) {
+            List<Patient> patients = patientRepository.getPatientsByFirstNameAndLastName(firstName, lastName);
+            return patients.stream().map(patient -> modelMapper.map(patient, PatientDTO.class)).collect(Collectors.toList());
+        }
+        if (isActive != null) {
+            List<Patient> patients = patientRepository.findByIsActive(isActive);
+            return patients.stream().map(p -> modelMapper.map(p, PatientDTO.class)).collect(Collectors.toList());
+        }
+        if (birthDate != null) {
+            List<Patient> patients = patientRepository.findByDateOfBirth(birthDate);
+            return patients.stream().map(p -> modelMapper.map(p, PatientDTO.class)).collect(Collectors.toList());
+        } else {
+            List<Patient> patients = patientRepository.findAll();
+            return patients.stream()
+                    .map(patient -> modelMapper.map(patient, PatientDTO.class))
+                    .collect(Collectors.toList());
+        }
+    }
+
+
+    @Override
+    public void deletePatient(String mrn) {
+        patientRepository.deleteByMrn(mrn);
+    }
+
+    @Override
+    public PatientDTO updatePatient(String mrn, PatientUpdateDTO patientUpdateDto) {
+        Patient patient = findPatientOrThrow(mrn);
+
+        if (patientUpdateDto.getFirstName() != null) patient.setFirstName(patientUpdateDto.getFirstName());
+        if (patientUpdateDto.getLastName() != null) patient.setLastName(patientUpdateDto.getLastName());
+        if (patientUpdateDto.getGender() != null) patient.setGender(patientUpdateDto.getGender());
+        if (patientUpdateDto.getInsurancePolicyNumber() != null)
+            patient.setInsurancePolicyNumber(patientUpdateDto.getInsurancePolicyNumber());
+        if (patientUpdateDto.getPhoneNumber() != null) patient.setPhoneNumber(patientUpdateDto.getPhoneNumber());
+        if (patientUpdateDto.getEmail() != null) patient.setEmail(patientUpdateDto.getEmail());
+        if (patientUpdateDto.getAddress() != null) patient.setAddress(patientUpdateDto.getAddress());
+        if (patientUpdateDto.getAdditionalInfo() != null)
+            patient.setAdditionalInfo(patientUpdateDto.getAdditionalInfo());
+
+        if (patientUpdateDto.getIsActive() != null) {
+            patient.setIsActive(patientUpdateDto.getIsActive());
+        }
+        return modelMapper.map(patient, PatientDTO.class);
+    }
+
+    @Override
+    public EmrDTO createEmr(String mrn, EmrDTO emrDto) {
+        Patient patient = findPatientOrThrow(mrn);
+        Emr emr = modelMapper.map(emrDto, Emr.class);
+        emr.setPatient(patient);
+        patient.getEmr().add(emr);
+        return modelMapper.map(emr, EmrDTO.class);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public EmrDTO getLastEmrByPatientMrn(String mrn) {
+        Patient patient = findPatientOrThrow(mrn);
+        Emr emr = patient.getEmr().getLast();
+        return modelMapper.map(emr, EmrDTO.class);
+    }
+
+    @Override
+    public EmrDTO updateEmr(String mrn, EmrUpdateDTO emrUpdateDto) {
+        Patient patient = findPatientOrThrow(mrn);
+        Emr emr = patient.getEmr().getLast();
+        if (emrUpdateDto.getHeight() != null) emr.setHeight(emrUpdateDto.getHeight());
+        if (emrUpdateDto.getWeight() != null) emr.setWeight(emrUpdateDto.getWeight());
+        if (emrUpdateDto.getGfr() != null) emr.setGfr(emrUpdateDto.getGfr());
+        if (emrUpdateDto.getSat() != null) emr.setSat(emrUpdateDto.getSat());
+        if (emrUpdateDto.getPlt() != null) emr.setPlt(emrUpdateDto.getPlt());
+        if (emrUpdateDto.getWbc() != null) emr.setWbc(emrUpdateDto.getWbc());
+        if (emrUpdateDto.getChildPughScore() != null) emr.setChildPughScore(emrUpdateDto.getChildPughScore());
+        if (emrUpdateDto.getSodium() != null) emr.setSodium(emrUpdateDto.getSodium());
+
+        return modelMapper.map(emr, EmrDTO.class);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<EmrDTO> getAllEmrByPatientMrn(String mrn) {
+        Patient patient = findPatientOrThrow(mrn);
+        List<Emr> emrs = patient.getEmr();
+        return emrs.stream().map(emr -> modelMapper.map(emr, EmrDTO.class)).collect(Collectors.toList());
+    }
 
     //Recommendation methods
-    @Override
-    @Transactional(readOnly = true)
-    public List<RecommendationDTO> getAllRecommendations() {
-        List<Recommendation> recommendations = recommendationsRepository.findAllByOrderByCreatedAtDesc();
-        return recommendations.stream()
-                .map(recommendation -> modelMapper.map(recommendation, RecommendationDTO.class))
-                .toList();
-    }
 
     @Override
     @Transactional(readOnly = true)
-    public RecommendationDTO getRecommendationById(Long id) {
-        Recommendation recommendation = recommendationsRepository.findById(id).orElseThrow(() -> new RuntimeException("Recommendation not found"));
-        return modelMapper.map(recommendation, RecommendationDTO.class);
+    public List<RecommendationWithVasDTO> getAllPendingRecommendations() {
+        // 1. Достаём из базы все рекомендации, у которых статус = PENDING
+        List<Recommendation> recommendations = recommendationRepository.findByStatus(RecommendationStatus.PENDING);
+
+        // 2. Пробегаемся по каждой найденной рекомендации и формируем комбинированный DTO
+        return recommendations.stream().map(recommendation -> {
+            // 2.1. Получаем MRN пациента, которому принадлежит эта рекомендация
+            String mrn = recommendation.getPatient().getMrn();
+
+            // 2.2. Маппим саму Recommendation в RecommendationWithVasDTO (DTO-обёртку)
+            RecommendationWithVasDTO recommendationWithVasDTO =
+                    modelMapper.map(recommendation, RecommendationWithVasDTO.class);
+
+            // 2.3. Внутри RecommendationDTO есть опциональное поле patientMrn,
+            // которое мы вручную задаём — оно нужно фронту для идентификации пациента
+            recommendationWithVasDTO.getRecommendation().setPatientMrn(mrn);
+
+            // 2.4. Берём у пациента последнюю VAS-жалобу (getLast()) и тоже маппим в VasDTO
+            VasDTO vasDTO = modelMapper.map(recommendation.getPatient().getVas().getLast(), VasDTO.class);
+
+            // 2.5. Подшиваем VasDTO внутрь нашего комбинированного RecommendationWithVasDTO
+            recommendationWithVasDTO.setVas(vasDTO);
+            // 2.6. Возвращаем готовый объект
+            return recommendationWithVasDTO;
+        }).toList();
     }
 
     @Override
-    public RecommendationDTO createRecommendation(RecommendationRequestDTO dto, String createdByLogin) {
-        Person createdBy = personRepository.findByLogin(createdByLogin).orElseThrow(() -> new RuntimeException("Person not found"));
-        Patients patients = patientsRepository.findById(dto.getPatientId()).orElseThrow(() -> new RuntimeException("Patient not found"));
+    @Transactional(readOnly = true)
+    public RecommendationWithVasDTO getLastRecommendationByMrn(String mrn) {
+        Patient patient = findPatientOrThrow(mrn);
+        Recommendation recommendation = patient.getRecommendations().getLast();
+        Vas vas = patient.getVas().getLast();
+        RecommendationWithVasDTO dto = new RecommendationWithVasDTO();
+        dto.setRecommendation(modelMapper.map(recommendation, RecommendationDTO.class));
+        dto.setVas(modelMapper.map(vas, VasDTO.class));
+        dto.getRecommendation().setPatientMrn(patient.getMrn());
+        return dto;               //===============> Если status == PENDING, фронт рисует кнопки Approve/Reject.
+                                  //Если status == APPROVED или REJECTED, кнопок нет — чисто просмотр.
 
-        Recommendation recommendation = new Recommendation();
-        recommendation.setPatients(patients);
-        recommendation.setDescription(dto.getDescription());
-        recommendation.setJustification(dto.getJustification());
-        recommendation.setStatus(RecommendationStatus.PENDING);
-        recommendation.setCreatedBy(createdBy);
-        recommendationsRepository.save(recommendation);
-        return modelMapper.map(recommendation, RecommendationDTO.class);
+
     }
 
+
     @Override
-    public RecommendationDTO approveRecommendation(Long id, RecommendationApprovalDTO dto, String approvedByLogin) {
-        Recommendation recommendation = recommendationsRepository.findById(id).orElseThrow(() -> new RuntimeException("Recommendation not found"));
-        if (!recommendation.getStatus().equals(RecommendationStatus.PENDING)) {
-            throw new RuntimeException("Only PENDING recommendations can be approved");
+    public RecommendationDTO approveRecommendation(String mrn, RecommendationApprovalRejectionDTO dto) {
+        Patient patient = findPatientOrThrow(mrn);
+        Recommendation recommendation = patient.getRecommendations().getLast();
+        // Проверяем, что рекомендация ещё в статусе PENDING
+        if (recommendation.getStatus() != RecommendationStatus.PENDING) {
+            throw new IllegalStateException("Recommendation is not in PENDING status");
         }
-        Person updatedBy = personRepository.findByLogin(approvedByLogin).orElseThrow(() -> new RuntimeException("Person not found"));
         recommendation.setStatus(RecommendationStatus.APPROVED);
-        recommendation.setDoctorComment(dto.getComment());
-        recommendation.setUpdatedBy(updatedBy);
-        recommendationsRepository.save(recommendation);
+        // Если есть комментарий от доктора — добавляем в список
+        if (dto.getComment() != null && !dto.getComment().isBlank()) {
+            recommendation.getComments().add(dto.getComment());
+        }
+        recommendationRepository.save(recommendation);
         return modelMapper.map(recommendation, RecommendationDTO.class);
     }
 
     @Override
-    public RecommendationDTO rejectRecommendation(Long id, RecommendationApprovalDTO dto, String rejectedByLogin) {
-        Recommendation recommendation = recommendationsRepository.findById(id).orElseThrow(() -> new RuntimeException("Recommendation not found"));
-        if (!recommendation.getStatus().equals(RecommendationStatus.PENDING)) {
-            throw new RuntimeException("Only PENDING recommendations can be rejected");
+    public RecommendationDTO rejectRecommendation(String mrn, RecommendationApprovalRejectionDTO dto) {
+        Patient patient = findPatientOrThrow(mrn);
+        Recommendation recommendation = patient.getRecommendations().getLast();
+        if (recommendation.getStatus() != RecommendationStatus.PENDING) {
+            throw new IllegalStateException("Recommendation is not in PENDING status");
         }
-        if (dto.getRejectedReason() == null || dto.getRejectedReason().trim().isEmpty()) {
-            throw new RuntimeException("Rejected reason is required");
-        }
-        Person updatedBy = personRepository.findByLogin(rejectedByLogin).orElseThrow(() -> new RuntimeException("Person not found"));
         recommendation.setStatus(RecommendationStatus.REJECTED);
-        recommendation.setRejectionReason(dto.getRejectedReason());
-        recommendation.setDoctorComment(dto.getComment());
-        recommendation.setUpdatedBy(updatedBy);
-        recommendationsRepository.save(recommendation);
+        if (dto.getRejectedReason() == null || dto.getRejectedReason().isBlank()) {
+            throw new IllegalArgumentException("Rejected reason must be provided");
+        }
+        recommendation.setRejectedReason(dto.getRejectedReason());
+        // Дополнительно: если есть комментарий — добавляем
+        if (dto.getComment() != null && !dto.getComment().isBlank()) {
+            recommendation.getComments().add(dto.getComment());
+        }
+        recommendationRepository.save(recommendation);
         return modelMapper.map(recommendation, RecommendationDTO.class);
     }
 
-    @Override
-    public RecommendationDTO deleteRecommendation(Long id, String deletedByLogin) {
-        Recommendation recommendation = recommendationsRepository.findById(id).orElseThrow(() -> new RuntimeException("Recommendation not found"));
-        recommendationsRepository.delete(recommendation);
-        return modelMapper.map(recommendation, RecommendationDTO.class);
-    }
 
-    @Override
-    public RecommendationDTO updateRecommendation(Long id, RecommendationRequestDTO dto, String updatedByLogin) {
-        Recommendation recommendation = recommendationsRepository.findById(id).orElseThrow(() -> new RuntimeException("Recommendation not found"));
-        Person updatedBy = personRepository.findByLogin(updatedByLogin).orElseThrow(() -> new RuntimeException("Person not found"));
-        Patients patients = patientsRepository.findById(dto.getPatientId()).orElseThrow(() -> new RuntimeException("Patient not found"));
-        recommendation.setPatients(patients);
-        recommendation.setDescription(dto.getDescription());
-        recommendation.setJustification(dto.getJustification());
-        recommendation.setUpdatedBy(updatedBy);
-        recommendationsRepository.save(recommendation);
-        return modelMapper.map(recommendation, RecommendationDTO.class);
-    }
+// TODO Данный функционал по Аудиту будет реализован в отдельном классе Spring AOP для перехвата всех действий
+//1)
+// @Aspect
+//@Component
+// public class AuditTrailAspect
+//        AuditTrail audit = new AuditTrail();
+//        audit.setAction(PatientRegistrationAuditAction.PATIENT_REGISTERED);//enum
+//        audit.setPerson(createdBy);
+//        audit.setPid(patients.getId());
+//        auditTrailRepository.save(audit);
 
-    //Patient methods
-    @Override
-    @Transactional(readOnly = true)
-    public List<PatientResponseDTO> getAllPatients() {
-        List<Patients> patients = patientsRepository.findByActiveTrueOrderByCreatedAtDesc();
-        return patients.stream()
-                .map(patient -> modelMapper.map(patient, PatientResponseDTO.class))
-                .toList();
-    }
+//2)
+//  Создать Enum для всех действий для AuditTrailRepository
+//PatientAuditAction → создание/удаление/обновление пациента.
+// EmrAuditAction → изменения в медкартах.
+// VasAuditAction → жалобы.
+//RecommendationAuditAction → approve/reject/modify.
+//AuthAuditAction → логин/логаут.
+//3)
+//Пометить все методы для адита @Auditable(action = PatientRegistrationAuditAction.RECOMMENDATION_REJECTED)
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<PatientResponseDTO> searchPatients(String firstName, String lastName, LocalDate dateOfBirth, String insurance, String mrn) {
-        List<Patients> patients = new ArrayList<>();
-        // Search by MRN if provided
-        if (mrn != null && !mrn.trim().isEmpty()) {
-            patientsRepository.findByMrn(mrn).ifPresent(patients::add);
         }
-        // Search by insurance policy if provided
-        if (insurance != null && !insurance.trim().isEmpty()) {
-            patients.addAll(patientsRepository.findByInsurancePolicyNumber(insurance));
-        }
-        // Search by name and DOB if provided
-        if (firstName != null && !firstName.trim().isEmpty() &&
-                lastName != null && !lastName.trim().isEmpty()) {
-            if (dateOfBirth != null) {
-                patientsRepository.findByFirstNameAndLastNameAndDateOfBirth(firstName, lastName, dateOfBirth)
-                        .ifPresent(patients::add);
-            } else {
-                //Search without date of birth - find all patients with matching names
-                patients.addAll(patientsRepository.findByFirstNameAndLastName(firstName, lastName));
-            }
-        }
-        // Remove duplicates and return the list
-        return patients.stream()
-                .distinct()
-                .map(p -> modelMapper.map(p, PatientResponseDTO.class))
-                .toList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public PatientResponseDTO getPatientById(Long id) {
-        Patients patients = patientsRepository.findById(id).orElseThrow(() -> new RuntimeException("Patient not found"));
-        return modelMapper.map(patients, PatientResponseDTO.class);
-    }
-
-    @Override
-    public PatientResponseDTO createPatient(PatientCreationDTO dto, String createdByLogin) {
-        //Find doctor, who created patient
-        Person createdBy = personRepository.findByLogin(createdByLogin).orElseThrow(() -> new RuntimeException("Person not found"));
-        //search by insurance policy number
-        if (dto.getInsurancePolicyNumber() != null && !dto.getInsurancePolicyNumber().trim().isEmpty()) {
-            Optional<Patients> existing = patientsRepository.findByFirstNameAndLastNameAndDateOfBirthAndInsurancePolicyNumber(
-                    dto.getFirstName(), dto.getLastName(), dto.getDateOfBirth(), dto.getInsurancePolicyNumber());
-
-            if (existing.isPresent()) {
-                //Patient find-reregistration(back existing data)
-                Patients patient = existing.get();
-                patient.setUpdatedBy(createdBy);//renew, who is the last who have updated this patient
-                patientsRepository.save(patient);
-                //Audit trail: fixing reregistration for compliance
-                AuditTrail audit = new AuditTrail();
-                audit.setAction(PatientRegistrationAuditAction.PATIENT_RE_REGISTERED);//enum4ik
-                audit.setPerson(createdBy);
-                audit.setPid(patient.getId());// PID - id for the medical system
-                auditTrailRepository.save(audit);
-                return modelMapper.map(patient, PatientResponseDTO.class);
-            }
-        }
-        //New patient - create EMR (electronic medical record)
-        Patients patients = new Patients();
-        patients.setFirstName(dto.getFirstName());
-        patients.setLastName(dto.getLastName());
-        patients.setDateOfBirth(dto.getDateOfBirth());
-        patients.setGender(dto.getGender());
-        patients.setInsurancePolicyNumber(dto.getInsurancePolicyNumber());
-        patients.setPhoneNumber(dto.getPhoneNumber());
-        patients.setEmail(dto.getEmail());
-        patients.setAddress(dto.getAddress());
-        patients.setAdditionalInfo(dto.getAdditionalInfo());
-        patients.setCreatedBy(createdBy);
-        patientsRepository.save(patients);//save to get ID (DB)
-
-        //Generate unique MRN (medical record number) for hospital
-        patients.setMrn("MRN-" + patients.getId());
-        patientsRepository.save(patients);//renew with MRN
-        //Audit trail: fixing registration for compliance
-        AuditTrail audit = new AuditTrail();
-        audit.setAction(PatientRegistrationAuditAction.PATIENT_REGISTERED);//enum
-        audit.setPerson(createdBy);
-        audit.setPid(patients.getId());
-        auditTrailRepository.save(audit);
-        return modelMapper.map(patients, PatientResponseDTO.class);
-    }
-
-    @Override
-    public PatientResponseDTO updatePatient(Long id, PatientResponseDTO dto, String updatedByLogin) {
-        Patients patients = patientsRepository.findById(id).orElseThrow(() -> new RuntimeException("Patient not found"));
-        if (!patients.getMrn().equals(dto.getMrn()) && patientsRepository.existsByMrn(dto.getMrn())) {
-            throw new RuntimeException("Patient with  medical record number " + dto.getMrn() + " already exists");
-        }
-        patients.setFirstName(dto.getFirstName());
-        patients.setLastName(dto.getLastName());
-        patients.setMrn(dto.getMrn());
-        patients.setAdditionalInfo(dto.getAdditionalInfo());
-        patientsRepository.save(patients);
-        return modelMapper.map(patients, PatientResponseDTO.class);
-    }
-
-    @Override
-    public PatientResponseDTO deletePatient(Long id, String deletedByLogin) {
-        Patients patients = patientsRepository.findById(id).orElseThrow(() -> new RuntimeException("Patient not found"));
-        patients.setActive(false);
-        patientsRepository.save(patients);
-        return modelMapper.map(patients, PatientResponseDTO.class);
-    }
-}

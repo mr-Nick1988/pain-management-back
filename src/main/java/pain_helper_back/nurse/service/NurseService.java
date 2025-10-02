@@ -1,6 +1,6 @@
 package pain_helper_back.nurse.service;
 
-import pain_helper_back.nurse.dto.*;
+import pain_helper_back.common.patients.dto.*;
 
 
 import java.time.LocalDate;
@@ -16,7 +16,7 @@ public interface NurseService {
     List<PatientDTO> searchPatients(
             String firstName,
             String lastName,
-            Boolean active,
+            Boolean isActive,
             LocalDate birthDate
     );
 

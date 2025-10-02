@@ -4,16 +4,16 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
-import pain_helper_back.nurse.entity.Recommendation;
-import pain_helper_back.nurse.dto.*;
-import pain_helper_back.nurse.dto.exceptions.EntityExistsException;
-import pain_helper_back.nurse.dto.exceptions.NotFoundException;
-import pain_helper_back.nurse.entity.Emr;
-import pain_helper_back.nurse.entity.Patient;
-import pain_helper_back.nurse.entity.Vas;
-import pain_helper_back.nurse.repository.EmrRepository;
-import pain_helper_back.nurse.repository.PatientRepository;
-import pain_helper_back.nurse.repository.RecommendationRepository;
+import pain_helper_back.common.patients.dto.*;
+import pain_helper_back.common.patients.entity.Recommendation;
+import pain_helper_back.common.patients.dto.exceptions.EntityExistsException;
+import pain_helper_back.common.patients.dto.exceptions.NotFoundException;
+import pain_helper_back.common.patients.entity.Emr;
+import pain_helper_back.common.patients.entity.Patient;
+import pain_helper_back.common.patients.entity.Vas;
+import pain_helper_back.common.patients.repository.EmrRepository;
+import pain_helper_back.common.patients.repository.PatientRepository;
+import pain_helper_back.common.patients.repository.RecommendationRepository;
 import pain_helper_back.treatment_protocol.service.TreatmentProtocolService;
 
 
@@ -201,6 +201,10 @@ public class NurseServiceImpl implements NurseService {
         Vas vas = patient.getVas().getLast();
 
         // 🔹 Алгоритм генерации рекомендации
+        // Проверка на существование рекомендации со статусом PENDING
+//        if (patient.getRecommendations().stream().anyMatch(r -> r.getStatus().equals("PENDING"))) {
+//            throw new EntityExistsException("Recommendation with this status already exists");
+//        }
         Recommendation recommendation = treatmentProtocolService.generateRecommendation(emr, vas, patient);
 
         recommendation.setPatient(patient);

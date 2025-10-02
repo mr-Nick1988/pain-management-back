@@ -35,7 +35,7 @@ public class PersonService {
         Person person = personRepository.findByLogin(request.getCurrentLogin())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // В дальнейшем здесь должна быть проверка пароля с использованием хеширования
+        //TODO В дальнейшем здесь должна быть проверка пароля с использованием хеширования
         if (!person.getPassword().equals(request.getOldPassword())) {
             throw new RuntimeException("Invalid old password");
         }

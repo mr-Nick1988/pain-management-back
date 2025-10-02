@@ -1,39 +1,61 @@
 package pain_helper_back.doctor.service;
 
 
+import pain_helper_back.common.patients.dto.*;
 import pain_helper_back.doctor.dto.*;
 
 import java.time.LocalDate;
 import java.util.List;
 
 public interface DoctorService {
+
+    //======================= Same with Nurse Methods =======================
+    PatientDTO createPatient(PatientDTO patientDto);
+    PatientDTO getPatientByMrn(String mrn);
+    PatientDTO getPatientByEmail(String email);
+    PatientDTO getPatientByPhoneNumber(String phoneNumber);
+
+    List<PatientDTO> searchPatients(
+            String firstName,
+            String lastName,
+            Boolean isActive,
+            LocalDate birthDate
+    );
+
+    void deletePatient(String mrn);
+
+
+    PatientDTO updatePatient(String mrn, PatientUpdateDTO patientUpdateDto);
+
+    EmrDTO createEmr(String mrn, EmrDTO emrDto);
+
+    EmrDTO getLastEmrByPatientMrn(String mrn);
+
+    EmrDTO updateEmr(String mrn, EmrUpdateDTO emrUpdateDto);
+//===================================================================================================//
+
+    List<EmrDTO> getAllEmrByPatientMrn(String mrn);   // дополнительный функционал (можно добавить ещё кнопку)
+
+
+
     //recommendation methods
-    List<RecommendationDTO> getAllRecommendations();
+    List<RecommendationWithVasDTO> getAllPendingRecommendations();  // Именно тут потребуется открыть опциональное поле из RecommendationDTO private String patientMrn;
 
-    RecommendationDTO getRecommendationById(Long id);
+    RecommendationWithVasDTO getLastRecommendationByMrn(String mrn);
 
-    RecommendationDTO createRecommendation(RecommendationRequestDTO dto, String createdByLogin);
+    RecommendationDTO approveRecommendation(String mrn, RecommendationApprovalRejectionDTO dto);
 
-    RecommendationDTO approveRecommendation(Long id, RecommendationApprovalDTO dto, String approvedByLogin);
+    RecommendationDTO rejectRecommendation(String mrn, RecommendationApprovalRejectionDTO dto);
 
-    RecommendationDTO rejectRecommendation(Long id, RecommendationApprovalDTO dto, String rejectedByLogin);
 
-    RecommendationDTO deleteRecommendation(Long id, String deletedByLogin);
 
-    RecommendationDTO updateRecommendation(Long id, RecommendationRequestDTO dto, String updatedByLogin);
 
-    //patient methods
-    List<PatientResponseDTO> getAllPatients();
 
-    List<PatientResponseDTO> searchPatients(String firstName, String lastName, LocalDate dateOfBirth, String insurance, String mrn);
 
-    PatientResponseDTO getPatientById(Long id);
 
-    PatientResponseDTO createPatient(PatientCreationDTO dto, String createdByLogin);
 
-    PatientResponseDTO updatePatient(Long id, PatientResponseDTO dto, String updatedByLogin);
 
-    PatientResponseDTO deletePatient(Long id, String deletedByLogin);
+
 
 
 }

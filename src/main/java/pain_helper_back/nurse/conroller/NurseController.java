@@ -2,10 +2,11 @@ package pain_helper_back.nurse.conroller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import pain_helper_back.nurse.dto.*;
+import pain_helper_back.common.patients.dto.*;
 import pain_helper_back.nurse.service.NurseService;
 
 import java.time.LocalDate;
@@ -15,6 +16,7 @@ import java.util.List;
 @RequestMapping("/api/nurse")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "http://localhost:5173")
+@Slf4j
 public class NurseController {
     private final NurseService nurseService;
 
@@ -67,7 +69,7 @@ public class NurseController {
     }
 
     @GetMapping("/patients/{mrn}/emr")
-    public EmrDTO getEmrByPatientId(@PathVariable String mrn) {
+    public EmrDTO getEmrByPatintMrn(@PathVariable String mrn) {
         return nurseService.getLastEmrByPatientMrn(mrn);
     }
 
