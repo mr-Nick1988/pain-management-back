@@ -1,9 +1,8 @@
 package pain_helper_back.external_service.service;
 
 import pain_helper_back.external_service.dto.ExternalEmrDTO;
-import pain_helper_back.nurse.dto.EmrDTO;
+import pain_helper_back.common.patients.dto.EmrDTO;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class ExternalServiceImpl implements ExternalEmrService {

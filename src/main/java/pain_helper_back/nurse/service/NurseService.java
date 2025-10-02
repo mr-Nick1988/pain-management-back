@@ -1,31 +1,40 @@
 package pain_helper_back.nurse.service;
 
-import pain_helper_back.nurse.dto.*;
+import pain_helper_back.common.patients.dto.*;
 
+
+import java.time.LocalDate;
 import java.util.List;
 
 public interface NurseService {
     PatientDTO createPatient(PatientDTO patientDto);
 
-    PatientDTO getPatientById(String personId);
+    PatientDTO getPatientByMrn(String mrn);
+    PatientDTO getPatientByEmail(String email);
+    PatientDTO getPatientByPhoneNumber(String phoneNumber);
 
-    List<PatientDTO> getAllPatients();
+    List<PatientDTO> searchPatients(
+            String firstName,
+            String lastName,
+            Boolean isActive,
+            LocalDate birthDate
+    );
 
-    void deletePatient(String personId);
+    void deletePatient(String mrn);
 
-    PatientDTO updatePatient(String personId, PatientUpdateDTO patientUpdateDto);
+    PatientDTO updatePatient(String mrn, PatientUpdateDTO patientUpdateDto);
 
-    EmrDTO createEmr(String personId, EmrDTO emrDto);
+    EmrDTO createEmr(String mrn, EmrDTO emrDto);
 
-    EmrDTO getLastEmrByPatientId(String personId);
+    EmrDTO getLastEmrByPatientMrn(String mrn);
 
-    EmrDTO updateEmr(String personId, EmrUpdateDTO emrUpdateDto);
+    EmrDTO updateEmr(String mrn, EmrUpdateDTO emrUpdateDto);
 
-    VasDTO createVAS(String personId, VasDTO vasDto);
+    VasDTO createVAS(String mrn, VasDTO vasDto);
 
-    VasDTO updateVAS(String personId, VasDTO vasDto);
+    VasDTO updateVAS(String mrn, VasDTO vasDto);
 
-    void deleteVAS(String personId);
+    void deleteVAS(String mrn);
 
-    RecommendationDTO createRecommendation(String personId);
+    RecommendationDTO createRecommendation(String mrn);
 }

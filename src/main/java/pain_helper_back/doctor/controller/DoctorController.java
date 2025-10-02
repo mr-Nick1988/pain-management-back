@@ -3,7 +3,10 @@ package pain_helper_back.doctor.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import pain_helper_back.common.patients.dto.*;
 import pain_helper_back.doctor.dto.*;
 import pain_helper_back.doctor.service.DoctorService;
 
@@ -19,91 +22,99 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class DoctorController {
+
     private final DoctorService doctorService;
 
-    // === RECOMMENDATIONS ENDPOINTS ===
-
-    @GetMapping("/recommendations")
-    public List<RecommendationDTO> getAllRecommendations() {
-        return doctorService.getAllRecommendations();
-    }
-
-    @GetMapping("/recommendations/{id}")
-    public RecommendationDTO getRecommendationById(@PathVariable Long id) {
-        return doctorService.getRecommendationById(id);
-    }
-
-    @PostMapping("/recommendations")
-    public RecommendationDTO createRecommendation(
-            @RequestBody @Valid RecommendationRequestDTO dto,
-            @RequestParam String createdBy) {
-        return doctorService.createRecommendation(dto, createdBy);
-    }
-
-    @PostMapping("/recommendations/{id}/approve")
-    public RecommendationDTO approveRecommendation(
-            @PathVariable Long id,
-            @RequestBody @Valid RecommendationApprovalDTO dto,
-            @RequestParam String approvedBy) {
-
-        return doctorService.approveRecommendation(id, dto, approvedBy);
-    }
-
-    @PostMapping("/recommendations/{id}/reject")
-    public RecommendationDTO rejectRecommendation(
-            @PathVariable Long id,
-            @RequestBody @Valid RecommendationApprovalDTO dto,
-            @RequestParam String rejectedBy) {
-        return doctorService.rejectRecommendation(id, dto, rejectedBy);
-    }
-
-    @PatchMapping("/recommendations/{id}")
-    public RecommendationDTO updateRecommendation(
-            @PathVariable Long id,
-            @RequestBody @Valid RecommendationRequestDTO dto,
-            @RequestParam String updatedBy) {
-        return doctorService.updateRecommendation(id, dto, updatedBy);
-    }
-
-    @DeleteMapping("/recommendations/{id}")
-    public RecommendationDTO deleteRecommendation(
-            @PathVariable Long id,
-            @RequestParam String deletedBy) {
-        return doctorService.deleteRecommendation(id, deletedBy);
-    }
-
-    // === PATIENTS ENDPOINTS ===
-
-    @GetMapping("/patients")
-    public List<PatientResponseDTO> getAllPatients() {
-        return doctorService.getAllPatients();
-    }
-
-    @GetMapping("/patients/{id}")
-    public PatientResponseDTO getPatientById(@PathVariable Long id) {
-        return doctorService.getPatientById(id);
-    }
+    // ================= PATIENTS ================= //
 
     @PostMapping("/patients")
-    public PatientResponseDTO createPatient(@RequestBody @Valid PatientCreationDTO dto, @RequestParam(defaultValue = "system") String createdBy) {
-        return doctorService.createPatient(dto, createdBy);
-    }
-    @GetMapping("/patients/search")
-    public List<PatientResponseDTO> searchPatients(@RequestParam(required = false) String firstName,
-                                                   @RequestParam(required = false) String lastName,
-                                                   @RequestParam(required = false) LocalDate dateOfBirth,
-                                                   @RequestParam(required = false) String insurance,
-                                                   @RequestParam(required = false) String mrn) {
-        return doctorService.searchPatients(firstName, lastName, dateOfBirth, insurance, mrn);
+    public PatientDTO createPatient(@RequestBody @Valid PatientDTO patientDto) {
+        return doctorService.createPatient(patientDto);
     }
 
-    @PatchMapping("/patients/{id}")
-    public PatientResponseDTO updatePatient(@PathVariable Long id, @RequestBody PatientResponseDTO dto, @RequestParam String updatedBy) {
-        return doctorService.updatePatient(id, dto, updatedBy);
+    @GetMapping("/patients/mrn/{mrn}")
+    public PatientDTO getPatientByMrn(@PathVariable String mrn) {
+        return doctorService.getPatientByMrn(mrn);
     }
 
-    @DeleteMapping("/patients/{id}")
-    public PatientResponseDTO deletePatient(@PathVariable Long id, @RequestParam String deletedBy) {
-        return doctorService.deletePatient(id, deletedBy);
+    @GetMapping("/patients/email/{email}")
+    public PatientDTO getPatientByEmail(@PathVariable String email) {
+        return doctorService.getPatientByEmail(email);
+    }
+
+    @GetMapping("/patients/phone/{phoneNumber}")
+    public PatientDTO getPatientByPhoneNumber(@PathVariable String phoneNumber) {
+        return doctorService.getPatientByPhoneNumber(phoneNumber);
+    }
+
+    @GetMapping("/patients")
+    public List<PatientDTO> searchPatients(
+            @RequestParam(required = false) String firstName,
+            @RequestParam(required = false) String lastName,
+            @RequestParam(required = false) Boolean isActive,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate birthDate
+    ) {
+        return doctorService.searchPatients(firstName, lastName, isActive, birthDate);
+    }
+
+    @DeleteMapping("/patients/{mrn}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deletePatient(@PathVariable String mrn) {
+        doctorService.deletePatient(mrn);
+    }
+
+    @PatchMapping("/patients/{mrn}")
+    public PatientDTO updatePatient(@PathVariable String mrn, @RequestBody @Valid PatientUpdateDTO patientUpdateDto) {
+        return doctorService.updatePatient(mrn, patientUpdateDto);
+    }
+
+    // ================= EMR ================= //
+
+    @PostMapping("/patients/{mrn}/emr")
+    public EmrDTO createEmr(@PathVariable String mrn, @RequestBody @Valid EmrDTO emrDto) {
+        return doctorService.createEmr(mrn, emrDto);
+    }
+
+    @GetMapping("/patients/{mrn}/emr/last")
+    public EmrDTO getLastEmrByPatientMrn(@PathVariable String mrn) {
+        return doctorService.getLastEmrByPatientMrn(mrn);
+    }
+
+    @PatchMapping("/patients/{mrn}/emr")
+    public EmrDTO updateEmr(@PathVariable String mrn, @RequestBody @Valid EmrUpdateDTO emrUpdateDto) {
+        return doctorService.updateEmr(mrn, emrUpdateDto);
+    }
+
+    @GetMapping("/patients/{mrn}/emr")
+    public List<EmrDTO> getAllEmrByPatientMrn(@PathVariable String mrn) {
+        return doctorService.getAllEmrByPatientMrn(mrn);
+    }
+
+    // ================= RECOMMENDATIONS ================= //
+
+    @GetMapping("/recommendations/pending")
+    public List<RecommendationWithVasDTO> getAllPendingRecommendations() {
+        return doctorService.getAllPendingRecommendations();
+    }
+
+    @GetMapping("/patients/{mrn}/recommendations/last")
+    public RecommendationWithVasDTO getLastRecommendationByMrn(@PathVariable String mrn) {
+        return doctorService.getLastRecommendationByMrn(mrn);
+    }
+
+    @PostMapping("/patients/{mrn}/recommendations/approve")
+    public RecommendationDTO approveRecommendation(
+            @PathVariable String mrn,
+            @RequestBody @Valid RecommendationApprovalRejectionDTO dto
+    ) {
+        return doctorService.approveRecommendation(mrn, dto);
+    }
+
+    @PostMapping("/patients/{mrn}/recommendations/reject")
+    public RecommendationDTO rejectRecommendation(
+            @PathVariable String mrn,
+            @RequestBody @Valid RecommendationApprovalRejectionDTO dto
+    ) {
+        return doctorService.rejectRecommendation(mrn, dto);
     }
 }

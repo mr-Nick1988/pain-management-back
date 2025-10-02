@@ -1,9 +1,11 @@
 package pain_helper_back.treatment_protocol.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import pain_helper_back.common.patients.entity.*;
+import pain_helper_back.enums.DrugRoute;
 import pain_helper_back.enums.RecommendationStatus;
-import pain_helper_back.nurse.entity.*;
 import pain_helper_back.treatment_protocol.entity.TreatmentProtocol;
 import pain_helper_back.treatment_protocol.repository.TreatmentProtocolRepository;
 
@@ -14,6 +16,7 @@ import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TreatmentProtocolService {
     private final TreatmentProtocolRepository treatmentProtocolRepository;
 
@@ -36,7 +39,7 @@ public class TreatmentProtocolService {
                 }).toList();
 
         Integer patientAge = patient.getAge();
-        Double patientWeight = patient.getWeight();
+        Double patientWeight = patient.getEmr().getLast().getWeight();
 
         List<Recommendation> recommendations = new ArrayList<>();
 
@@ -49,11 +52,11 @@ public class TreatmentProtocolService {
             DrugRecommendation altDrug = new DrugRecommendation();
 
             recommendation.getDrugs().add(mainDrug);
-            recommendation.getAlternativeDrugs().add(altDrug);
+            recommendation.getDrugs().add(altDrug);
 
             // Заполняем общие поля (route, полевые служебные данные) можно здесь или в апликаторах
-            mainDrug.setRoute(tp.getRoute());
-            altDrug.setRoute(tp.getRoute());
+            mainDrug.setRoute(DrugRoute.valueOf(tp.getRoute()));
+            altDrug.setRoute(DrugRoute.valueOf(tp.getRoute()));
 
             // Применяем возрастные правила
             applyAgeAdjustment(mainDrug, recommendation, tp, 1, patientAge);
@@ -98,10 +101,8 @@ public class TreatmentProtocolService {
 
         Integer limit = extractFirstInt(ageAdjustment); // берём первое число (например 75 или 18)
         if (limit == null) {
-            // не смогли распарсить число — безопасно разрешаем и записываем в notes, чтобы посмотреть
-            fillDrugFromProtocol(drug, tp, drugIndex);
-            recommendation.getNotes().add("Warning: unable to parse age rule '" + ageAdjustment + "'");
-            return;
+            // не смогли распарсить число
+            throw new IllegalArgumentException("Invalid protocol config: " + ageAdjustment);
         }
 
         // Логика  протокола:
@@ -111,13 +112,13 @@ public class TreatmentProtocolService {
             if (patientAge <= limit) {
                 fillDrugFromProtocol(drug, tp, drugIndex);
             } else {
-                recommendation.getNotes().add("First drug avoid: patient age (" + patientAge + ") > " + limit);
+                recommendation.getComments().add("First drug avoid: patient age (" + patientAge + ") > " + limit);
             }
         } else { // drugIndex == 2
             if (patientAge >= limit) {
                 fillDrugFromProtocol(drug, tp, drugIndex);
             } else {
-                recommendation.getNotes().add("Second drug avoid: patient age (" + patientAge + ") < " + limit);
+                recommendation.getComments().add("Second drug avoid: patient age (" + patientAge + ") < " + limit);
             }
         }
     }
@@ -165,7 +166,7 @@ public class TreatmentProtocolService {
         if (weightRule == null || weightRule.trim().isEmpty() || weightRule.toUpperCase().contains("NA")) return;
 
         // Если препарат ранее был отвергнут по возрасту (или не заполнен) — не применяем весовую корректировку
-        boolean drugHasInfo =  (drug.getActiveMoiety() != null && !drug.getActiveMoiety().isBlank());
+        boolean drugHasInfo = (drug.getActiveMoiety() != null && !drug.getActiveMoiety().isBlank());
         if (!drugHasInfo) return;
 
         // ищем последнее число
@@ -181,18 +182,18 @@ public class TreatmentProtocolService {
             // корректировка дозы
             String newDose = lastNumber + " mg";
             drug.setDosing(newDose);
-            recommendation.getNotes().add("Dose adjusted for weight <50kg: set dosing to " + newDose
+            recommendation.getComments().add("Dose adjusted for weight <50kg: set dosing to " + newDose
                     + " for " + (drug.getDrugName() != null ? drug.getDrugName() : drug.getActiveMoiety()));
         } else if (suffix.contains("h")) {
             // корректировка интервала
             String newInterval = lastNumber + "h";
             drug.setInterval(newInterval);
-            recommendation.getNotes().add("Interval adjusted for weight <50kg: set interval to " + newInterval
+            recommendation.getComments().add("Interval adjusted for weight <50kg: set interval to " + newInterval
                     + " for " + (drug.getDrugName() != null ? drug.getDrugName() : drug.getActiveMoiety()));
         } else {
             // неизвестный суффикс — просто логируем заметку, не ломая данные
-            recommendation.getNotes().add("Weight rule parsed but unknown unit '" + suffix + "' in '" + weightRule + "'");
-        }
+            log.error("Unknown unit '{}' in weight rule '{}'", suffix, weightRule);
+            throw new IllegalArgumentException("Invalid weight rule: " + weightRule);        }
     }
 
     // Вспомогательная: извлекает первое целое число из строки (например из ">75 years - avoid" даст 75)
@@ -208,10 +209,6 @@ public class TreatmentProtocolService {
         return null;
     }
 }
-
-
-
-
 
 
 //*@Service
