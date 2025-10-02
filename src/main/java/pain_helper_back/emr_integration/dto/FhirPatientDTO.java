@@ -34,7 +34,7 @@ public class FhirPatientDTO {
     @Size(max = 20, message = "Gender must not exceed 20 characters")
     private String gender;
     /**
-     * Идентификаторы пациента из FHIR системы (MRN, SSN, страховой полис и т.д.).
+     * Идентификаторы пациента из FHIR системы (MRN, страховой полис и т.д.).
      * FHIR Patient.identifier - может быть несколько идентификаторов разных типов.
      */
     private List<FhirIdentifierDTO> identifiers;

@@ -378,7 +378,6 @@ public class HapiFhirClient {
         if (fhirObservation.hasSubject()) {
             dto.setPatientReference(fhirObservation.getSubject().getReference());
         }
-
         return dto;
     }
 }
