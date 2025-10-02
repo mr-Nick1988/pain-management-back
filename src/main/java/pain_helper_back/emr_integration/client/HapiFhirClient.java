@@ -51,7 +51,7 @@ public class HapiFhirClient {
      */
     private final IGenericClient fhirClient;
 
-    /**
+    /*
      * Получить пациента из FHIR сервера по ID.
      *
      * ЧТО ПРОИСХОДИТ:
@@ -106,7 +106,7 @@ public class HapiFhirClient {
         }
     }
 
-    /**
+    /*
      * Поиск пациентов по имени и дате рождения.
      *
      * ЧТО ПРОИСХОДИТ:
@@ -164,7 +164,7 @@ public class HapiFhirClient {
             log.error("Error searching patients in FHIR server: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to search patients in FHIR server", e);
         }
-        /**
+        /*
          * Получить лабораторные показатели (Observations) для пациента.
          *
          * ЧТО ТАКОЕ OBSERVATION В FHIR:
@@ -223,7 +223,7 @@ public class HapiFhirClient {
         }
     }
 
-    /**
+    /*
      * Конвертирует FHIR Patient ресурс в наш FhirPatientDTO.
      *
      * ЗАЧЕМ НУЖНА КОНВЕРТАЦИЯ:
@@ -312,7 +312,7 @@ public class HapiFhirClient {
         return dto;
     }
 
-    /**
+    /*
      * Конвертирует FHIR Observation ресурс в наш FhirObservationDTO.
      *
      * ЧТО ИЗВЛЕКАЕМ ИЗ FHIR OBSERVATION:

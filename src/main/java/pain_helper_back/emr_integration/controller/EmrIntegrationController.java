@@ -106,7 +106,7 @@ public class EmrIntegrationController {
         
         return emrIntegrationService.convertObservationsToEmr(observations, createdBy);
     }
-    
+
     /**
      * Проверить, был ли пациент уже импортирован ранее.
      * Возвращает статус импорта и внутренний EMR номер.
@@ -117,8 +117,8 @@ public class EmrIntegrationController {
         String internalEmrNumber = emrIntegrationService.getInternalEmrNumber(fhirPatientId);
         return new ImportCheckResponse(alreadyImported, internalEmrNumber);
     }
-    
-    private record ImportCheckResponse(boolean alreadyImported, String internalEmrNumber) {
+
+    public record ImportCheckResponse(boolean alreadyImported, String internalEmrNumber) {
 
     }
 }

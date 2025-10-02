@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
-/**
+/*
  * Генератор моковых EMR данных для разработки и тестирования.
  *
  * ЗАЧЕМ НУЖЕН ЭТОТ КЛАСС:
