@@ -4,6 +4,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import pain_helper_back.common.patients.dto.EmrDTO;
+import pain_helper_back.common.patients.entity.Emr;
+import pain_helper_back.common.patients.entity.Patient;
+import pain_helper_back.common.patients.repository.EmrRepository;
+import pain_helper_back.common.patients.repository.PatientRepository;
 import pain_helper_back.emr_integration.client.HapiFhirClient;
 import pain_helper_back.emr_integration.dto.EmrImportResultDTO;
 import pain_helper_back.emr_integration.dto.FhirObservationDTO;
@@ -12,7 +17,7 @@ import pain_helper_back.emr_integration.entity.EmrMapping;
 import pain_helper_back.emr_integration.repository.EmrMappingRepository;
 import pain_helper_back.enums.EmrSourceType;
 import pain_helper_back.enums.MatchConfidence;
-import pain_helper_back.nurse.dto.EmrDTO;
+import pain_helper_back.enums.PatientsGenders;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,6 +34,7 @@ import java.util.stream.Collectors;
  * 3. Присваивает внутренние EMR номера (уникальные идентификаторы в нашей системе)
  * 4. Конвертирует медицинские данные из FHIR формата в наш формат
  * 5. Избегает дубликатов пациентов (Patient Reconciliation)
+ * 6. СОЗДАЕТ ЗАПИСИ В ОБЩЕЙ ТАБЛИЦЕ common.patients (Patient и Emr)
  *
  * ТРАНЗАКЦИОННОСТЬ:
  * - @Transactional на уровне класса - все методы изменения данных в одной транзакции
@@ -39,12 +45,19 @@ import java.util.stream.Collectors;
 @Slf4j
 @Transactional  // По умолчанию для всех методов (можно переопределить)
 public class EmrIntegrationServiceImpl implements EmrIntegrationService {
+
     // Клиент для работы с FHIR сервером (получение данных пациентов)
     private final HapiFhirClient hapiFhirClient;
+
     // Репозиторий для сохранения связи: внешний FHIR ID ↔ внутренний EMR номер
     private final EmrMappingRepository emrMappingRepository;
+
     // Генератор моковых (тестовых) пациентов с реалистичными данными
     private final MockEmrDataGenerator mockEmrDataGenerator;
+
+    // Репозитории для работы с общей логикой пациентов (common/patients)
+    private final PatientRepository patientRepository;
+    private final EmrRepository emrRepository;
 
     /*
      * МЕТОД 1: Импорт пациента из FHIR системы другой больницы.
@@ -55,7 +68,9 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
      * 3. Если новый - получаем данные из FHIR сервера
      * 4. Получаем лабораторные анализы (креатинин, тромбоциты и т.д.)
      * 5. Присваиваем внутренний EMR номер (EMR-XXXXXXXX)
-     * 6. Сохраняем связь в БД
+     * 6. Сохраняем связь в БД (EmrMapping)
+     * 7. СОЗДАЕМ ПАЦИЕНТА в общей таблице (common.patients.entity.Patient)
+     * 8. СОЗДАЕМ МЕДИЦИНСКУЮ КАРТУ (common.patients.entity.Emr) с лабораторными данными
      *
      * ЗАЧЕМ: Чтобы врач видел медицинскую историю пациента из другой больницы
      * и мог правильно назначить обезболивающее (учитывая функцию почек/печени)
@@ -112,10 +127,14 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
             log.info("Successfully saved EMR mapping: externalId={}, internalEmr={}",
                     fhirPatientId, internalEmrNumber);
 
-            // ШАГ 6: Формируем результат импорта
+            // ШАГ 6-7: Создаем Patient и Emr в общей таблице (ОБЩИЙ МЕТОД)
+            // ВАЖНО: Используем общий метод для устранения дублирования кода
+            Long patientId = createPatientAndEmrFromFhir(fhirPatient, observations, internalEmrNumber, importedBy);
+
+            // ШАГ 8: Формируем результат импорта
             EmrImportResultDTO result = EmrImportResultDTO.success("Patient imported successfully from FHIR server");
             result.setExternalPatientIdInFhirResource(fhirPatientId);
-            result.setInternalPatientId(null);  // TODO: Создать в doctor.entity.Patient
+            result.setInternalPatientId(patientId);  // ID пациента в общей таблице
             result.setMatchConfidence(MatchConfidence.NO_MATCH);  // Новый пациент
             result.setNewPatientCreated(true);  // Создан новый пациент
             result.setSourceType(EmrSourceType.FHIR_SERVER);
@@ -156,6 +175,8 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
      * 2. Генерируются лабораторные анализы (креатинин, тромбоциты и т.д.)
      * 3. Присваивается внутренний EMR номер
      * 4. Сохраняется в БД с sourceType = MOCK_GENERATOR
+     * 5. СОЗДАЕТСЯ Patient в common.patients.entity.Patient
+     * 6. СОЗДАЕТСЯ Emr в common.patients.entity.Emr
      *
      * ЗАЧЕМ:
      * - Фронтенд-разработчик: "Дай 50 пациентов для тестирования UI"
@@ -198,10 +219,14 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
             mapping.setImportedBy(createdBy);
             emrMappingRepository.save(mapping);
 
-            // ШАГ 5: Формируем результат
+            // ШАГ 5-6: Создаем Patient и Emr в общей таблице (ОБЩИЙ МЕТОД)
+            // ВАЖНО: Используем общий метод для устранения дублирования кода
+            Long patientId = createPatientAndEmrFromFhir(mockPatient, observations, internalEmrNumber, createdBy);
+
+            // ШАГ 7: Формируем результат
             EmrImportResultDTO result = EmrImportResultDTO.success("Mock patient generated and imported successfully");
             result.setExternalPatientIdInFhirResource(mockPatient.getPatientIdInFhirResource());
-            result.setInternalPatientId(null);  // TODO: Создать в doctor.entity.Patient
+            result.setInternalPatientId(patientId);  // ID пациента в общей таблице
             result.setMatchConfidence(MatchConfidence.NO_MATCH);
             result.setNewPatientCreated(true);
             result.setSourceType(EmrSourceType.MOCK_GENERATOR);
@@ -436,8 +461,10 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
         return "EMR-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 
-    /**
+    /*
      * Импорт одного мокового пациента (вспомогательный метод для batch).
+     *
+     * ПОЛНЫЙ ЦИКЛ с использованием общего метода createPatientAndEmrFromFhir().
      */
     private EmrImportResultDTO importMockPatient(FhirPatientDTO mockPatient, String createdBy) {
         try {
@@ -451,16 +478,106 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
             mapping.setImportedBy(createdBy);
             emrMappingRepository.save(mapping);
 
+            // Генерируем лабораторные данные
+            List<FhirObservationDTO> observations = mockEmrDataGenerator
+                    .generateObservationForPatient(mockPatient.getPatientIdInFhirResource());
+
+            // Создаем Patient и Emr в общей таблице (ОБЩИЙ МЕТОД)
+            Long patientId = createPatientAndEmrFromFhir(mockPatient, observations, internalEmrNumber, createdBy);
+
             EmrImportResultDTO result = EmrImportResultDTO.success("Mock patient imported");
             result.setExternalPatientIdInFhirResource(mockPatient.getPatientIdInFhirResource());
+            result.setInternalPatientId(patientId);
             result.setNewPatientCreated(true);
             result.setSourceType(EmrSourceType.MOCK_GENERATOR);
+            result.setObservationsImported(observations.size());
             return result;
 
         } catch (Exception e) {
             log.error("Failed to import mock patient: {}", e.getMessage());
             return EmrImportResultDTO.failure("Import failed: " + e.getMessage());
         }
+    }
+
+    /*
+     * ОБЩИЙ МЕТОД: Создать Patient и Emr в общей таблице из FHIR данных.
+     *
+     * ИСПОЛЬЗУЕТСЯ В:
+     * - importPatientFromFhir() - импорт из реального FHIR сервера
+     * - generateAndImportMockPatient() - генерация моковых пациентов
+     * - importMockPatient() - batch импорт моковых пациентов
+     *
+     * УСТРАНЯЕТ ДУБЛИРОВАНИЕ КОДА.
+     *
+     * ЧТО ДЕЛАЕТ:
+     * 1. Создает запись в common.patients.entity.Patient
+     * 2. Создает запись в common.patients.entity.Emr с лабораторными данными
+     * 3. Связывает Emr с Patient через foreign key
+     * 4. Возвращает ID созданного пациента
+     *
+     * @param fhirPatient данные пациента из FHIR
+     * @param observations лабораторные показатели из FHIR
+     * @param internalEmrNumber внутренний EMR номер (используется как MRN)
+     * @param createdBy кто создал запись
+     * @return ID созданного пациента в таблице Patient
+     */
+    private Long createPatientAndEmrFromFhir(
+            FhirPatientDTO fhirPatient,
+            List<FhirObservationDTO> observations,
+            String internalEmrNumber,
+            String createdBy) {
+
+        // Создаем пациента в общей таблице
+        Patient patient = new Patient();
+        patient.setMrn(internalEmrNumber);
+        patient.setFirstName(fhirPatient.getFirstName());
+        patient.setLastName(fhirPatient.getLastName());
+        patient.setDateOfBirth(fhirPatient.getDateOfBirth());
+        patient.setGender(convertGender(fhirPatient.getGender()));
+        patient.setPhoneNumber(fhirPatient.getPhoneNumber());
+        patient.setEmail(fhirPatient.getEmail());
+        patient.setAddress(fhirPatient.getAddress());
+        patient.setIsActive(true);
+        patient.setCreatedBy(createdBy);
+        Patient savedPatient = patientRepository.save(patient);
+
+        log.info("Created Patient: mrn={}, name={} {}",
+                internalEmrNumber, patient.getFirstName(), patient.getLastName());
+
+        // Создаем медицинскую карту с лабораторными показателями
+        Emr emr = new Emr();
+        emr.setPatient(savedPatient);
+        emr.setCreatedBy(createdBy);
+
+        // Извлекаем показатели из FHIR Observations
+        for (FhirObservationDTO obs : observations) {
+            String loincCode = obs.getLoincCode();
+            Double value = obs.getValue();
+            if (value == null) continue;
+
+            switch (loincCode) {
+                case "2160-0": emr.setGfr(calculateGfrCategory(value)); break;
+                case "777-3": emr.setPlt(value); break;
+                case "6690-2": emr.setWbc(value); break;
+                case "2951-2": emr.setSodium(value); break;
+                case "59408-5": emr.setSat(value); break;
+            }
+        }
+
+        // Дефолтные значения
+        if (emr.getGfr() == null) emr.setGfr("Unknown");
+        if (emr.getPlt() == null) emr.setPlt(200.0);
+        if (emr.getWbc() == null) emr.setWbc(7.0);
+        if (emr.getSodium() == null) emr.setSodium(140.0);
+        if (emr.getSat() == null) emr.setSat(98.0);
+        emr.setChildPughScore("N/A");
+
+        emrRepository.save(emr);
+
+        log.info("Created Emr: gfr={}, plt={}, wbc={}",
+                emr.getGfr(), emr.getPlt(), emr.getWbc());
+
+        return savedPatient.getId();
     }
 
     /*
@@ -498,5 +615,26 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
         if (estimatedGfr >= 30) return "30-59 (Moderate decrease)";  // Умеренное снижение
         if (estimatedGfr >= 15) return "15-29 (Severe decrease)";  // Тяжелое снижение
         return "<15 (Kidney failure)";  // Почечная недостаточность
+    }
+
+    /*
+     * Конвертирует gender из String в PatientsGenders enum.
+     *
+     * ЗАЧЕМ: В FHIR gender приходит как String ("male", "female"),
+     * а в нашей БД хранится как enum PatientsGenders.
+     *
+     * @param gender строка из FHIR ("male", "female", "other", "unknown")
+     * @return PatientsGenders enum (MALE, FEMALE) или null если не распознано
+     */
+    private PatientsGenders convertGender(String gender) {
+        if (gender == null) return null;
+
+        String genderUpper = gender.toUpperCase();
+        if (genderUpper.contains("MALE") && !genderUpper.contains("FEMALE")) {
+            return PatientsGenders.MALE;
+        } else if (genderUpper.contains("FEMALE")) {
+            return PatientsGenders.FEMALE;
+        }
+        return null;  // Unknown gender
     }
 }

@@ -4,11 +4,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import pain_helper_back.common.patients.dto.EmrDTO;
 import pain_helper_back.emr_integration.dto.EmrImportResultDTO;
 import pain_helper_back.emr_integration.dto.FhirObservationDTO;
 import pain_helper_back.emr_integration.dto.FhirPatientDTO;
 import pain_helper_back.emr_integration.service.EmrIntegrationService;
-import pain_helper_back.nurse.dto.EmrDTO;
 
 import java.util.List;
 
