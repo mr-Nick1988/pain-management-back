@@ -537,6 +537,15 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
         patient.setPhoneNumber(fhirPatient.getPhoneNumber());
         patient.setEmail(fhirPatient.getEmail());
         patient.setAddress(fhirPatient.getAddress());
+        
+        // Извлекаем страховой полис из identifiers
+        if (fhirPatient.getIdentifiers() != null) {
+            fhirPatient.getIdentifiers().stream()
+                    .filter(id -> "INS".equals(id.getType()))
+                    .findFirst()
+                    .ifPresent(insurance -> patient.setInsurancePolicyNumber(insurance.getValue()));
+        }
+        
         patient.setIsActive(true);
         patient.setCreatedBy(createdBy);
         Patient savedPatient = patientRepository.save(patient);
@@ -556,11 +565,14 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
             if (value == null) continue;
 
             switch (loincCode) {
-                case "2160-0": emr.setGfr(calculateGfrCategory(value)); break;
-                case "777-3": emr.setPlt(value); break;
-                case "6690-2": emr.setWbc(value); break;
-                case "2951-2": emr.setSodium(value); break;
-                case "59408-5": emr.setSat(value); break;
+                case "2160-0": emr.setGfr(calculateGfrCategory(value)); break;  // Креатинин → GFR
+                case "777-3": emr.setPlt(value); break;  // Тромбоциты
+                case "6690-2": emr.setWbc(value); break;  // Лейкоциты
+                case "2951-2": emr.setSodium(value); break;  // Натрий
+                case "59408-5": emr.setSat(value); break;  // Сатурация
+                case "8302-2": emr.setHeight(value); break;  // Рост
+                case "29463-7": emr.setWeight(value); break;  // Вес
+                case "1975-2": emr.setChildPughScore(calculateChildPughFromBilirubin(value)); break;  // Билирубин → Child-Pugh
             }
         }
 
@@ -570,7 +582,7 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
         if (emr.getWbc() == null) emr.setWbc(7.0);
         if (emr.getSodium() == null) emr.setSodium(140.0);
         if (emr.getSat() == null) emr.setSat(98.0);
-        emr.setChildPughScore("N/A");
+        if (emr.getChildPughScore() == null) emr.setChildPughScore("A");  // Дефолт: нормальная печень
 
         emrRepository.save(emr);
 
@@ -615,6 +627,45 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
         if (estimatedGfr >= 30) return "30-59 (Moderate decrease)";  // Умеренное снижение
         if (estimatedGfr >= 15) return "15-29 (Severe decrease)";  // Тяжелое снижение
         return "<15 (Kidney failure)";  // Почечная недостаточность
+    }
+
+    /*
+     * Рассчитать упрощенный Child-Pugh Score по билирубину.
+     *
+     * МЕДИЦИНСКОЕ ОБЪЯСНЕНИЕ:
+     * Child-Pugh Score = Оценка функции печени (5-15 баллов)
+     * Используется для корректировки дозы препаратов при печеночной недостаточности.
+     *
+     * ПОЛНЫЙ Child-Pugh требует 5 параметров:
+     * 1. Билирубин (общий)
+     * 2. Альбумин (белок крови)
+     * 3. Протромбиновое время (свертываемость)
+     * 4. Асцит (жидкость в животе) - клиническая оценка
+     * 5. Энцефалопатия (нарушение сознания) - клиническая оценка
+     *
+     * УПРОЩЕННЫЙ РАСЧЕТ (только по билирубину):
+     * - Билирубин < 2.0 mg/dL → Class A (5-6 баллов) = Нормальная печень
+     * - Билирубин 2.0-3.0 mg/dL → Class B (7-9 баллов) = Умеренная дисфункция (снижение дозы на 25-50%)
+     * - Билирубин > 3.0 mg/dL → Class C (10-15 баллов) = Тяжелая дисфункция (многие препараты противопоказаны)
+     *
+     * ЗАЧЕМ: Печень метаболизирует большинство обезболивающих.
+     * При печеночной недостаточности препараты накапливаются → передозировка!
+     *
+     * ПРИМЕЧАНИЕ: Это упрощенная версия для моковых данных.
+     * В реальной системе нужны все 5 параметров для точного расчета.
+     *
+     * @param bilirubin билирубин в mg/dL (норма: 0.3-1.2)
+     * @return Child-Pugh класс (A, B, C)
+     */
+    private String calculateChildPughFromBilirubin(double bilirubin) {
+        // Упрощенный расчет только по билирубину
+        if (bilirubin < 2.0) {
+            return "A";  // Нормальная печень (5-6 баллов)
+        } else if (bilirubin < 3.0) {
+            return "B";  // Умеренная дисфункция (7-9 баллов)
+        } else {
+            return "C";  // Тяжелая дисфункция (10-15 баллов)
+        }
     }
 
     /*

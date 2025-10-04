@@ -353,6 +353,10 @@ public class HapiFhirClient {
         // Дата измерения
         if (fhirObservation.hasEffectiveDateTimeType()) {
             dto.setEffectiveDateTime(LocalDateTime.ofInstant(
+                    fhirObservation.getEffectiveDateTimeType().getValue().toInstant(),
+                    ZoneId.systemDefault()));
+        } else if (fhirObservation.hasEffectiveInstantType()) {
+            dto.setEffectiveDateTime(LocalDateTime.ofInstant(
                     fhirObservation.getEffectiveInstantType().getValue().toInstant(),
                     ZoneId.systemDefault()));
         }

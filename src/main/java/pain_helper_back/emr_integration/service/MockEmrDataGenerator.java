@@ -183,6 +183,27 @@ public class MockEmrDataGenerator {
                 "%",
                 95.0, 100.0
         ));
+        
+        // Рост (Height)
+        observations.add(createObservation(
+                patientFhirId,
+                "8302-2",
+                "Body Height",
+                150.0 + (faker.random().nextDouble() * 50.0), // 150-200 cm
+                "cm",
+                150.0, 200.0
+        ));
+        
+        // Вес (Weight)
+        observations.add(createObservation(
+                patientFhirId,
+                "29463-7",
+                "Body Weight",
+                50.0 + (faker.random().nextDouble() * 70.0), // 50-120 kg
+                "kg",
+                50.0, 100.0
+        ));
+        
         log.debug("Generated {} observations for patient {}", observations.size(), patientFhirId);
         return observations;
     }

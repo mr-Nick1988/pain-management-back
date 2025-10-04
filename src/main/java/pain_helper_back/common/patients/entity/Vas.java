@@ -33,12 +33,18 @@ public class Vas {
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
-        this.createdBy = "TODO: взять из контекста текущего пользователя";
+        // Устанавливаем createdBy только если не задан явно
+        if (this.createdBy == null) {
+            this.createdBy = "system";
+        }
     }
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
-        this.updatedBy = "TODO: взять из контекста текущего пользователя";
+        // Устанавливаем updatedBy только если не задан явно
+        if (this.updatedBy == null) {
+            this.updatedBy = "system";
+        }
     }
     @ManyToOne
     @JoinColumn(name = "patient_id")
