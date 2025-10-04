@@ -26,7 +26,7 @@ public class TreatmentProtocolService {
 
     /**
      * Текущая сигнатура возвращает single Recommendation (первую соответствующую).
-     * Если нужно вернуть все, поменяй сигнатуру на List<Recommendation>.
+     * Если нужно вернуть все, меняем сигнатуру на List<Recommendation>.
      */
     public Recommendation generateRecommendation(Emr emr, Vas vas, Patient patient) {
         Integer painLevel = vas.getPainLevel();
