@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 
 @Entity
@@ -36,6 +37,10 @@ public class Emr {
     private Double sat;
     @Column(name = "sodium_level")
     private Double sodium;
+    @ElementCollection
+    @CollectionTable(name = "emr_sensitivities", joinColumns = @JoinColumn(name = "emr_id"))
+    @Column(name = "sensitivity")
+    private List<String> sensitivities;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

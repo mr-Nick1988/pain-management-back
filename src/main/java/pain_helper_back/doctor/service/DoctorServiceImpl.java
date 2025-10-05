@@ -209,6 +209,7 @@ public class DoctorServiceImpl implements DoctorService {
         if (emrUpdateDto.getSat() != null) emr.setSat(emrUpdateDto.getSat());
         if (emrUpdateDto.getPlt() != null) emr.setPlt(emrUpdateDto.getPlt());
         if (emrUpdateDto.getWbc() != null) emr.setWbc(emrUpdateDto.getWbc());
+        if (emrUpdateDto.getSensitivities() != null) emr.setSensitivities(emrUpdateDto.getSensitivities());  // new filed that we missed
         if (emrUpdateDto.getChildPughScore() != null) emr.setChildPughScore(emrUpdateDto.getChildPughScore());
         if (emrUpdateDto.getSodium() != null) emr.setSodium(emrUpdateDto.getSodium());
 

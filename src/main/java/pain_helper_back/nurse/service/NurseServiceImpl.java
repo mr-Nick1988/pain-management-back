@@ -74,15 +74,13 @@ public class NurseServiceImpl implements NurseService {
         if (birthDate != null) {
             List<Patient> patients = patientRepository.findByDateOfBirth(birthDate);
             return patients.stream().map(p -> modelMapper.map(p, PatientDTO.class)).collect(Collectors.toList());
-        }
-        else {
+        } else {
             List<Patient> patients = patientRepository.findAll();
             return patients.stream()
                     .map(patient -> modelMapper.map(patient, PatientDTO.class))
                     .collect(Collectors.toList());
         }
     }
-
 
 
     @Override
@@ -100,8 +98,6 @@ public class NurseServiceImpl implements NurseService {
                 .orElseThrow(() -> new NotFoundException("Patient with this phone number not found"));
         return modelMapper.map(patient, PatientDTO.class);
     }
-
-
 
 
     @Override
@@ -162,6 +158,8 @@ public class NurseServiceImpl implements NurseService {
         if (emrUpdateDto.getPlt() != null) emr.setPlt(emrUpdateDto.getPlt());
         if (emrUpdateDto.getWbc() != null) emr.setWbc(emrUpdateDto.getWbc());
         if (emrUpdateDto.getChildPughScore() != null) emr.setChildPughScore(emrUpdateDto.getChildPughScore());
+        if (emrUpdateDto.getSensitivities() != null)
+            emr.setSensitivities(emrUpdateDto.getSensitivities());  // new filed that we missed
         if (emrUpdateDto.getSodium() != null) emr.setSodium(emrUpdateDto.getSodium());
 
         return modelMapper.map(emr, EmrDTO.class);
@@ -205,8 +203,7 @@ public class NurseServiceImpl implements NurseService {
 //        if (patient.getRecommendations().stream().anyMatch(r -> r.getStatus().equals("PENDING"))) {
 //            throw new EntityExistsException("Recommendation with this status already exists");
 //        }
-        Recommendation recommendation = treatmentProtocolService.generateRecommendation(emr, vas, patient);
-
+        Recommendation recommendation = treatmentProtocolService.generateRecommendation( vas, patient);
         recommendation.setPatient(patient);
         patient.getRecommendations().add(recommendation);
         patientRepository.save(patient);
