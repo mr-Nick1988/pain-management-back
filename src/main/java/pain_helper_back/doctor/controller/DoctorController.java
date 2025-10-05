@@ -52,9 +52,15 @@ public class DoctorController {
             @RequestParam(required = false) String firstName,
             @RequestParam(required = false) String lastName,
             @RequestParam(required = false) Boolean isActive,
-            @RequestParam(required = false) @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate birthDate
+            @RequestParam(required = false) @DateTimeFormat(pattern = "dd-MM-yyyy") LocalDate birthDate,
+            @RequestParam(required = false) String gender,
+            @RequestParam(required = false) String insurancePolicyNumber,
+            @RequestParam(required = false) String address,
+            @RequestParam(required = false) String phoneNumber,
+            @RequestParam(required = false) String email
     ) {
-        return doctorService.searchPatients(firstName, lastName, isActive, birthDate);
+
+        return doctorService.searchPatients(firstName, lastName, isActive, birthDate, gender, insurancePolicyNumber, address, phoneNumber, email);
     }
 
     @DeleteMapping("/patients/{mrn}")

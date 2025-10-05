@@ -2,6 +2,7 @@ package pain_helper_back.doctor.service;
 
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pain_helper_back.common.patients.dto.*;
@@ -9,11 +10,13 @@ import pain_helper_back.common.patients.dto.exceptions.EntityExistsException;
 import pain_helper_back.common.patients.dto.exceptions.NotFoundException;
 import pain_helper_back.common.patients.entity.Emr;
 import pain_helper_back.common.patients.entity.Patient;
+import pain_helper_back.common.patients.entity.Recommendation;
 import pain_helper_back.common.patients.entity.Vas;
 import pain_helper_back.common.patients.repository.PatientRepository;
 import pain_helper_back.common.patients.repository.RecommendationRepository;
-import pain_helper_back.doctor.dto.*;
-import pain_helper_back.common.patients.entity.Recommendation;
+import pain_helper_back.doctor.dto.RecommendationApprovalRejectionDTO;
+import pain_helper_back.doctor.dto.RecommendationWithVasDTO;
+import pain_helper_back.enums.PatientsGenders;
 import pain_helper_back.enums.RecommendationStatus;
 
 import java.time.LocalDate;
@@ -53,6 +56,84 @@ public class DoctorServiceImpl implements DoctorService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<PatientDTO> searchPatients(
+            String firstName,
+            String lastName,
+            Boolean isActive,
+            LocalDate birthDate,
+            String gender,
+            String insurancePolicyNumber,
+            String address,
+            String phoneNumber,
+            String email
+    ) {
+        Specification<Patient> spec = (root, query, cb) -> cb.conjunction();
+
+        // Поиск по имени (частичное совпадение, без учета регистра)
+        if (firstName != null && !firstName.trim().isEmpty()) {
+            spec = spec.and((root, query, cb) ->
+                    cb.like(cb.lower(root.get("firstName")), "%" + firstName.toLowerCase().trim() + "%"));
+        }
+
+        // Поиск по фамилии (частичное совпадение, без учета регистра)
+        if (lastName != null && !lastName.trim().isEmpty()) {
+            spec = spec.and((root, query, cb) ->
+                    cb.like(cb.lower(root.get("lastName")), "%" + lastName.toLowerCase().trim() + "%"));
+        }
+
+        // Поиск по статусу активности
+        if (isActive != null) {
+            spec = spec.and((root, query, cb) ->
+                    cb.equal(root.get("isActive"), isActive));
+        }
+
+        // Поиск по дате рождения (точное совпадение)
+        if (birthDate != null) {
+            spec = spec.and((root, query, cb) ->
+                    cb.equal(root.get("dateOfBirth"), birthDate));
+        }
+
+        // Поиск по полу (точное совпадение)
+        if (gender != null && !gender.trim().isEmpty()) {
+            spec = spec.and((root, query, cb) ->
+                    cb.equal(root.get("gender"), PatientsGenders.valueOf(gender.toUpperCase())));
+        }
+
+        // Поиск по номеру страховки (частичное совпадение)
+        if (insurancePolicyNumber != null && !insurancePolicyNumber.trim().isEmpty()) {
+            spec = spec.and((root, query, cb) ->
+                    cb.like(root.get("insurancePolicyNumber"), "%" + insurancePolicyNumber.trim() + "%"));
+        }
+
+        // Поиск по адресу (частичное совпадение, без учета регистра)
+        if (address != null && !address.trim().isEmpty()) {
+            spec = spec.and((root, query, cb) ->
+                    cb.like(cb.lower(root.get("address")), "%" + address.toLowerCase().trim() + "%"));
+        }
+
+        // Поиск по телефону (частичное совпадение)
+        if (phoneNumber != null && !phoneNumber.trim().isEmpty()) {
+            spec = spec.and((root, query, cb) ->
+                    cb.like(root.get("phoneNumber"), "%" + phoneNumber.trim() + "%"));
+        }
+
+        // Поиск по email (частичное совпадение, без учета регистра)
+        if (email != null && !email.trim().isEmpty()) {
+            spec = spec.and((root, query, cb) ->
+                    cb.like(cb.lower(root.get("email")), "%" + email.toLowerCase().trim() + "%"));
+        }
+
+        // Выполняем поиск с комбинированными критериями
+        List<Patient> patients = patientRepository.findAll(spec);
+
+        return patients.stream()
+                .map(patient -> modelMapper.map(patient, PatientDTO.class))
+                .collect(Collectors.toList());
+    }
+
+
+    @Override
+    @Transactional(readOnly = true)
     public PatientDTO getPatientByMrn(String mrn) {
         Patient patient = findPatientOrThrow(mrn);
         return modelMapper.map(patient, PatientDTO.class);
@@ -73,27 +154,6 @@ public class DoctorServiceImpl implements DoctorService {
         return modelMapper.map(patient, PatientDTO.class);
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<PatientDTO> searchPatients(String firstName, String lastName, Boolean isActive, LocalDate birthDate) {
-        if (firstName != null && lastName != null) {
-            List<Patient> patients = patientRepository.getPatientsByFirstNameAndLastName(firstName, lastName);
-            return patients.stream().map(patient -> modelMapper.map(patient, PatientDTO.class)).collect(Collectors.toList());
-        }
-        if (isActive != null) {
-            List<Patient> patients = patientRepository.findByIsActive(isActive);
-            return patients.stream().map(p -> modelMapper.map(p, PatientDTO.class)).collect(Collectors.toList());
-        }
-        if (birthDate != null) {
-            List<Patient> patients = patientRepository.findByDateOfBirth(birthDate);
-            return patients.stream().map(p -> modelMapper.map(p, PatientDTO.class)).collect(Collectors.toList());
-        } else {
-            List<Patient> patients = patientRepository.findAll();
-            return patients.stream()
-                    .map(patient -> modelMapper.map(patient, PatientDTO.class))
-                    .collect(Collectors.toList());
-        }
-    }
 
 
     @Override

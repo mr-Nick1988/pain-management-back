@@ -19,7 +19,12 @@ public interface DoctorService {
             String firstName,
             String lastName,
             Boolean isActive,
-            LocalDate birthDate
+            LocalDate birthDate,
+            String gender,
+            String insurancePolicyNumber,
+            String address,
+            String phoneNumber,
+            String email
     );
 
     void deletePatient(String mrn);
