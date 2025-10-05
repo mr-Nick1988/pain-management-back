@@ -19,7 +19,7 @@ public class Recommendation {
     @Column(name = "regimen_hierarchy")
     private int regimenHierarchy;
     @Column(name = "status")
-    @Enumerated(EnumType.STRING)   // По умолчанию, если не поставить аннотацию @Enumerated, то JPA сохранит числовой индекс enum-а (ORDINAL).
+    @Enumerated(EnumType.STRING)  // По умолчанию, если не поставить аннотацию @Enumerated, то JPA сохранит числовой индекс enum-а (ORDINAL).
     private RecommendationStatus status;
     @Column(name = "rejected_reason")
     private String rejectedReason;
