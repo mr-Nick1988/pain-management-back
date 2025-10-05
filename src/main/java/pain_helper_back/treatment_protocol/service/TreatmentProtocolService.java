@@ -4,31 +4,36 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import pain_helper_back.common.patients.entity.*;
+import pain_helper_back.enums.DrugRole;
 import pain_helper_back.enums.DrugRoute;
 import pain_helper_back.enums.RecommendationStatus;
 import pain_helper_back.treatment_protocol.entity.TreatmentProtocol;
 import pain_helper_back.treatment_protocol.repository.TreatmentProtocolRepository;
-
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+
+/**
+ * Главный оркестратор применения протокола лечения (TreatmentProtocolService):
+ * 1. Фильтрует протоколы по уровню боли.
+ * 2. Для каждого создаёт Recommendation с MAIN и ALTERNATIVE препаратами.
+ * 3. Последовательно применяет все TreatmentRuleApplier (9 фильтров).
+ * 4. Если хотя бы один препарат остался активным, добавляет рекомендацию в результат.
+ * 5. Добавляет противопоказания (contraindications) в комментарии.
+ */
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class TreatmentProtocolService {
     private final TreatmentProtocolRepository treatmentProtocolRepository;
-
-    // Паттерн для поиска последнего числа в строке (поддержка десятичных)
-    private static final Pattern LAST_NUMBER_PATTERN = Pattern.compile(("(\\d+)(?=[^0-9]*$)"));
-    private static final Pattern FIRST_INT_PATTERN = Pattern.compile("(\\d+)");
+    private final List<TreatmentRuleApplier> ruleAppliers;
 
     /**
      * Текущая сигнатура возвращает single Recommendation (первую соответствующую).
      * Если нужно вернуть все, меняем сигнатуру на List<Recommendation>.
      */
-    public Recommendation generateRecommendation(Emr emr, Vas vas, Patient patient) {
+    public Recommendation generateRecommendation( Vas vas, Patient patient) {
         Integer painLevel = vas.getPainLevel();
         List<TreatmentProtocol> painRageFilter = treatmentProtocolRepository.findAll().stream()
                 .filter(tp -> {
@@ -38,8 +43,7 @@ public class TreatmentProtocolService {
                     return painLevel >= painLevelFrom && painLevel <= painLevelTo;
                 }).toList();
 
-        Integer patientAge = patient.getAge();
-        Double patientWeight = patient.getEmr().getLast().getWeight();
+
 
         List<Recommendation> recommendations = new ArrayList<>();
 
@@ -49,165 +53,45 @@ public class TreatmentProtocolService {
             recommendation.setRegimenHierarchy(Integer.parseInt(tp.getRegimenHierarchy()));
             // создаём две записи: основное и запасное (или просто две позиции)
             DrugRecommendation mainDrug = new DrugRecommendation();
+            mainDrug.setRole(DrugRole.MAIN);
             DrugRecommendation altDrug = new DrugRecommendation();
-
+            altDrug.setRole(DrugRole.ALTERNATIVE);
             recommendation.getDrugs().add(mainDrug);
             recommendation.getDrugs().add(altDrug);
-
             // Заполняем общие поля (route, полевые служебные данные) можно здесь или в апликаторах
             mainDrug.setRoute(DrugRoute.valueOf(tp.getRoute()));
             altDrug.setRoute(DrugRoute.valueOf(tp.getRoute()));
+            for (TreatmentRuleApplier ruleApplier : ruleAppliers) {
+                // Применяем возрастные правила(<=18 or >75)
+                // Применяем весовые правила (только если вес < 50 — по протоколу)
+                // Применяем печёночную корректировку (ChildPugh)
+                // Применяем почечную корректировку (GFR)
+                // Применяем корректировку по тромбоцитам (PLT)
+                // Применяем корректировку по лейкоцитам (WBC)
+                // Применяем корректировку по сатурации (SAT)
+                // Применяем корректировку по натрию (Sodium)
+                // Применяем корректировку на чувствительность к препаратам (Sensitivity)
+                /**
+                 * Contraindications — это список состояний (обычно в виде ICD-10 кодов),
+                 * Эти данные НЕ участвуют в фильтрации и не влияют на алгоритм выбора
+                 */
+                ruleApplier.apply(mainDrug, recommendation, tp, patient);
+                ruleApplier.apply(altDrug, recommendation, tp, patient);
 
-            // Применяем возрастные правила
-            applyAgeAdjustment(mainDrug, recommendation, tp, 1, patientAge);
-            applyAgeAdjustment(altDrug, recommendation, tp, 2, patientAge);
-
-            // Применяем весовые правила (только если вес < 50 — по протоколу)
-            applyWeightAdjustment(mainDrug, recommendation, tp, 1, patientWeight);
-            applyWeightAdjustment(altDrug, recommendation, tp, 2, patientWeight);
-
-            // Сохраняем служебную информацию из таблицы
-            if (tp.getAvoidIfSensitivity() != null && !tp.getAvoidIfSensitivity().isBlank()) {
-                recommendation.getAvoidIfSensitivity().add(tp.getAvoidIfSensitivity());
             }
-            if (tp.getContraindications() != null && !tp.getContraindications().isBlank()) {
-                recommendation.getContraindications().add(tp.getContraindications());
+            if (!recommendation.getDrugs().stream().allMatch(drugRecommendation -> drugRecommendation.getActiveMoiety().isBlank())) {
+                String contraindications = tp.getContraindications();
+                if (contraindications != null && !contraindications.isBlank()) {
+                    recommendation.getContraindications().add(contraindications);
+                }
+                recommendations.add(recommendation);
             }
 
-            recommendations.add(recommendation);
         }
-
         // Вернём первую рекомендацию (если их несколько). При желании вернуть все — меняем сигнатуру.
-        return recommendations.isEmpty() ? null : recommendations.get(0);
+        return recommendations.isEmpty() ? null : recommendations.getFirst();
     }
 
-    /**
-     * Применяет возрастное правило к конкретной прописке препарата.
-     * Если препарат разрешён — заполняет данные из TP. Иначе добавляет заметку в recommendation.notes.
-     */
-    private void applyAgeAdjustment(DrugRecommendation drug,
-                                    Recommendation recommendation,
-                                    TreatmentProtocol tp,
-                                    int drugIndex,
-                                    Integer patientAge) {
-        String ageAdjustment = (drugIndex == 1) ? tp.getFirstAgeAdjustments() : tp.getSecondAgeAdjustments();
-
-        // Если правило пустое или "NA" — возраст не ограничивает
-        if (ageAdjustment == null || ageAdjustment.trim().isEmpty() || ageAdjustment.toUpperCase().contains("NA")) {
-            // разрешаем препарат — заполняем поля
-            fillDrugFromProtocol(drug, tp, drugIndex);
-            return;
-        }
-
-        Integer limit = extractFirstInt(ageAdjustment); // берём первое число (например 75 или 18)
-        if (limit == null) {
-            // не смогли распарсить число
-            throw new IllegalArgumentException("Invalid protocol config: " + ageAdjustment);
-        }
-
-        // Логика  протокола:
-        // - Для первого препарата: если patientAge > limit => avoid
-        // - Для второго препарата: если patientAge < limit => avoid
-        if (drugIndex == 1) {
-            if (patientAge <= limit) {
-                fillDrugFromProtocol(drug, tp, drugIndex);
-            } else {
-                recommendation.getComments().add("First drug avoid: patient age (" + patientAge + ") > " + limit);
-            }
-        } else { // drugIndex == 2
-            if (patientAge >= limit) {
-                fillDrugFromProtocol(drug, tp, drugIndex);
-            } else {
-                recommendation.getComments().add("Second drug avoid: patient age (" + patientAge + ") < " + limit);
-            }
-        }
-    }
-
-    /**
-     * Заполняет поля DrugRecommendation из строки протокола (по индексу лекарства).
-     * Не выполняет проверок — просто копирует данные.
-     */
-    private void fillDrugFromProtocol(DrugRecommendation drug, TreatmentProtocol tp, int drugIndex) {
-        if (drugIndex == 1) {
-            drug.setDrugName(tp.getFirstDrug());
-            drug.setActiveMoiety(tp.getFirstDrugActiveMoiety());
-            drug.setDosing(tp.getFirstDosingMg());
-            drug.setInterval(tp.getFirstIntervalHrs());
-            drug.setAgeAdjustment(tp.getFirstAgeAdjustments());
-            drug.setWeightAdjustment(tp.getWeightKg());
-            drug.setChildPugh(tp.getFirstChildPugh());
-            // route  установили ранее
-        } else {
-            // второе "вещество" — имя препарата может отсутствовать, заполняем доступное
-            drug.setDrugName(null); // если у тебя нет имени для second drug
-            drug.setActiveMoiety(tp.getSecondDrugActiveMoiety());
-            drug.setDosing(tp.getSecondDosingMg());
-            drug.setInterval(tp.getSecondIntervalHrs());
-            drug.setAgeAdjustment(tp.getSecondAgeAdjustments());
-            drug.setWeightAdjustment(tp.getSecondWeightKg());
-            drug.setChildPugh(tp.getSecondChildPugh());
-        }
-    }
-
-    /**
-     * Применяет правило по весу. По протоколу корректировка применяется только для веса < 50kg.
-     * Правило ожидается в формате вроде "<50kg - 8h" или "<50kg - 50mg".
-     * Извлекает последнее число в строке и unit (mg/h) и применяет корректировку dose/interval.
-     */
-    private void applyWeightAdjustment(DrugRecommendation drug,
-                                       Recommendation recommendation,
-                                       TreatmentProtocol tp,
-                                       int drugIndex,
-                                       Double patientWeight) {
-        // Если веса нет или пациент >= 50kg — по протоколу ничего не делаем
-        if (patientWeight == null || patientWeight >= 50.0) return;
-
-        String weightRule = (drugIndex == 1) ? tp.getWeightKg() : tp.getSecondWeightKg();
-        if (weightRule == null || weightRule.trim().isEmpty() || weightRule.toUpperCase().contains("NA")) return;
-
-        // Если препарат ранее был отвергнут по возрасту (или не заполнен) — не применяем весовую корректировку
-        boolean drugHasInfo = (drug.getActiveMoiety() != null && !drug.getActiveMoiety().isBlank());
-        if (!drugHasInfo) return;
-
-        // ищем последнее число
-        Matcher m = LAST_NUMBER_PATTERN.matcher(weightRule);
-        if (!m.find()) return;
-        String lastNumber = m.group(1);
-
-        // определяем unit: берем хвост строки после найденного числа и оставляем только буквенные символы
-        int afterIndex = m.end();
-        String suffix = weightRule.substring(afterIndex).replaceAll("[^a-zA-Z%]", "").toLowerCase();
-
-        if (suffix.contains("mg")) {
-            // корректировка дозы
-            String newDose = lastNumber + " mg";
-            drug.setDosing(newDose);
-            recommendation.getComments().add("Dose adjusted for weight <50kg: set dosing to " + newDose
-                    + " for " + (drug.getDrugName() != null ? drug.getDrugName() : drug.getActiveMoiety()));
-        } else if (suffix.contains("h")) {
-            // корректировка интервала
-            String newInterval = lastNumber + "h";
-            drug.setInterval(newInterval);
-            recommendation.getComments().add("Interval adjusted for weight <50kg: set interval to " + newInterval
-                    + " for " + (drug.getDrugName() != null ? drug.getDrugName() : drug.getActiveMoiety()));
-        } else {
-            // неизвестный суффикс — просто логируем заметку, не ломая данные
-            log.error("Unknown unit '{}' in weight rule '{}'", suffix, weightRule);
-            throw new IllegalArgumentException("Invalid weight rule: " + weightRule);        }
-    }
-
-    // Вспомогательная: извлекает первое целое число из строки (например из ">75 years - avoid" даст 75)
-    private Integer extractFirstInt(String s) {
-        if (s == null) return null;
-        Matcher m = FIRST_INT_PATTERN.matcher(s);
-        if (m.find()) {
-            try {
-                return Integer.parseInt(m.group(1));
-            } catch (NumberFormatException ignored) {
-            }
-        }
-        return null;
-    }
 }
 
 

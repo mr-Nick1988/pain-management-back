@@ -203,8 +203,7 @@ public class NurseServiceImpl implements NurseService {
 //        if (patient.getRecommendations().stream().anyMatch(r -> r.getStatus().equals("PENDING"))) {
 //            throw new EntityExistsException("Recommendation with this status already exists");
 //        }
-        Recommendation recommendation = treatmentProtocolService.generateRecommendation(emr, vas, patient);
-
+        Recommendation recommendation = treatmentProtocolService.generateRecommendation( vas, patient);
         recommendation.setPatient(patient);
         patient.getRecommendations().add(recommendation);
         patientRepository.save(patient);
