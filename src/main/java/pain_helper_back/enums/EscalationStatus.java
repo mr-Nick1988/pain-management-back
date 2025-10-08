@@ -4,5 +4,6 @@ public enum EscalationStatus {
     PENDING,
     IN_REVIEW,
     RESOLVED,
-    REJECTED
+    REJECTED,
+    CANCELLED
 }

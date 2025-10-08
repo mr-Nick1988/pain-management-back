@@ -1,13 +1,13 @@
 package pain_helper_back.anesthesiologist.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import pain_helper_back.anesthesiologist.dto.*;
 import pain_helper_back.anesthesiologist.service.AnesthesiologistServiceInterface;
-import pain_helper_back.enums.EscalationStatus;
 import pain_helper_back.enums.EscalationPriority;
+import pain_helper_back.enums.EscalationStatus;
 
-import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -34,12 +34,9 @@ public class AnesthesiologistController {
         return anesthesiologistService.getEscalationsByPriority(priority);
     }
 
-    @PutMapping("/escalations/{id}/resolve")
-    public EscalationResponseDTO resolveEscalation(
-            @PathVariable Long id,
-            @RequestParam String resolution,
-            @RequestParam(defaultValue = "system") String resolvedBy) {
-        return anesthesiologistService.resolveEscalation(id, resolution, resolvedBy);
+    @GetMapping("/escalations/active")
+    public List<EscalationResponseDTO> getActiveEscalationsOrderedByPriority() {
+        return anesthesiologistService.getActiveEscalationsOrderedByPriority();
     }
 
     @GetMapping("/escalations/stats")
@@ -47,19 +44,32 @@ public class AnesthesiologistController {
         return anesthesiologistService.getEscalationStats();
     }
 
-    // Protocol endpoints
+
+    // ========== НОВЫЕ ENDPOINTS: APPROVE/REJECT ЭСКАЛАЦИИ ========== //
+
+    @PutMapping("/escalations/{id}/approve")
+    public EscalationResponseDTO approveEscalation(
+            @PathVariable Long id,
+            @Valid @RequestBody EscalationResolutionDTO resolutionDTO) {
+        return anesthesiologistService.approveEscalation(id, resolutionDTO);
+    }
+    @PutMapping("/escalations/{id}/reject")
+    public EscalationResponseDTO rejectEscalation(
+            @PathVariable Long id,
+            @Valid @RequestBody EscalationResolutionDTO resolutionDTO) {
+        return anesthesiologistService.rejectEscalation(id, resolutionDTO);
+    }
+    // ================= PROTOCOL ENDPOINTS ================= //
     @PostMapping("/protocols")
     public ProtocolResponseDTO createProtocol(@Valid @RequestBody ProtocolRequestDTO protocolRequest) {
         return anesthesiologistService.createProtocol(protocolRequest);
     }
-
     @PutMapping("/protocols/{id}/approve")
     public ProtocolResponseDTO approveProtocol(
             @PathVariable Long id,
             @RequestParam(defaultValue = "system") String approvedBy) {
         return anesthesiologistService.approveProtocol(id, approvedBy);
     }
-
     @PutMapping("/protocols/{id}/reject")
     public ProtocolResponseDTO rejectProtocol(
             @PathVariable Long id,
@@ -67,18 +77,15 @@ public class AnesthesiologistController {
             @RequestParam(defaultValue = "system") String rejectedBy) {
         return anesthesiologistService.rejectProtocol(id, rejectedReason, rejectedBy);
     }
-
     @GetMapping("/protocols/escalation/{escalationId}")
     public List<ProtocolResponseDTO> getProtocolsByEscalation(@PathVariable Long escalationId) {
         return anesthesiologistService.getProtocolsByEscalation(escalationId);
     }
-
     @GetMapping("/protocols/pending-approval")
     public List<ProtocolResponseDTO> getPendingApprovalProtocols() {
         return anesthesiologistService.getPendingApprovalProtocols();
     }
-
-    // Comment endpoints
+    // ================= COMMENT ENDPOINTS ================= //
     @PostMapping("/protocols/{protocolId}/comments")
     public CommentResponseDTO addComment(
             @PathVariable Long protocolId,

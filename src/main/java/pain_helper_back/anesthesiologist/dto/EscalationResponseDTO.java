@@ -8,15 +8,25 @@ import java.time.LocalDateTime;
 
 @Data
 public class EscalationResponseDTO {
+    // ========== BASIC INFO ========== //
     private Long id;
-    private String patientId;
-    private String patientName;
-    private String doctorName;
-    private String rejectedReason;
-    private EscalationPriority escalationPriority;
-    private EscalationStatus escalationStatus;
+    private Long recommendationId;
+    private EscalationStatus status;
+    private EscalationPriority priority;
+
+    // ========== ESCALATION INFO ========== //
+    private String escalatedBy;
+    private LocalDateTime escalatedAt;
+    private String escalationReason;
+    private String description;
+
+    // ========== RESOLUTION INFO ========== //
+    private String resolvedBy;
+    private LocalDateTime resolvedAt;
     private String resolution;
+
+    // ========== AUDIT ========== //
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private LocalDateTime resolvedAt;
 }
+
