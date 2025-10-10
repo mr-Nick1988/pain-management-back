@@ -9,6 +9,7 @@ import pain_helper_back.enums.DrugRoute;
 import pain_helper_back.enums.RecommendationStatus;
 import pain_helper_back.treatment_protocol.entity.TreatmentProtocol;
 import pain_helper_back.treatment_protocol.repository.TreatmentProtocolRepository;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,16 +34,17 @@ public class TreatmentProtocolService {
      * Текущая сигнатура возвращает single Recommendation (первую соответствующую).
      * Если нужно вернуть все, меняем сигнатуру на List<Recommendation>.
      */
-    public Recommendation generateRecommendation( Vas vas, Patient patient) {
+    public Recommendation generateRecommendation(Vas vas, Patient patient) {
         Integer painLevel = vas.getPainLevel();
         List<TreatmentProtocol> painRageFilter = treatmentProtocolRepository.findAll().stream()
                 .filter(tp -> {
-                    String[] range = tp.getPainLevel().split("-");
-                    int painLevelFrom = Integer.parseInt(range[0].trim());
-                    int painLevelTo = Integer.parseInt(range[1].trim());
+
+                    int[] range = parsePainLevel(tp.getPainLevel());
+                    int painLevelFrom = range[0];
+                    int painLevelTo = range[1];
+
                     return painLevel >= painLevelFrom && painLevel <= painLevelTo;
                 }).toList();
-
 
 
         List<Recommendation> recommendations = new ArrayList<>();
@@ -56,6 +58,8 @@ public class TreatmentProtocolService {
             mainDrug.setRole(DrugRole.MAIN);
             DrugRecommendation altDrug = new DrugRecommendation();
             altDrug.setRole(DrugRole.ALTERNATIVE);
+            mainDrug.setRecommendation(recommendation);
+            altDrug.setRecommendation(recommendation);
             recommendation.getDrugs().add(mainDrug);
             recommendation.getDrugs().add(altDrug);
             // Заполняем общие поля (route, полевые служебные данные) можно здесь или в апликаторах
@@ -79,7 +83,10 @@ public class TreatmentProtocolService {
                 ruleApplier.apply(altDrug, recommendation, tp, patient);
 
             }
-            if (!recommendation.getDrugs().stream().allMatch(drugRecommendation -> drugRecommendation.getActiveMoiety().isBlank())) {
+            if (!recommendation.getDrugs().stream()
+                    .allMatch(drugRecommendation ->
+                            drugRecommendation.getActiveMoiety() == null ||
+                                    drugRecommendation.getActiveMoiety().isBlank())) {
                 String contraindications = tp.getContraindications();
                 if (contraindications != null && !contraindications.isBlank()) {
                     recommendation.getContraindications().add(contraindications);
@@ -90,6 +97,22 @@ public class TreatmentProtocolService {
         }
         // Вернём первую рекомендацию (если их несколько). При желании вернуть все — меняем сигнатуру.
         return recommendations.isEmpty() ? null : recommendations.getFirst();
+    }
+
+    private int[] parsePainLevel(String painLevel) {
+        if (painLevel == null) return new int[]{0, 0};
+        painLevel = painLevel.replaceAll("[^0-9\\-]", "").trim(); // удаляем мусор
+        if (painLevel.isEmpty()) return new int[]{0, 0};
+
+        String[] parts = painLevel.split("-");
+        try {
+            int low = Integer.parseInt(parts[0]);
+            int high = (parts.length > 1) ? Integer.parseInt(parts[1]) : low;
+            return new int[]{low, high};
+        } catch (NumberFormatException e) {
+            log.warn("⚠️ Invalid pain level '{}'", painLevel);
+            return new int[]{0, 0};
+        }
     }
 
 }

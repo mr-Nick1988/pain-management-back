@@ -9,7 +9,7 @@ import java.time.Period;
 import java.util.List;
 
 @Entity
-@Table(name = "nurse_patients")
+@Table(name = "patients")
 @Getter
 @Setter
 @RequiredArgsConstructor

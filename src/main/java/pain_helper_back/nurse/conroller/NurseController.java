@@ -94,8 +94,15 @@ public class NurseController {
         nurseService.deleteVAS(mrn);
     }
 
+
+
     @PostMapping("/patients/{mrn}/recommendation")
-    public RecommendationDTO createRecommendation(@PathVariable String mrn, @Valid @RequestBody RecommendationDTO recommendationDTO) {
+    public RecommendationDTO createRecommendation(@PathVariable String mrn) {
         return nurseService.createRecommendation(mrn);
+    }
+
+    @GetMapping("/patients/{mrn}/recommendation")
+    public RecommendationDTO getLastRecommendation(@PathVariable String mrn) {
+        return nurseService.getLastRecommendation(mrn);
     }
 }

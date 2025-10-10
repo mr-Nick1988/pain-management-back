@@ -37,4 +37,6 @@ public interface NurseService {
     void deleteVAS(String mrn);
 
     RecommendationDTO createRecommendation(String mrn);
+
+    RecommendationDTO getLastRecommendation(String mrn);
 }
