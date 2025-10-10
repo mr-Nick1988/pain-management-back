@@ -20,7 +20,7 @@ public class DrugRecommendation {
     private String activeMoiety;
     @Column(name = "dosing")
     private String dosing;
-    @Column(name = "interval")
+    @Column(name = "dosage_interval")
     private String interval;
     @Enumerated(EnumType.STRING)
     @Column(name = "route")
