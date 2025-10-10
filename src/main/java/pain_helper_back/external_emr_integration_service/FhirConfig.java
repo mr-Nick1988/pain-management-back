@@ -1,4 +1,4 @@
-package pain_helper_back.emr_integration;
+package pain_helper_back.external_emr_integration_service;
 
 /**
  * Конфигурация HAPI FHIR клиента для интеграции с внешними EMR системами.

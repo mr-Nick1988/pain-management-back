@@ -1,4 +1,4 @@
-package pain_helper_back.emr_integration.dto;
+package pain_helper_back.external_emr_integration_service.dto;
 
 
 import lombok.Data;

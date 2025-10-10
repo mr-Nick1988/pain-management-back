@@ -1,4 +1,4 @@
-package pain_helper_back.emr_integration.entity;
+package pain_helper_back.external_emr_integration_service.entity;
 
 
 import jakarta.persistence.*;

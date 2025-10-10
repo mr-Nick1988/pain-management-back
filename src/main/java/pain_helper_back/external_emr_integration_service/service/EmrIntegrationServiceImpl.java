@@ -1,4 +1,4 @@
-package pain_helper_back.emr_integration.service;
+package pain_helper_back.external_emr_integration_service.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,12 +9,12 @@ import pain_helper_back.common.patients.entity.Emr;
 import pain_helper_back.common.patients.entity.Patient;
 import pain_helper_back.common.patients.repository.EmrRepository;
 import pain_helper_back.common.patients.repository.PatientRepository;
-import pain_helper_back.emr_integration.client.HapiFhirClient;
-import pain_helper_back.emr_integration.dto.EmrImportResultDTO;
-import pain_helper_back.emr_integration.dto.FhirObservationDTO;
-import pain_helper_back.emr_integration.dto.FhirPatientDTO;
-import pain_helper_back.emr_integration.entity.EmrMapping;
-import pain_helper_back.emr_integration.repository.EmrMappingRepository;
+import pain_helper_back.external_emr_integration_service.client.HapiFhirClient;
+import pain_helper_back.external_emr_integration_service.dto.EmrImportResultDTO;
+import pain_helper_back.external_emr_integration_service.dto.FhirObservationDTO;
+import pain_helper_back.external_emr_integration_service.dto.FhirPatientDTO;
+import pain_helper_back.external_emr_integration_service.entity.EmrMapping;
+import pain_helper_back.external_emr_integration_service.repository.EmrMappingRepository;
 import pain_helper_back.enums.EmrSourceType;
 import pain_helper_back.enums.MatchConfidence;
 import pain_helper_back.enums.PatientsGenders;

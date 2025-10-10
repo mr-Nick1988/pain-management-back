@@ -1,14 +1,14 @@
-package pain_helper_back.emr_integration.controller;
+package pain_helper_back.external_emr_integration_service.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import pain_helper_back.common.patients.dto.EmrDTO;
-import pain_helper_back.emr_integration.dto.EmrImportResultDTO;
-import pain_helper_back.emr_integration.dto.FhirObservationDTO;
-import pain_helper_back.emr_integration.dto.FhirPatientDTO;
-import pain_helper_back.emr_integration.service.EmrIntegrationService;
+import pain_helper_back.external_emr_integration_service.dto.EmrImportResultDTO;
+import pain_helper_back.external_emr_integration_service.dto.FhirObservationDTO;
+import pain_helper_back.external_emr_integration_service.dto.FhirPatientDTO;
+import pain_helper_back.external_emr_integration_service.service.EmrIntegrationService;
 
 import java.util.List;
 

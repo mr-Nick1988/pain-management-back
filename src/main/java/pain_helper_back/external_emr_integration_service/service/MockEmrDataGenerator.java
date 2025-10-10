@@ -1,12 +1,12 @@
-package pain_helper_back.emr_integration.service;
+package pain_helper_back.external_emr_integration_service.service;
 
 
 import com.github.javafaker.Faker;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import pain_helper_back.emr_integration.dto.FhirIdentifierDTO;
-import pain_helper_back.emr_integration.dto.FhirObservationDTO;
-import pain_helper_back.emr_integration.dto.FhirPatientDTO;
+import pain_helper_back.external_emr_integration_service.dto.FhirIdentifierDTO;
+import pain_helper_back.external_emr_integration_service.dto.FhirObservationDTO;
+import pain_helper_back.external_emr_integration_service.dto.FhirPatientDTO;
 import pain_helper_back.enums.EmrSourceType;
 
 import java.time.LocalDate;

@@ -1,10 +1,10 @@
-package pain_helper_back.emr_integration.service;
+package pain_helper_back.external_emr_integration_service.service;
 
 
 import pain_helper_back.common.patients.dto.EmrDTO;
-import pain_helper_back.emr_integration.dto.EmrImportResultDTO;
-import pain_helper_back.emr_integration.dto.FhirObservationDTO;
-import pain_helper_back.emr_integration.dto.FhirPatientDTO;
+import pain_helper_back.external_emr_integration_service.dto.EmrImportResultDTO;
+import pain_helper_back.external_emr_integration_service.dto.FhirObservationDTO;
+import pain_helper_back.external_emr_integration_service.dto.FhirPatientDTO;
 
 import java.util.List;
 

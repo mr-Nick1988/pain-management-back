@@ -1,8 +1,8 @@
-package pain_helper_back.emr_integration.repository;
+package pain_helper_back.external_emr_integration_service.repository;
 
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import pain_helper_back.emr_integration.entity.EmrMapping;
+import pain_helper_back.external_emr_integration_service.entity.EmrMapping;
 import pain_helper_back.enums.EmrSourceType;
 
 import java.util.List;

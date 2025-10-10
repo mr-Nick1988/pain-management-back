@@ -1,4 +1,4 @@
-package pain_helper_back.emr_integration.client;
+package pain_helper_back.external_emr_integration_service.client;
 
 
 /*
@@ -26,9 +26,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.*;
 import org.springframework.stereotype.Component;
-import pain_helper_back.emr_integration.dto.FhirIdentifierDTO;
-import pain_helper_back.emr_integration.dto.FhirObservationDTO;
-import pain_helper_back.emr_integration.dto.FhirPatientDTO;
+import pain_helper_back.external_emr_integration_service.dto.FhirIdentifierDTO;
+import pain_helper_back.external_emr_integration_service.dto.FhirObservationDTO;
+import pain_helper_back.external_emr_integration_service.dto.FhirPatientDTO;
 import pain_helper_back.enums.EmrSourceType;
 
 import java.time.LocalDateTime;
