@@ -37,4 +37,7 @@ public interface LogEntryRepository extends MongoRepository<LogEntry, String> {
     //errors calculation y module
     Long countByModuleAndSuccessFalse(String module);
 
+    List<LogEntry>findByLevelAndTimestampBetween(String level, LocalDateTime startDate, LocalDateTime endDate);
+
+    List<LogEntry>findByLevel(String level);
 }

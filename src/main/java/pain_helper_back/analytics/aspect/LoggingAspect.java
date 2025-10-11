@@ -75,6 +75,7 @@ public class LoggingAspect {
                     .errorMessage(exception != null ? exception.getMessage() : null)
                     .errorStackTrace(exception != null ? getStackTrace(exception) : null)
                     .logCategory(logCategory)
+                    .level(logCategory)
                     .module(module)
                     .build();
             logEntryRepository.save(logEntry);

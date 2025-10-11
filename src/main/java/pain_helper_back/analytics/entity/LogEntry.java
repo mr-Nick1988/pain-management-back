@@ -42,6 +42,8 @@ public class LogEntry {
     @Indexed
     private String logCategory;//info, warn, error
     @Indexed
+    private String level; // INFO, WARN, ERROR(for API)
+    @Indexed
     private String module;// nurse, doctor, anesthesiologist, external_emr_integration_service
 
 }

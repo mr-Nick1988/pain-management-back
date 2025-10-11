@@ -18,6 +18,11 @@ public interface AnalyticsEventRepository extends MongoRepository<AnalyticsEvent
     List<AnalyticsEvent> findByEventType(String eventType);
     //find by user
     List<AnalyticsEvent> findByUserId(String userId);
+    //find by user and timestamp between
+    List<AnalyticsEvent>findByUserIdAndTimestampBetween(String userId,LocalDateTime start, LocalDateTime end);
+
+
+    List<AnalyticsEvent>findByEventTypeAndTimestampBetween(String eventType,LocalDateTime startDate, LocalDateTime endDate);
     //find by user role
     List<AnalyticsEvent> findByUserRole(String userRole);
     //find by timestamp between

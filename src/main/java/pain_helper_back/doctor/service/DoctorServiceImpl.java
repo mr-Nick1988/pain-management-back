@@ -1,11 +1,17 @@
 package pain_helper_back.doctor.service;
 
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import pain_helper_back.analytics.event.EscalationCreatedEvent;
+import pain_helper_back.analytics.event.PatientRegisteredEvent;
+import pain_helper_back.analytics.event.RecommendationApprovedEvent;
+import pain_helper_back.analytics.event.RecommendationRejectedEvent;
 import pain_helper_back.anesthesiologist.entity.Escalation;
 import pain_helper_back.common.patients.dto.*;
 import pain_helper_back.common.patients.dto.exceptions.EntityExistsException;
@@ -23,6 +29,7 @@ import pain_helper_back.enums.EscalationStatus;
 import pain_helper_back.enums.PatientsGenders;
 import pain_helper_back.enums.RecommendationStatus;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -36,8 +43,9 @@ public class DoctorServiceImpl implements DoctorService {
     private final RecommendationRepository recommendationRepository;
     private final PatientRepository patientRepository;
     private final ModelMapper modelMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
-    /**
+    /*
      * Вспомогательный метод для поиска пациента по MRN
      * @throws NotFoundException если пациент не найден
      */
@@ -67,6 +75,17 @@ public class DoctorServiceImpl implements DoctorService {
         String mrn = String.format("%06d", patient.getId());
         patient.setMrn(mrn);
         patientRepository.save(patient);
+
+        eventPublisher.publishEvent(new PatientRegisteredEvent(
+                this,
+                patient.getId(),
+                mrn,
+                "doctor_id", // TODO: заменить на реальный ID из Security Context
+                "DOCTOR",
+                LocalDateTime.now(),
+                patient.getAge(),
+                patient.getGender().toString()
+        ));
 
         return modelMapper.map(patient, PatientDTO.class);
     }
@@ -313,11 +332,23 @@ public class DoctorServiceImpl implements DoctorService {
         if (dto.getComment() != null && !dto.getComment().isBlank()) {
             recommendation.getComments().add("Doctor: " + dto.getComment());
         }
-
         recommendationRepository.save(recommendation);
 
         log.info("Recommendation approved: id={}, status={}", recommendation.getId(), recommendation.getStatus());
 
+        Long processingTimeMs = Duration.between(
+                recommendation.getCreatedAt(),
+                recommendation.getDoctorActionAt()
+        ).toMillis();
+        eventPublisher.publishEvent(new RecommendationApprovedEvent(
+                this,
+                recommendation.getId(),
+                recommendation.getDoctorId(),
+                patient.getMrn(),
+                recommendation.getDoctorActionAt(),
+                recommendation.getDoctorComment(),
+                processingTimeMs
+        ));
         return modelMapper.map(recommendation, RecommendationDTO.class);
     }
 
@@ -391,6 +422,29 @@ public class DoctorServiceImpl implements DoctorService {
 
         log.info("Recommendation rejected and escalated: recommendationId={}, escalationId={}, priority={}",
                 recommendation.getId(), recommendation.getEscalation().getId(), escalation.getPriority());
+        //  Публикуем событие отклонения рекомендации
+        eventPublisher.publishEvent(new RecommendationRejectedEvent(
+                this,
+                recommendation.getId(),
+                recommendation.getDoctorId(),
+                patient.getMrn(),
+                recommendation.getDoctorActionAt(),
+                recommendation.getRejectedReason(),
+                recommendation.getDoctorComment()
+        ));
+
+         //  Публикуем событие создания эскалации
+        eventPublisher.publishEvent(new EscalationCreatedEvent(
+                this,
+                escalation.getId(),
+                recommendation.getId(),
+                escalation.getEscalatedBy(),
+                patient.getMrn(),
+                escalation.getEscalatedAt(),
+                escalation.getPriority(),
+                escalation.getEscalationReason(),
+                vas != null ? vas.getPainLevel() : 0
+        ));
 
         return modelMapper.map(recommendation, RecommendationDTO.class);
     }
