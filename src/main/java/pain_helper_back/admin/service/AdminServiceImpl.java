@@ -1,6 +1,5 @@
 package pain_helper_back.admin.service;
 
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -15,6 +14,8 @@ import pain_helper_back.admin.repository.PersonRepository;
 import pain_helper_back.analytics.event.PersonCreatedEvent;
 import pain_helper_back.analytics.event.PersonDeletedEvent;
 import pain_helper_back.analytics.event.PersonUpdatedEvent;
+import pain_helper_back.common.patients.dto.PatientDTO;
+import pain_helper_back.common.patients.repository.PatientRepository;
 import pain_helper_back.enums.Roles;
 
 import java.time.LocalDateTime;
@@ -29,6 +30,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class AdminServiceImpl implements AdminService, CommandLineRunner {
     private final PersonRepository personRepository;
+    private final PatientRepository patientRepository;
     private final ModelMapper modelMapper;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -125,6 +127,14 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
     public List<PersonDTO> getAllPersons() {
         return personRepository.findAll().stream()
                 .map(person -> modelMapper.map(person, PersonDTO.class))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PatientDTO> getAllPatients() {
+        return patientRepository.findAll().stream()
+                .map(patient -> modelMapper.map(patient, PatientDTO.class))
                 .collect(Collectors.toList());
     }
 
