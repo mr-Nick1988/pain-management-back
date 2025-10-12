@@ -265,21 +265,26 @@ public class DoctorServiceImpl implements DoctorService {
             // 2.1. Получаем MRN пациента, которому принадлежит эта рекомендация
             String mrn = recommendation.getPatient().getMrn();
 
-            // 2.2. Маппим саму Recommendation в RecommendationWithVasDTO (DTO-обёртку)
-            RecommendationWithVasDTO recommendationWithVasDTO =
-                    modelMapper.map(recommendation, RecommendationWithVasDTO.class);
+            // 2.2. Создаем RecommendationWithVasDTO вручную
+            RecommendationWithVasDTO recommendationWithVasDTO = new RecommendationWithVasDTO();
 
-            // 2.3. Внутри RecommendationDTO есть опциональное поле patientMrn,
+            // 2.3. Маппим Recommendation entity в RecommendationDTO
+            RecommendationDTO recommendationDTO = modelMapper.map(recommendation, RecommendationDTO.class);
+
+            // 2.4. Внутри RecommendationDTO есть опциональное поле patientMrn,
             // которое мы вручную задаём — оно нужно фронту для идентификации пациента
-            recommendationWithVasDTO.getRecommendation().setPatientMrn(mrn);
+            recommendationDTO.setPatientMrn(mrn);
 
-            // 2.4. Берём у пациента последнюю VAS-жалобу (getLast()) и тоже маппим в VasDTO
+            // 2.5. Устанавливаем recommendationDTO в наш комбинированный объект
+            recommendationWithVasDTO.setRecommendation(recommendationDTO);
+
+            // 2.6. Берём у пациента последнюю VAS-жалобу (getLast()) и тоже маппим в VasDTO
             VasDTO vasDTO = modelMapper.map(recommendation.getPatient().getVas().getLast(), VasDTO.class);
 
-            // 2.5. Подшиваем VasDTO внутрь нашего комбинированного RecommendationWithVasDTO
+            // 2.7. Подшиваем VasDTO внутрь нашего комбинированного RecommendationWithVasDTO
             recommendationWithVasDTO.setVas(vasDTO);
 
-            // 2.6. Возвращаем готовый объект
+            // 2.8. Возвращаем готовый объект
             return recommendationWithVasDTO;
         }).toList();
     }
