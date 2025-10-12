@@ -16,7 +16,6 @@ public class RecommendationDTO {
     private String rejectedReason;
 
     private List<DrugRecommendationDTO> drugs; // Здесь будут 1-е, 2-е и т.д. препараты
-    private List<String> avoidIfSensitivity;   // избегать если аллергия
     private List<String> contraindications;    // противопоказания
 
 

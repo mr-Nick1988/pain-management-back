@@ -209,4 +209,15 @@ public class NurseServiceImpl implements NurseService {
         patientRepository.save(patient);
         return modelMapper.map(recommendation, RecommendationDTO.class);
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public RecommendationDTO getLastRecommendation(String mrn) {
+        Patient patient = findPatientOrThrow(mrn);
+        if (patient.getRecommendations().isEmpty()) {
+            throw new NotFoundException("No recommendation found for this patient");
+        }
+        Recommendation recommendation = patient.getRecommendations().getLast();
+        return modelMapper.map(recommendation, RecommendationDTO.class);
+    }
 }

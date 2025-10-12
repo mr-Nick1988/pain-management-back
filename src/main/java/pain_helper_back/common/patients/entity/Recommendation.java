@@ -9,6 +9,16 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Represents a medical recommendation record.
+ *
+ * Note: this entity currently contains both core medical data (drugs, contraindications)
+ * and workflow-related fields (doctor/anesthesiologist actions).
+ *
+ * TODO (v2): separate workflow actions into a new entity RecommendationWorkflow
+ * to simplify auditing and reporting.
+ */
+
 @Entity
 @Data
 @Table(name = "recommendation")
@@ -26,22 +36,18 @@ public class Recommendation {
     @Column(name = "rejected_reason")
     private String rejectedReason;
 
+
     // ========== ПРЕПАРАТЫ ========== //
-    @OneToMany(mappedBy = "recommendation", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "recommendation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<DrugRecommendation> drugs = new ArrayList<>();
 
     // ========== ПРОТИВОПОКАЗАНИЯ И КОММЕНТАРИИ ========== //
-    @ElementCollection //Эта аннотация используется для хранения простых коллекций (recommendation_id,element)
-    @CollectionTable(name = "recommendation_avoid_sensitivity", joinColumns = @JoinColumn(name = "recommendation_id"))
-    @Column(name = "element")
-    private List<String> avoidIfSensitivity = new ArrayList<>();
-
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "recommendation_contraindications", joinColumns = @JoinColumn(name = "recommendation_id"))
-    @Column(name = "element")
+    @Column(name = "element",length = 2000,columnDefinition = "TEXT")
     private List<String> contraindications = new ArrayList<>();
 
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "recommendation_comments", joinColumns = @JoinColumn(name = "recommendation_id"))
     @Column(name = "element")
     private List<String> comments = new ArrayList<>();      // свободные комментарии
