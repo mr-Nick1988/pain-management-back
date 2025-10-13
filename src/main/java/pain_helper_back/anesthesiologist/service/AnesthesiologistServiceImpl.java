@@ -4,8 +4,10 @@ package pain_helper_back.anesthesiologist.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import pain_helper_back.analytics.event.EscalationResolvedEvent;
 import pain_helper_back.anesthesiologist.dto.*;
 import pain_helper_back.anesthesiologist.entity.Escalation;
 import pain_helper_back.anesthesiologist.entity.TreatmentProtocolComment;
@@ -21,6 +23,7 @@ import pain_helper_back.enums.EscalationStatus;
 import pain_helper_back.enums.ProtocolStatus;
 import pain_helper_back.enums.RecommendationStatus;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -34,6 +37,7 @@ public class AnesthesiologistServiceImpl implements AnesthesiologistServiceInter
     private final ProtocolCommentRepository commentRepository;
     private final RecommendationRepository recommendationRepository;
     private final ModelMapper modelMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     // ================= ESCALATIONS ================= //
     @Override
@@ -121,6 +125,23 @@ public class AnesthesiologistServiceImpl implements AnesthesiologistServiceInter
         Escalation savedEscalation = escalationRepository.save(escalation);
         log.info("Escalation approved: id={}, recommendationId={}, status={}",
                 savedEscalation.getId(), recommendation.getId(), recommendation.getStatus());
+
+        //Публикуем событие разрешения эскалации (одобрено)
+        Long resolutionTimeMs = Duration.between(
+                escalation.getEscalatedAt(),
+                escalation.getResolvedAt()
+        ).toMillis();
+        eventPublisher.publishEvent(new EscalationResolvedEvent(
+                this,
+                savedEscalation.getId(),
+                recommendation.getId(),
+                resolutionDTO.getResolvedBy(),
+                recommendation.getPatient().getMrn(),
+                escalation.getResolvedAt(),
+                true, // approved = true
+                escalation.getResolution(),
+                resolutionTimeMs
+        ));
         return modelMapper.map(savedEscalation, EscalationResponseDTO.class);
     }
 
@@ -155,6 +176,24 @@ public class AnesthesiologistServiceImpl implements AnesthesiologistServiceInter
 
         log.info("Escalation rejected: id={}, recommendationId={}, status={}",
                 savedEscalation.getId(), recommendation.getId(), recommendation.getStatus());
+
+        //Публикуем событие разрешения эскалации (отклонено)
+                Long resolutionTimeMs = Duration.between(
+                escalation.getEscalatedAt(),
+                escalation.getResolvedAt()
+        ).toMillis();
+                eventPublisher.publishEvent(new EscalationResolvedEvent(
+                this,
+                savedEscalation.getId(),
+                recommendation.getId(),
+                resolutionDTO.getResolvedBy(),
+                recommendation.getPatient().getMrn(),
+                escalation.getResolvedAt(),
+                false, // approved = false (reject)
+                escalation.getResolution(),
+                resolutionTimeMs
+        ));
+
         return modelMapper.map(savedEscalation, EscalationResponseDTO.class);
     }
     // ================= PROTOCOLS ================= //

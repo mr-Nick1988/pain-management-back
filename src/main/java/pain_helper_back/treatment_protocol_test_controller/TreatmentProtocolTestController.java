@@ -28,7 +28,7 @@ public class TreatmentProtocolTestController {
     private final PatientRepository patientRepository;
     private final VasRepository vasRepository;
 
-    /**
+    /*
      * Тест для одного пациента
      */
     @PostMapping("/generate")

@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import pain_helper_back.admin.dto.PersonDTO;
 import pain_helper_back.admin.dto.PersonRegisterRequestDTO;
 import pain_helper_back.admin.service.AdminServiceImpl;
+import pain_helper_back.common.patients.dto.PatientDTO;
 import pain_helper_back.validation.ValidationGroups;
 
 import java.util.List;
@@ -25,6 +26,11 @@ public class AdminController {
     @GetMapping
     public List<PersonDTO> getAllPersons() {
         return adminService.getAllPersons();
+    }
+
+    @GetMapping("/patients")
+    public List<PatientDTO> getAllPatients() {
+        return adminService.getAllPatients();
     }
 
     @GetMapping("/{id}")
