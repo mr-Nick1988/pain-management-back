@@ -47,13 +47,13 @@ public class AnesthesiologistController {
 
     // ========== НОВЫЕ ENDPOINTS: APPROVE/REJECT ЭСКАЛАЦИИ ========== //
 
-    @PutMapping("/escalations/{id}/approve")
+    @PostMapping("/escalations/{id}/approve")
     public EscalationResponseDTO approveEscalation(
             @PathVariable Long id,
             @Valid @RequestBody EscalationResolutionDTO resolutionDTO) {
         return anesthesiologistService.approveEscalation(id, resolutionDTO);
     }
-    @PutMapping("/escalations/{id}/reject")
+    @PostMapping("/escalations/{id}/reject")
     public EscalationResponseDTO rejectEscalation(
             @PathVariable Long id,
             @Valid @RequestBody EscalationResolutionDTO resolutionDTO) {

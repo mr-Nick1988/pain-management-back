@@ -181,6 +181,71 @@ public class AnalyticsEventListener {
         }
     }
     /*
+     * Обработка события: Рекомендация отклонена
+     */
+    @EventListener
+    @Async("analyticsTaskExecutor")
+    public void handleRecommendationRejected(RecommendationRejectedEvent event) {
+        try {
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("rejectionReason", event.getRejectionReason());
+            metadata.put("comment", event.getComment());
+            metadata.put("rejectedAt", event.getRejectedAt().toString());
+
+            AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
+                    .timestamp(LocalDateTime.now())
+                    .eventType("RECOMMENDATION_REJECTED")
+                    .recommendationId(event.getRecommendationId())
+                    .patientMrn(event.getPatientMrn())
+                    .userId(event.getDoctorId())
+                    .userRole("DOCTOR")
+                    .status("REJECTED")
+                    .rejectionReason(event.getRejectionReason())
+                    .metadata(metadata)
+                    .build();
+
+            analyticsEventRepository.save(analyticsEvent);
+            log.info("Analytics event saved: RECOMMENDATION_REJECTED, recommendationId={}, doctorId={}, reason={}",
+                    event.getRecommendationId(), event.getDoctorId(), event.getRejectionReason());
+
+        } catch (Exception e) {
+            log.error("Failed to save analytics event for recommendation rejection: {}", e.getMessage());
+        }
+    }
+    /*
+     * Обработка события: Создана эскалация
+     */
+    @EventListener
+    @Async("analyticsTaskExecutor")
+    public void handleEscalationCreated(EscalationCreatedEvent event) {
+        try {
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("escalationReason", event.getEscalationReason());
+            metadata.put("escalatedAt", event.getEscalatedAt().toString());
+            metadata.put("priority", event.getPriority().toString());
+
+            AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
+                    .timestamp(LocalDateTime.now())
+                    .eventType("ESCALATION_CREATED")
+                    .escalationId(event.getEscalationId())
+                    .recommendationId(event.getRecommendationId())
+                    .patientMrn(event.getPatientMrn())
+                    .userId(event.getEscalatedBy())
+                    .userRole("DOCTOR")
+                    .priority(event.getPriority().toString())
+                    .vasLevel(event.getVasLevel())
+                    .metadata(metadata)
+                    .build();
+
+            analyticsEventRepository.save(analyticsEvent);
+            log.info("Analytics event saved: ESCALATION_CREATED, escalationId={}, recommendationId={}, priority={}",
+                    event.getEscalationId(), event.getRecommendationId(), event.getPriority());
+
+        } catch (Exception e) {
+            log.error("Failed to save analytics event for escalation creation: {}", e.getMessage());
+        }
+    }
+    /*
      * Обработка события: Эскалация разрешена
      */
     @EventListener
@@ -241,6 +306,38 @@ public class AnalyticsEventListener {
 
         } catch (Exception e) {
             log.error("Failed to save analytics event for patient registration: {}", e.getMessage());
+        }
+    }
+    /*
+     * Обработка события: Создана запись EMR
+     */
+    @EventListener
+    @Async("analyticsTaskExecutor")
+    public void handleEmrCreated(EmrCreatedEvent event) {
+        try {
+            AnalyticsEvent analyticsEvent = new AnalyticsEvent();
+            analyticsEvent.setEventType("EMR_CREATED");
+            analyticsEvent.setTimestamp(event.getCreatedAt());
+            analyticsEvent.setUserId(event.getCreatedBy());
+            analyticsEvent.setUserRole(event.getCreatedByRole());
+            analyticsEvent.setPatientMrn(event.getPatientMrn());
+
+            // Формируем детали события
+            String details = String.format(
+                    "EMR created for patient %s. GFR: %s, Child-Pugh: %s, Weight: %.1f kg, Height: %.1f cm",
+                    event.getPatientMrn(),
+                    event.getGfr() != null ? event.getGfr() : "N/A",
+                    event.getChildPughScore() != null ? event.getChildPughScore() : "N/A",
+                    event.getWeight() != null ? event.getWeight() : 0.0,
+                    event.getHeight() != null ? event.getHeight() : 0.0
+            );
+            analyticsEvent.setEventType(details);
+
+            analyticsEventRepository.save(analyticsEvent);
+            log.info("EMR_CREATED event saved: patient={}, createdBy={}",
+                    event.getPatientMrn(), event.getCreatedBy());
+        } catch (Exception e) {
+            log.error("Failed to save EMR_CREATED event: {}", e.getMessage(), e);
         }
     }
     /*

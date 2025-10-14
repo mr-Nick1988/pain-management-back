@@ -8,10 +8,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import pain_helper_back.analytics.event.EscalationCreatedEvent;
-import pain_helper_back.analytics.event.PatientRegisteredEvent;
-import pain_helper_back.analytics.event.RecommendationApprovedEvent;
-import pain_helper_back.analytics.event.RecommendationRejectedEvent;
+import pain_helper_back.analytics.event.*;
 import pain_helper_back.anesthesiologist.entity.Escalation;
 import pain_helper_back.common.patients.dto.*;
 import pain_helper_back.common.patients.dto.exceptions.EntityExistsException;
@@ -20,6 +17,7 @@ import pain_helper_back.common.patients.entity.Emr;
 import pain_helper_back.common.patients.entity.Patient;
 import pain_helper_back.common.patients.entity.Recommendation;
 import pain_helper_back.common.patients.entity.Vas;
+import pain_helper_back.common.patients.repository.EmrRepository;
 import pain_helper_back.common.patients.repository.PatientRepository;
 import pain_helper_back.common.patients.repository.RecommendationRepository;
 import pain_helper_back.doctor.dto.RecommendationApprovalRejectionDTO;
@@ -44,6 +42,7 @@ public class DoctorServiceImpl implements DoctorService {
     private final PatientRepository patientRepository;
     private final ModelMapper modelMapper;
     private final ApplicationEventPublisher eventPublisher;
+    private final EmrRepository emrRepository;
 
     /*
      * Вспомогательный метод для поиска пациента по MRN
@@ -86,7 +85,6 @@ public class DoctorServiceImpl implements DoctorService {
                 patient.getAge(),
                 patient.getGender().toString()
         ));
-
         return modelMapper.map(patient, PatientDTO.class);
     }
 
@@ -214,6 +212,20 @@ public class DoctorServiceImpl implements DoctorService {
         Emr emr = modelMapper.map(emrDto, Emr.class);
         emr.setPatient(patient);
         patient.getEmr().add(emr);
+        emrRepository.save(emr);
+        // Публикация события
+        eventPublisher.publishEvent(new EmrCreatedEvent(
+                this,
+                emr.getId(),
+                mrn,
+                "doctor_id", // TODO: заменить на реальный ID из Security Context
+                "DOCTOR",
+                LocalDateTime.now(),
+                emr.getGfr(),
+                emr.getChildPughScore(),
+                emr.getWeight(),
+                emr.getHeight()
+        ));
         return modelMapper.map(emr, EmrDTO.class);
     }
 

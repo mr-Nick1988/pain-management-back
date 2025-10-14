@@ -1,23 +1,26 @@
 package pain_helper_back.nurse.service;
 
-import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import pain_helper_back.analytics.event.EmrCreatedEvent;
+import pain_helper_back.analytics.event.PatientRegisteredEvent;
+import pain_helper_back.analytics.event.VasRecordedEvent;
 import pain_helper_back.common.patients.dto.*;
-import pain_helper_back.common.patients.entity.Recommendation;
 import pain_helper_back.common.patients.dto.exceptions.EntityExistsException;
 import pain_helper_back.common.patients.dto.exceptions.NotFoundException;
 import pain_helper_back.common.patients.entity.Emr;
 import pain_helper_back.common.patients.entity.Patient;
+import pain_helper_back.common.patients.entity.Recommendation;
 import pain_helper_back.common.patients.entity.Vas;
 import pain_helper_back.common.patients.repository.EmrRepository;
 import pain_helper_back.common.patients.repository.PatientRepository;
-import pain_helper_back.common.patients.repository.RecommendationRepository;
 import pain_helper_back.treatment_protocol.service.TreatmentProtocolService;
 
-
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,8 +30,8 @@ public class NurseServiceImpl implements NurseService {
     private final PatientRepository patientRepository;
     private final TreatmentProtocolService treatmentProtocolService;
     private final EmrRepository emrRepository;
-    private final RecommendationRepository recommendationRepository;
     private final ModelMapper modelMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
 
     private Patient findPatientOrThrow(String mrn) {
@@ -50,6 +53,17 @@ public class NurseServiceImpl implements NurseService {
         String mrn = String.format("%06d", patient.getId());
         patient.setMrn(mrn);
         patientRepository.save(patient);
+
+        eventPublisher.publishEvent(new PatientRegisteredEvent(
+                this,
+                patient.getId(),
+                mrn,
+                "nurse_id", // TODO: заменить на реальный ID из Security Context
+                "NURSE",
+                LocalDateTime.now(),
+                patient.getAge(),
+                patient.getGender().toString()
+        ));
         return modelMapper.map(patient, PatientDTO.class);
     }
 
@@ -135,6 +149,20 @@ public class NurseServiceImpl implements NurseService {
         Emr emr = modelMapper.map(emrDto, Emr.class);
         emr.setPatient(patient);
         patient.getEmr().add(emr);
+        emrRepository.save(emr);
+
+        eventPublisher.publishEvent(new EmrCreatedEvent(
+                this,
+                emr.getId(),
+                mrn,
+                "nurse_id", // TODO: заменить на реальный ID из Security Context
+                "NURSE",
+                LocalDateTime.now(),
+                emr.getGfr(),
+                emr.getChildPughScore(),
+                emr.getWeight(),
+                emr.getHeight()
+        ));
         return modelMapper.map(emr, EmrDTO.class);
     }
 
@@ -172,6 +200,19 @@ public class NurseServiceImpl implements NurseService {
         Vas vas = modelMapper.map(vasDto, Vas.class);
         vas.setPatient(patient);
         patient.getVas().add(vas);
+
+        // Публикация события
+        eventPublisher.publishEvent(new VasRecordedEvent(
+                this,
+                vas.getId(),
+                mrn,
+                "nurse_id", // TODO: заменить на реальный ID из Security Context
+                LocalDateTime.now(),
+                vas.getPainLevel(),
+                vas.getPainPlace(),
+                vas.getPainLevel() >= 8  // isCritical если боль >= 8
+        ));
+
         return modelMapper.map(vas, VasDTO.class);
     }
 

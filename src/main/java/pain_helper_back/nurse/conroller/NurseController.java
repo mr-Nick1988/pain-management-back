@@ -69,7 +69,7 @@ public class NurseController {
     }
 
     @GetMapping("/patients/{mrn}/emr")
-    public EmrDTO getEmrByPatintMrn(@PathVariable String mrn) {
+    public EmrDTO getEmrByPatientMrn(@PathVariable String mrn) {
         return nurseService.getLastEmrByPatientMrn(mrn);
     }
 
