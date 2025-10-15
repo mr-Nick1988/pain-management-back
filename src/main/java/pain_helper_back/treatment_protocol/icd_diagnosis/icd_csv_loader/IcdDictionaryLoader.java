@@ -1,16 +1,15 @@
-package pain_helper_back.treatment_protocol.icd_diagnosis.icd_excel_loader;
+package pain_helper_back.treatment_protocol.icd_diagnosis.icd_csv_loader;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import pain_helper_back.treatment_protocol.icd_diagnosis.entity.IcdDictionary;
 import pain_helper_back.treatment_protocol.icd_diagnosis.repository.IcdDictionaryRepository;
 
-import java.io.InputStream;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,57 +17,71 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class IcdDictionaryLoader implements CommandLineRunner {
+
     private final IcdDictionaryRepository repo;
 
     @Override
     public void run(String... args) throws Exception {
+
+        // 🔹 если таблица уже не пуста — загрузка не выполняется
         if (repo.count() > 0) {
-            log.info(" ICD dictionary already loaded");
+            log.info("ICD dictionary already loaded");
             return;
         }
-        log.info(" Loading ICD dictionary...");
 
-        String path = "icd_dictionary.xlsx";
+        log.info("Loading ICD dictionary from CSV...");
+
+        // 🔹 путь к файлу в resources/
+        String path = "icd_dictionary.csv";
+
+        // 🔹 открываем поток чтения (Spring -> ClassPathResource)
         try (InputStream is = new ClassPathResource(path).getInputStream();
-             Workbook workbook = new XSSFWorkbook(is)) {
+             BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
 
-            Sheet sheet = workbook.getSheetAt(0);
-            DataFormatter formatter = new DataFormatter();
-            List<IcdDictionary> batch = new ArrayList<>(1000);
+            List<IcdDictionary> batch = new ArrayList<>(1000); // буфер для пакетной вставки
+            String line;
             int total = 0;
 
-            for (Row row : sheet) {
-                if (row == null || row.getRowNum() == 0) continue;
+            //  пропускаем первую строку (заголовок)
+            reader.readLine();
 
-                String code = clean(formatter.formatCellValue(row.getCell(0)));
-                String desc = clean(formatter.formatCellValue(row.getCell(1)));
+            //  читаем построчно весь CSV
+            while ((line = reader.readLine()) != null) {
 
-                if (code.isEmpty() || desc.isEmpty()) continue;
+                // делим строку на две части: код и всё остальное
+                String[] parts = line.split(",", 2);
+                if (parts.length < 2) continue; // пропускаем битые строки
 
+                String code = clean(parts[0]);
+                String desc = clean(parts[1]);
+                if (code.isEmpty() || desc.isEmpty()) continue; // пропускаем пустые значения
+
+                // создаём объект ICD и добавляем в батч
                 batch.add(new IcdDictionary(code.toUpperCase(), desc));
                 total++;
 
-                // Каждые 1000 строк — сохраняем в базу
+                // каждые 1000 строк сохраняем в БД и очищаем буфер
                 if (batch.size() >= 1000) {
                     repo.saveAll(batch);
                     batch.clear();
-                    log.info("💾 Saved {} records so far...", total);
+                    log.info(" Saved {} records so far...", total);
                 }
             }
 
-            // Сохраняем остаток
+            // сохраняем остаток, если он есть
             if (!batch.isEmpty()) repo.saveAll(batch);
 
-            log.info("✅ ICD dictionary loaded successfully, total {} records", total);
+            log.info(" ICD dictionary loaded successfully, total {}", total);
         }
     }
 
-    // 🔧 Очистка строки от лишних символов
+    // 🔧 Утилита очистки текста
     private String clean(String text) {
-        if (text == null) return "";
-        return text
-                .replaceAll("[\\u00A0\\s]+", " ") // заменяет неразрывные пробелы и множественные пробелы на один
-                .replaceAll("[–—]", "-")          // заменяет длинные тире на обычное
-                .trim();
+        return text == null ? "" :
+                text.replaceAll("[\\u00A0\\s]+", " ") // заменяет множественные пробелы и неразрывные на один
+                        .replaceAll("[–—]", "-")         // длинные тире на короткое
+                        .replaceAll("\"", "")            // убираем кавычки вокруг текста
+                        .replaceAll(",.*$", "")          // убираем всё после первой запятой (оставляем только short description)
+                        .trim();                         // убираем пробелы по краям
     }
 }
