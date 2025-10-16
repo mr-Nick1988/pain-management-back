@@ -13,7 +13,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
-@Order(5)
+@Order(4)
 @Slf4j
 public class PltRuleApplier implements TreatmentRuleApplier{
 

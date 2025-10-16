@@ -23,7 +23,7 @@ public class IcdDictionaryLoader implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
 
-        // 🔹 если таблица уже не пуста — загрузка не выполняется
+        //  если таблица уже не пуста — загрузка не выполняется
         if (repo.count() > 0) {
             log.info("ICD dictionary already loaded");
             return;
@@ -31,10 +31,10 @@ public class IcdDictionaryLoader implements CommandLineRunner {
 
         log.info("Loading ICD dictionary from CSV...");
 
-        // 🔹 путь к файлу в resources/
-        String path = "icd_dictionary.csv";
+        // путь к файлу в resources/
+        String path = "icd9cm_2015_converted.csv";
 
-        // 🔹 открываем поток чтения (Spring -> ClassPathResource)
+        // открываем поток чтения (Spring -> ClassPathResource)
         try (InputStream is = new ClassPathResource(path).getInputStream();
              BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
 
@@ -75,13 +75,12 @@ public class IcdDictionaryLoader implements CommandLineRunner {
         }
     }
 
-    // 🔧 Утилита очистки текста
+    //  Утилита очистки текста
     private String clean(String text) {
         return text == null ? "" :
                 text.replaceAll("[\\u00A0\\s]+", " ") // заменяет множественные пробелы и неразрывные на один
                         .replaceAll("[–—]", "-")         // длинные тире на короткое
                         .replaceAll("\"", "")            // убираем кавычки вокруг текста
-                        .replaceAll(",.*$", "")          // убираем всё после первой запятой (оставляем только short description)
                         .trim();                         // убираем пробелы по краям
     }
 }

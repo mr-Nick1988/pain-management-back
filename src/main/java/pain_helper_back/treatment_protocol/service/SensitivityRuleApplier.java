@@ -21,7 +21,7 @@ AVOID if sensitivity — правило исключения препарато�
 
 @Component
 @Slf4j
-@Order(9)
+@Order(3)
 public class SensitivityRuleApplier implements TreatmentRuleApplier {
     @Override
     public void apply(DrugRecommendation drug, Recommendation recommendation, TreatmentProtocol tp, Patient patient) {

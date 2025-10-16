@@ -1,278 +1,278 @@
-package pain_helper_back.analytics.listener;
-
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.stereotype.Component;
-import pain_helper_back.analytics.entity.AnalyticsEvent;
-import pain_helper_back.analytics.event.*;
-import pain_helper_back.analytics.repository.AnalyticsEventRepository;
-
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
-
-/*
- * Слушатель бизнес-событий
- * Асинхронно сохраняет события в MongoDB для аналитики
- */
-@Component
-@Slf4j
-@RequiredArgsConstructor
-public class AnalyticsEventListener {
-    private final AnalyticsEventRepository analyticsEventRepository;
-
-    /*
-     * Обработка события: Создан новый сотрудник
-     */
-    @EventListener
-    @Async("analyticsTaskExecutor")
-    public void handlePersonCreated(PersonCreatedEvent event) {
-        try {
-            Map<String, Object> metadata = new HashMap<>();
-            metadata.put("firstName", event.getFirstName());
-            metadata.put("lastName", event.getLastName());
-            metadata.put("createdAt", event.getCreatedAt().toString());
-
-            AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
-                    .timestamp(LocalDateTime.now())
-                    .eventType("PERSON_CREATED")
-                    .userId(event.getCreatedBy())
-                    .userRole("ADMIN")
-                    .metadata(metadata)
-                    .build();
-
-            // Добавляем в metadata информацию о созданном пользователе
-            analyticsEvent.getMetadata().put("newPersonId", event.getPersonId());
-            analyticsEvent.getMetadata().put("newPersonRole", event.getRole());
-
-            analyticsEventRepository.save(analyticsEvent);
-            log.info("Analytics event saved: PERSON_CREATED, personId={}, role={}, createdBy={}",
-                    event.getPersonId(), event.getRole(), event.getCreatedBy());
-
-        } catch (Exception e) {
-            log.error("Failed to save analytics event for person creation: {}", e.getMessage());
-        }
-    }
-    /*
-     * Обработка события: Удален сотрудник
-     */
-    @EventListener
-    @Async("analyticsTaskExecutor")
-    public void handlePersonDeleted(PersonDeletedEvent event) {
-        try {
-            Map<String, Object> metadata = new HashMap<>();
-            metadata.put("firstName", event.getFirstName());
-            metadata.put("lastName", event.getLastName());
-            metadata.put("deletedAt", event.getDeletedAt().toString());
-            metadata.put("reason", event.getReason());
-
-            AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
-                    .timestamp(LocalDateTime.now())
-                    .eventType("PERSON_DELETED")
-                    .userId(event.getDeletedBy())
-                    .userRole("ADMIN")
-                    .metadata(metadata)
-                    .build();
-
-            analyticsEvent.getMetadata().put("deletedPersonId", event.getPersonId());
-            analyticsEvent.getMetadata().put("deletedPersonRole", event.getRole());
-
-            analyticsEventRepository.save(analyticsEvent);
-            log.warn("Analytics event saved: PERSON_DELETED, personId={}, role={}, deletedBy={}",
-                    event.getPersonId(), event.getRole(), event.getDeletedBy());
-
-        } catch (Exception e) {
-            log.error("Failed to save analytics event for person deletion: {}", e.getMessage());
-        }
-    }
-    /*
-     * Обработка события: Обновлены данные сотрудника
-     */
-    @EventListener
-    @Async("analyticsTaskExecutor")
-    public void handlePersonUpdated(PersonUpdatedEvent event) {
-        try {
-            Map<String, Object> metadata = new HashMap<>();
-            metadata.put("updatedAt", event.getUpdatedAt().toString());
-            metadata.put("changedFields", event.getChangedFields());
-
-            AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
-                    .timestamp(LocalDateTime.now())
-                    .eventType("PERSON_UPDATED")
-                    .userId(event.getUpdatedBy())
-                    .userRole("ADMIN") // Или определить динамически
-                    .metadata(metadata)
-                    .build();
-
-            analyticsEvent.getMetadata().put("updatedPersonId", event.getPersonId());
-
-            analyticsEventRepository.save(analyticsEvent);
-            log.info("Analytics event saved: PERSON_UPDATED, personId={}, updatedBy={}, fields={}",
-                    event.getPersonId(), event.getUpdatedBy(), event.getChangedFields().keySet());
-
-        } catch (Exception e) {
-            log.error("Failed to save analytics event for person update: {}", e.getMessage());
-        }
-    }
-    /*
-     * Обработка события: Вход пользователя в систему
-     */
-    @EventListener
-    @Async("analyticsTaskExecutor")
-    public void handleUserLogin(UserLoginEvent event) {
-        try {
-            Map<String, Object> metadata = new HashMap<>();
-            metadata.put("loginAt", event.getLoginAt().toString());
-            metadata.put("success", event.getSuccess());
-            metadata.put("ipAddress", event.getIpAddress());
-
-            AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
-                    .timestamp(LocalDateTime.now())
-                    .eventType(event.getSuccess() ? "USER_LOGIN_SUCCESS" : "USER_LOGIN_FAILED")
-                    .userId(event.getPersonId())
-                    .userRole(event.getRole())
-                    .status(event.getSuccess() ? "SUCCESS" : "FAILED")
-                    .metadata(metadata)
-                    .build();
-
-            analyticsEventRepository.save(analyticsEvent);
-            if (event.getSuccess()) {
-                log.info("Analytics event saved: USER_LOGIN_SUCCESS, personId={}, role={}",
-                        event.getPersonId(), event.getRole());
-            } else {
-                log.warn("Analytics event saved: USER_LOGIN_FAILED, personId={}", event.getPersonId());
-            }
-
-        } catch (Exception e) {
-            log.error("Failed to save analytics event for user login: {}", e.getMessage());
-        }
-    }
-    /*
-     * Обработка события: Рекомендация одобрена
-     */
-    @EventListener
-    @Async("analyticsTaskExecutor")
-    public void handleRecommendationApproved(RecommendationApprovedEvent event) {
-        try {
-            Map<String, Object> metadata = new HashMap<>();
-            metadata.put("comment", event.getComment());
-            metadata.put("approvedAt", event.getApprovedAt().toString());
-
-            AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
-                    .timestamp(LocalDateTime.now())
-                    .eventType("RECOMMENDATION_APPROVED")
-                    .recommendationId(event.getRecommendationId())
-                    .patientMrn(event.getPatientMrn())
-                    .userId(event.getDoctorId())
-                    .userRole("DOCTOR")
-                    .status("APPROVED")
-                    .processingTimeMs(event.getProcessingTimeMs())
-                    .metadata(metadata)
-                    .build();
-
-            analyticsEventRepository.save(analyticsEvent);
-            log.info("Analytics event saved: RECOMMENDATION_APPROVED, recommendationId={}, doctorId={}",
-                    event.getRecommendationId(), event.getDoctorId());
-
-        } catch (Exception e) {
-            log.error("Failed to save analytics event for recommendation approval: {}", e.getMessage());
-        }
-    }
-    /*
-     * Обработка события: Эскалация разрешена
-     */
-    @EventListener
-    @Async("analyticsTaskExecutor")
-    public void handleEscalationResolved(EscalationResolvedEvent event) {
-        try {
-            Map<String, Object> metadata = new HashMap<>();
-            metadata.put("resolution", event.getResolution());
-            metadata.put("resolvedAt", event.getResolvedAt().toString());
-            metadata.put("approved", event.getApproved());
-
-            AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
-                    .timestamp(LocalDateTime.now())
-                    .eventType("ESCALATION_RESOLVED")
-                    .escalationId(event.getEscalationId())
-                    .recommendationId(event.getRecommendationId())
-                    .patientMrn(event.getPatientMrn())
-                    .userId(event.getResolvedBy())
-                    .userRole("ANESTHESIOLOGIST")
-                    .status(event.getApproved() ? "RESOLVED" : "REJECTED")
-                    .processingTimeMs(event.getResolutionTimeMs())
-                    .metadata(metadata)
-                    .build();
-
-            analyticsEventRepository.save(analyticsEvent);
-            log.info("Analytics event saved: ESCALATION_RESOLVED, escalationId={}, approved={}, resolutionTime={}ms",
-                    event.getEscalationId(), event.getApproved(), event.getResolutionTimeMs());
-
-        } catch (Exception e) {
-            log.error("Failed to save analytics event for escalation resolution: {}", e.getMessage());
-        }
-    }
-    /*
-     * Обработка события: Пациент зарегистрирован
-     */
-    @EventListener
-    @Async("analyticsTaskExecutor")
-    public void handlePatientRegistered(PatientRegisteredEvent event) {
-        try {
-            Map<String, Object> metadata = new HashMap<>();
-            metadata.put("age", event.getAge());
-            metadata.put("gender", event.getGender());
-            metadata.put("registeredAt", event.getRegisteredAt().toString());
-
-            AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
-                    .timestamp(LocalDateTime.now())
-                    .eventType("PATIENT_REGISTERED")
-                    .patientId(event.getPatientId())
-                    .patientMrn(event.getPatientMrn())
-                    .userId(event.getRegisteredBy())
-                    .userRole(event.getRegisteredByRole()) // NURSE or DOCTOR
-                    .metadata(metadata)
-                    .build();
-
-            analyticsEventRepository.save(analyticsEvent);
-            log.info("Analytics event saved: PATIENT_REGISTERED, patientMrn={}, registeredBy={}, role={}",
-                    event.getPatientMrn(), event.getRegisteredBy(), event.getRegisteredByRole());
-
-        } catch (Exception e) {
-            log.error("Failed to save analytics event for patient registration: {}", e.getMessage());
-        }
-    }
-    /*
-     * Обработка события: VAS записан
-     */
-    @EventListener
-    @Async("analyticsTaskExecutor")
-    public void handleVasRecorded(VasRecordedEvent event) {
-        try {
-            Map<String, Object> metadata = new HashMap<>();
-            metadata.put("painLocation", event.getPainLocation());
-            metadata.put("recordedAt", event.getRecordedAt().toString());
-            metadata.put("isCritical", event.getIsCritical());
-
-            AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
-                    .timestamp(LocalDateTime.now())
-                    .eventType("VAS_RECORDED")
-                    .patientMrn(event.getPatientMrn())
-                    .userId(event.getRecordedBy())
-                    .userRole("NURSE")
-                    .vasLevel(event.getVasLevel())
-                    .priority(event.getIsCritical() ? "HIGH" : "NORMAL")
-                    .metadata(metadata)
-                    .build();
-
-            analyticsEventRepository.save(analyticsEvent);
-            log.info("Analytics event saved: VAS_RECORDED, patientMrn={}, vasLevel={}, critical={}",
-                    event.getPatientMrn(), event.getVasLevel(), event.getIsCritical());
-
-        } catch (Exception e) {
-            log.error("Failed to save analytics event for VAS recording: {}", e.getMessage());
-        }
-    }
-}
-
+//package pain_helper_back.analytics.listener;
+//
+//import lombok.RequiredArgsConstructor;
+//import lombok.extern.slf4j.Slf4j;
+//import org.springframework.context.event.EventListener;
+//import org.springframework.scheduling.annotation.Async;
+//import org.springframework.stereotype.Component;
+//import pain_helper_back.analytics.entity.AnalyticsEvent;
+//import pain_helper_back.analytics.event.*;
+//import pain_helper_back.analytics.repository.AnalyticsEventRepository;
+//
+//import java.time.LocalDateTime;
+//import java.util.HashMap;
+//import java.util.Map;
+//
+///*
+// * Слушатель бизнес-событий
+// * Асинхронно сохраняет события в MongoDB для аналитики
+// */
+//@Component
+//@Slf4j
+//@RequiredArgsConstructor
+//public class AnalyticsEventListener {
+//    private final AnalyticsEventRepository analyticsEventRepository;
+//
+//    /*
+//     * Обработка события: Создан новый сотрудник
+//     */
+//    @EventListener
+//    @Async("analyticsTaskExecutor")
+//    public void handlePersonCreated(PersonCreatedEvent event) {
+//        try {
+//            Map<String, Object> metadata = new HashMap<>();
+//            metadata.put("firstName", event.getFirstName());
+//            metadata.put("lastName", event.getLastName());
+//            metadata.put("createdAt", event.getCreatedAt().toString());
+//
+//            AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
+//                    .timestamp(LocalDateTime.now())
+//                    .eventType("PERSON_CREATED")
+//                    .userId(event.getCreatedBy())
+//                    .userRole("ADMIN")
+//                    .metadata(metadata)
+//                    .build();
+//
+//            // Добавляем в metadata информацию о созданном пользователе
+//            analyticsEvent.getMetadata().put("newPersonId", event.getPersonId());
+//            analyticsEvent.getMetadata().put("newPersonRole", event.getRole());
+//
+//            analyticsEventRepository.save(analyticsEvent);
+//            log.info("Analytics event saved: PERSON_CREATED, personId={}, role={}, createdBy={}",
+//                    event.getPersonId(), event.getRole(), event.getCreatedBy());
+//
+//        } catch (Exception e) {
+//            log.error("Failed to save analytics event for person creation: {}", e.getMessage());
+//        }
+//    }
+//    /*
+//     * Обработка события: Удален сотрудник
+//     */
+//    @EventListener
+//    @Async("analyticsTaskExecutor")
+//    public void handlePersonDeleted(PersonDeletedEvent event) {
+//        try {
+//            Map<String, Object> metadata = new HashMap<>();
+//            metadata.put("firstName", event.getFirstName());
+//            metadata.put("lastName", event.getLastName());
+//            metadata.put("deletedAt", event.getDeletedAt().toString());
+//            metadata.put("reason", event.getReason());
+//
+//            AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
+//                    .timestamp(LocalDateTime.now())
+//                    .eventType("PERSON_DELETED")
+//                    .userId(event.getDeletedBy())
+//                    .userRole("ADMIN")
+//                    .metadata(metadata)
+//                    .build();
+//
+//            analyticsEvent.getMetadata().put("deletedPersonId", event.getPersonId());
+//            analyticsEvent.getMetadata().put("deletedPersonRole", event.getRole());
+//
+//            analyticsEventRepository.save(analyticsEvent);
+//            log.warn("Analytics event saved: PERSON_DELETED, personId={}, role={}, deletedBy={}",
+//                    event.getPersonId(), event.getRole(), event.getDeletedBy());
+//
+//        } catch (Exception e) {
+//            log.error("Failed to save analytics event for person deletion: {}", e.getMessage());
+//        }
+//    }
+//    /*
+//     * Обработка события: Обновлены данные сотрудника
+//     */
+//    @EventListener
+//    @Async("analyticsTaskExecutor")
+//    public void handlePersonUpdated(PersonUpdatedEvent event) {
+//        try {
+//            Map<String, Object> metadata = new HashMap<>();
+//            metadata.put("updatedAt", event.getUpdatedAt().toString());
+//            metadata.put("changedFields", event.getChangedFields());
+//
+//            AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
+//                    .timestamp(LocalDateTime.now())
+//                    .eventType("PERSON_UPDATED")
+//                    .userId(event.getUpdatedBy())
+//                    .userRole("ADMIN") // Или определить динамически
+//                    .metadata(metadata)
+//                    .build();
+//
+//            analyticsEvent.getMetadata().put("updatedPersonId", event.getPersonId());
+//
+//            analyticsEventRepository.save(analyticsEvent);
+//            log.info("Analytics event saved: PERSON_UPDATED, personId={}, updatedBy={}, fields={}",
+//                    event.getPersonId(), event.getUpdatedBy(), event.getChangedFields().keySet());
+//
+//        } catch (Exception e) {
+//            log.error("Failed to save analytics event for person update: {}", e.getMessage());
+//        }
+//    }
+//    /*
+//     * Обработка события: Вход пользователя в систему
+//     */
+//    @EventListener
+//    @Async("analyticsTaskExecutor")
+//    public void handleUserLogin(UserLoginEvent event) {
+//        try {
+//            Map<String, Object> metadata = new HashMap<>();
+//            metadata.put("loginAt", event.getLoginAt().toString());
+//            metadata.put("success", event.getSuccess());
+//            metadata.put("ipAddress", event.getIpAddress());
+//
+//            AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
+//                    .timestamp(LocalDateTime.now())
+//                    .eventType(event.getSuccess() ? "USER_LOGIN_SUCCESS" : "USER_LOGIN_FAILED")
+//                    .userId(event.getPersonId())
+//                    .userRole(event.getRole())
+//                    .status(event.getSuccess() ? "SUCCESS" : "FAILED")
+//                    .metadata(metadata)
+//                    .build();
+//
+//            analyticsEventRepository.save(analyticsEvent);
+//            if (event.getSuccess()) {
+//                log.info("Analytics event saved: USER_LOGIN_SUCCESS, personId={}, role={}",
+//                        event.getPersonId(), event.getRole());
+//            } else {
+//                log.warn("Analytics event saved: USER_LOGIN_FAILED, personId={}", event.getPersonId());
+//            }
+//
+//        } catch (Exception e) {
+//            log.error("Failed to save analytics event for user login: {}", e.getMessage());
+//        }
+//    }
+//    /*
+//     * Обработка события: Рекомендация одобрена
+//     */
+//    @EventListener
+//    @Async("analyticsTaskExecutor")
+//    public void handleRecommendationApproved(RecommendationApprovedEvent event) {
+//        try {
+//            Map<String, Object> metadata = new HashMap<>();
+//            metadata.put("comment", event.getComment());
+//            metadata.put("approvedAt", event.getApprovedAt().toString());
+//
+//            AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
+//                    .timestamp(LocalDateTime.now())
+//                    .eventType("RECOMMENDATION_APPROVED")
+//                    .recommendationId(event.getRecommendationId())
+//                    .patientMrn(event.getPatientMrn())
+//                    .userId(event.getDoctorId())
+//                    .userRole("DOCTOR")
+//                    .status("APPROVED")
+//                    .processingTimeMs(event.getProcessingTimeMs())
+//                    .metadata(metadata)
+//                    .build();
+//
+//            analyticsEventRepository.save(analyticsEvent);
+//            log.info("Analytics event saved: RECOMMENDATION_APPROVED, recommendationId={}, doctorId={}",
+//                    event.getRecommendationId(), event.getDoctorId());
+//
+//        } catch (Exception e) {
+//            log.error("Failed to save analytics event for recommendation approval: {}", e.getMessage());
+//        }
+//    }
+//    /*
+//     * Обработка события: Эскалация разрешена
+//     */
+//    @EventListener
+//    @Async("analyticsTaskExecutor")
+//    public void handleEscalationResolved(EscalationResolvedEvent event) {
+//        try {
+//            Map<String, Object> metadata = new HashMap<>();
+//            metadata.put("resolution", event.getResolution());
+//            metadata.put("resolvedAt", event.getResolvedAt().toString());
+//            metadata.put("approved", event.getApproved());
+//
+//            AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
+//                    .timestamp(LocalDateTime.now())
+//                    .eventType("ESCALATION_RESOLVED")
+//                    .escalationId(event.getEscalationId())
+//                    .recommendationId(event.getRecommendationId())
+//                    .patientMrn(event.getPatientMrn())
+//                    .userId(event.getResolvedBy())
+//                    .userRole("ANESTHESIOLOGIST")
+//                    .status(event.getApproved() ? "RESOLVED" : "REJECTED")
+//                    .processingTimeMs(event.getResolutionTimeMs())
+//                    .metadata(metadata)
+//                    .build();
+//
+//            analyticsEventRepository.save(analyticsEvent);
+//            log.info("Analytics event saved: ESCALATION_RESOLVED, escalationId={}, approved={}, resolutionTime={}ms",
+//                    event.getEscalationId(), event.getApproved(), event.getResolutionTimeMs());
+//
+//        } catch (Exception e) {
+//            log.error("Failed to save analytics event for escalation resolution: {}", e.getMessage());
+//        }
+//    }
+//    /*
+//     * Обработка события: Пациент зарегистрирован
+//     */
+//    @EventListener
+//    @Async("analyticsTaskExecutor")
+//    public void handlePatientRegistered(PatientRegisteredEvent event) {
+//        try {
+//            Map<String, Object> metadata = new HashMap<>();
+//            metadata.put("age", event.getAge());
+//            metadata.put("gender", event.getGender());
+//            metadata.put("registeredAt", event.getRegisteredAt().toString());
+//
+//            AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
+//                    .timestamp(LocalDateTime.now())
+//                    .eventType("PATIENT_REGISTERED")
+//                    .patientId(event.getPatientId())
+//                    .patientMrn(event.getPatientMrn())
+//                    .userId(event.getRegisteredBy())
+//                    .userRole(event.getRegisteredByRole()) // NURSE or DOCTOR
+//                    .metadata(metadata)
+//                    .build();
+//
+//            analyticsEventRepository.save(analyticsEvent);
+//            log.info("Analytics event saved: PATIENT_REGISTERED, patientMrn={}, registeredBy={}, role={}",
+//                    event.getPatientMrn(), event.getRegisteredBy(), event.getRegisteredByRole());
+//
+//        } catch (Exception e) {
+//            log.error("Failed to save analytics event for patient registration: {}", e.getMessage());
+//        }
+//    }
+//    /*
+//     * Обработка события: VAS записан
+//     */
+//    @EventListener
+//    @Async("analyticsTaskExecutor")
+//    public void handleVasRecorded(VasRecordedEvent event) {
+//        try {
+//            Map<String, Object> metadata = new HashMap<>();
+//            metadata.put("painLocation", event.getPainLocation());
+//            metadata.put("recordedAt", event.getRecordedAt().toString());
+//            metadata.put("isCritical", event.getIsCritical());
+//
+//            AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
+//                    .timestamp(LocalDateTime.now())
+//                    .eventType("VAS_RECORDED")
+//                    .patientMrn(event.getPatientMrn())
+//                    .userId(event.getRecordedBy())
+//                    .userRole("NURSE")
+//                    .vasLevel(event.getVasLevel())
+//                    .priority(event.getIsCritical() ? "HIGH" : "NORMAL")
+//                    .metadata(metadata)
+//                    .build();
+//
+//            analyticsEventRepository.save(analyticsEvent);
+//            log.info("Analytics event saved: VAS_RECORDED, patientMrn={}, vasLevel={}, critical={}",
+//                    event.getPatientMrn(), event.getVasLevel(), event.getIsCritical());
+//
+//        } catch (Exception e) {
+//            log.error("Failed to save analytics event for VAS recording: {}", e.getMessage());
+//        }
+//    }
+//}
+//

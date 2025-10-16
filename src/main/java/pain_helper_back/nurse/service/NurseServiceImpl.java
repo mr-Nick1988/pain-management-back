@@ -8,12 +8,9 @@ import org.springframework.stereotype.Service;
 import pain_helper_back.analytics.event.PatientRegisteredEvent;
 import pain_helper_back.analytics.event.VasRecordedEvent;
 import pain_helper_back.common.patients.dto.*;
-import pain_helper_back.common.patients.entity.Recommendation;
+import pain_helper_back.common.patients.entity.*;
 import pain_helper_back.common.patients.dto.exceptions.EntityExistsException;
 import pain_helper_back.common.patients.dto.exceptions.NotFoundException;
-import pain_helper_back.common.patients.entity.Emr;
-import pain_helper_back.common.patients.entity.Patient;
-import pain_helper_back.common.patients.entity.Vas;
 import pain_helper_back.common.patients.repository.EmrRepository;
 import pain_helper_back.common.patients.repository.PatientRepository;
 import pain_helper_back.common.patients.repository.RecommendationRepository;
@@ -23,6 +20,7 @@ import pain_helper_back.treatment_protocol.service.TreatmentProtocolService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -148,10 +146,18 @@ public class NurseServiceImpl implements NurseService {
     @Override
     @Transactional
     public EmrDTO createEmr(String mrn, EmrDTO emrDto) {
+        // 1 Находим пациента
         Patient patient = findPatientOrThrow(mrn);
+        // 2 Маппим DTO → Entity
         Emr emr = modelMapper.map(emrDto, Emr.class);
         emr.setPatient(patient);
+        // 3 ВАЖНО: для Hibernate создаём "обратную связь" у каждого Diagnosis
+        if (emr.getDiagnoses() != null) {
+            emr.getDiagnoses().forEach(diagnosis -> diagnosis.setEmr(emr));
+        }
+        // 4 Добавляем EMR в коллекцию пациента
         patient.getEmr().add(emr);
+        // 5 Hibernate сам сохранит всё (EMR + Diagnosis) в конце транзакции
         return modelMapper.map(emr, EmrDTO.class);
     }
 
@@ -178,7 +184,18 @@ public class NurseServiceImpl implements NurseService {
         if (emrUpdateDto.getSensitivities() != null)
             emr.setSensitivities(emrUpdateDto.getSensitivities());  // new filed that we missed
         if (emrUpdateDto.getSodium() != null) emr.setSodium(emrUpdateDto.getSodium());
-
+        if(emrUpdateDto.getDiagnoses() != null){
+            emr.getDiagnoses().clear();
+            // Переносим новые диагнозы из DTO → Entity
+            Set<Diagnosis> updatedDiagnoses = emrUpdateDto.getDiagnoses().stream()
+                    .map(dto -> {
+                        Diagnosis d = modelMapper.map(dto, Diagnosis.class);
+                        d.setEmr(emr); // ВАЖНО: обратная связь
+                        return d;
+                    })
+                    .collect(Collectors.toSet());
+            emr.setDiagnoses(updatedDiagnoses);
+        }
         return modelMapper.map(emr, EmrDTO.class);
     }
 

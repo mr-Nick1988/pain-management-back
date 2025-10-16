@@ -66,6 +66,7 @@ public class TreatmentProtocolService {
             mainDrug.setRoute(DrugRoute.valueOf(tp.getRoute()));
             altDrug.setRoute(DrugRoute.valueOf(tp.getRoute()));
             for (TreatmentRuleApplier ruleApplier : ruleAppliers) {
+                // Динамика боли (VAS). Анализирует последние жалобы пациента (ухудшения или инверсия).
                 // Применяем возрастные правила(<=18 or >75)
                 // Применяем весовые правила (только если вес < 50 — по протоколу)
                 // Применяем печёночную корректировку (ChildPugh)
@@ -77,7 +78,8 @@ public class TreatmentProtocolService {
                 // Применяем корректировку на чувствительность к препаратам (Sensitivity)
                 /**
                  * Contraindications — это список состояний (обычно в виде ICD-10 кодов),
-                 * Эти данные НЕ участвуют в фильтрации и не влияют на алгоритм выбора
+                 * Эти данные  участвуют в фильтрации и исключают рекомендацию вовсе, если у пациента есть
+                 * одно из заболеваний
                  */
                 ruleApplier.apply(mainDrug, recommendation, tp, patient);
                 ruleApplier.apply(altDrug, recommendation, tp, patient);
