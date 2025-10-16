@@ -2,8 +2,10 @@ package pain_helper_back.common.patients.dto;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 @Data
 public class EmrDTO {
@@ -24,11 +26,12 @@ public class EmrDTO {
     @NotNull(message = "Sodium is required")
     private Double sodium;//(натрий)
     private List<String> sensitivities;
+    private Set<DiagnosisDTO> diagnoses;
     private LocalDateTime createdAt;
     private String createdBy;
 
     // пока опциональное поле, не используется на фронте
     private String patientMrn; // пригодится для поисковых запросов без обёртки Patient,чтоб понять к кому относится
-                               // создать нужный метод в сервисе и не забыть присвоить это поле (поиск всех EMR с gfr<60)
+    // создать нужный метод в сервисе и не забыть присвоить это поле (поиск всех EMR с gfr<60)
     // emrDto.setPatientMrn(emr.getPatient().getMrn());
 }

@@ -7,7 +7,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 
 @Entity
@@ -37,10 +39,12 @@ public class Emr {
     private Double sat;
     @Column(name = "sodium_level")
     private Double sodium;
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "emr_sensitivities", joinColumns = @JoinColumn(name = "emr_id"))
     @Column(name = "sensitivity")
     private List<String> sensitivities;
+    @OneToMany(mappedBy = "emr", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private Set<Diagnosis> diagnoses = new HashSet<>();
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

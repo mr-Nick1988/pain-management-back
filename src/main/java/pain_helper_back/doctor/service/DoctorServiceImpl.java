@@ -18,6 +18,8 @@ import pain_helper_back.common.patients.entity.Patient;
 import pain_helper_back.common.patients.entity.Recommendation;
 import pain_helper_back.common.patients.entity.Vas;
 import pain_helper_back.common.patients.repository.EmrRepository;
+import pain_helper_back.common.patients.entity.*;
+
 import pain_helper_back.common.patients.repository.PatientRepository;
 import pain_helper_back.common.patients.repository.RecommendationRepository;
 import pain_helper_back.doctor.dto.RecommendationApprovalRejectionDTO;
@@ -31,6 +33,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -211,6 +214,10 @@ public class DoctorServiceImpl implements DoctorService {
         Patient patient = findPatientOrThrow(mrn);
         Emr emr = modelMapper.map(emrDto, Emr.class);
         emr.setPatient(patient);
+        //  ВАЖНО: для Hibernate создаём "обратную связь" у каждого Diagnosis
+        if (emr.getDiagnoses() != null) {
+            emr.getDiagnoses().forEach(diagnosis -> diagnosis.setEmr(emr));
+        }
         patient.getEmr().add(emr);
         emrRepository.save(emr);
         // Публикация события
@@ -252,7 +259,19 @@ public class DoctorServiceImpl implements DoctorService {
         if (emrUpdateDto.getSensitivities() != null) emr.setSensitivities(emrUpdateDto.getSensitivities());
         if (emrUpdateDto.getChildPughScore() != null) emr.setChildPughScore(emrUpdateDto.getChildPughScore());
         if (emrUpdateDto.getSodium() != null) emr.setSodium(emrUpdateDto.getSodium());
-
+        //Если в emrUpdateDto.getDiagnoses() ты планируешь обновлять список диагнозов (например, добавлять новые или удалять старые),
+        //тогда, придётся снова пройтись и обновить связь, как в create.
+        if (emrUpdateDto.getDiagnoses() != null) {
+            emr.getDiagnoses().clear();
+            Set<Diagnosis> updatedDiagnoses = emrUpdateDto.getDiagnoses().stream()
+                    .map(diagnosisDTO -> {
+                        Diagnosis d = modelMapper.map(diagnosisDTO, Diagnosis.class);
+                        d.setEmr(emr);
+                        return d;
+                    })
+                    .collect(Collectors.toSet());
+            emr.setDiagnoses(updatedDiagnoses);
+        }
         return modelMapper.map(emr, EmrDTO.class);
     }
 

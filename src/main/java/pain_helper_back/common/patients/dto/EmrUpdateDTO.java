@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 @Data
 public class EmrUpdateDTO {
@@ -16,6 +17,7 @@ public class EmrUpdateDTO {
     private Double sat;
     private Double sodium;
     private List<String> sensitivities;
+    private Set<DiagnosisDTO> diagnoses;
     private LocalDateTime updatedAt;
     private String updatedBy;
 }

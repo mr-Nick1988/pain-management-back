@@ -26,6 +26,10 @@ public class TreatmentProtocolLoader implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        if (treatmentProtocolRepository.count() > 0) {
+            log.info(" Treatment Protocol already loaded");
+            return;
+        }
         try (InputStream is = new ClassPathResource("treatment_protocol.xlsx").getInputStream(); Workbook workbook = new XSSFWorkbook(is)) {
             Sheet sheet = workbook.getSheetAt(0);
             DataFormatter dataFormatter = new DataFormatter();

@@ -21,7 +21,7 @@ Sodium (Na⁺) — концентрация натрия в крови.
 */
 
 @Component
-@Order(8)
+@Order(7)
 @Slf4j
 public class SodiumRuleApplier implements TreatmentRuleApplier{
 

@@ -14,7 +14,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
-@Order(2)
+@Order(9)
 @Slf4j
 public class WeightRuleApplier implements TreatmentRuleApplier {
     // Паттерн для поиска последнего числа в строке (поддержка десятичных)

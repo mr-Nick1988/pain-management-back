@@ -19,7 +19,7 @@ SAT (oxygen saturation, SpO₂) — уровень насыщения крови
 */
 
 @Component
-@Order(7)
+@Order(6)
 @Slf4j
 public class SatRuleApplier implements TreatmentRuleApplier {
 
