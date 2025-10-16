@@ -7,6 +7,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import pain_helper_back.treatment_protocol.icd_diagnosis.entity.IcdDictionary;
 import pain_helper_back.treatment_protocol.icd_diagnosis.repository.IcdDictionaryRepository;
+import pain_helper_back.treatment_protocol.utils.SanitizeUtils;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -52,8 +53,8 @@ public class IcdDictionaryLoader implements CommandLineRunner {
                 String[] parts = line.split(",", 2);
                 if (parts.length < 2) continue; // пропускаем битые строки
 
-                String code = clean(parts[0]);
-                String desc = clean(parts[1]);
+                String code = SanitizeUtils.clean(parts[0]);
+                String desc = SanitizeUtils.clean(parts[1]);
                 if (code.isEmpty() || desc.isEmpty()) continue; // пропускаем пустые значения
 
                 // создаём объект ICD и добавляем в батч
@@ -75,12 +76,4 @@ public class IcdDictionaryLoader implements CommandLineRunner {
         }
     }
 
-    //  Утилита очистки текста
-    private String clean(String text) {
-        return text == null ? "" :
-                text.replaceAll("[\\u00A0\\s]+", " ") // заменяет множественные пробелы и неразрывные на один
-                        .replaceAll("[–—]", "-")         // длинные тире на короткое
-                        .replaceAll("\"", "")            // убираем кавычки вокруг текста
-                        .trim();                         // убираем пробелы по краям
-    }
 }

@@ -21,7 +21,7 @@ import java.util.List;
  */
 @Component
 @Slf4j
-@Order(1)
+@Order(0) // выполняется самым первым, до AgeRuleApplier
 public class PainTrendRuleApplier implements TreatmentRuleApplier {
 
     private static final int MIN_HISTORY = 3; // минимальное количество записей для анализа

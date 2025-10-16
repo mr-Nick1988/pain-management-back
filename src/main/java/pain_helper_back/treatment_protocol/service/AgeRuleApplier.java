@@ -11,7 +11,7 @@ import pain_helper_back.treatment_protocol.utils.PatternUtils;
 import java.util.regex.Pattern;
 
 @Component
-@Order(8)
+@Order(1)
 public class AgeRuleApplier implements TreatmentRuleApplier {
 
 
