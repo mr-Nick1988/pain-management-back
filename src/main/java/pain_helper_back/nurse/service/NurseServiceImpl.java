@@ -14,6 +14,8 @@ import pain_helper_back.common.patients.dto.exceptions.NotFoundException;
 import pain_helper_back.common.patients.repository.EmrRepository;
 import pain_helper_back.common.patients.repository.PatientRepository;
 import pain_helper_back.common.patients.repository.RecommendationRepository;
+import pain_helper_back.doctor.dto.RecommendationWithVasDTO;
+import pain_helper_back.enums.RecommendationStatus;
 import pain_helper_back.treatment_protocol.service.TreatmentProtocolService;
 
 
@@ -234,6 +236,25 @@ public class NurseServiceImpl implements NurseService {
     public void deleteVAS(String mrn) {
         Patient patient = findPatientOrThrow(mrn);
         patient.getVas().removeLast();
+    }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RecommendationDTO> getAllApprovedRecommendations() {
+        // 1. Достаём из базы все рекомендации, у которых статус = PENDING
+        List<Recommendation> recommendations = recommendationRepository.findByStatus(RecommendationStatus.FINAL_APPROVED);
+        // 2. Пробегаемся по каждой найденной рекомендации и формируем комбинированный DTO
+        return recommendations.stream().map(recommendation -> {
+            // 2.1. Получаем MRN пациента, которому принадлежит эта рекомендация
+            String mrn = recommendation.getPatient().getMrn();
+            // 2.2. Маппим Recommendation entity в RecommendationDTO
+            RecommendationDTO recommendationDTO = modelMapper.map(recommendation, RecommendationDTO.class);
+            // 2.3. Внутри RecommendationDTO есть опциональное поле patientMrn,
+            // которое мы вручную задаём — оно нужно фронту для идентификации пациента
+            recommendationDTO.setPatientMrn(mrn);
+            return recommendationDTO;
+        }).toList();
     }
 
     @Override

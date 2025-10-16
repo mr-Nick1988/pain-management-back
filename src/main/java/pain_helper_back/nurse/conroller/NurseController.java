@@ -7,6 +7,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import pain_helper_back.common.patients.dto.*;
+import pain_helper_back.doctor.dto.RecommendationWithVasDTO;
 import pain_helper_back.nurse.service.NurseService;
 
 import java.time.LocalDate;
@@ -95,6 +96,10 @@ public class NurseController {
     }
 
 
+    @GetMapping("/recommendations/approved")
+    public List<RecommendationDTO> getAllPendingRecommendations() {
+        return nurseService.getAllApprovedRecommendations();
+    }
 
     @PostMapping("/patients/{mrn}/recommendation")
     public RecommendationDTO createRecommendation(@PathVariable String mrn) {

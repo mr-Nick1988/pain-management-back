@@ -36,6 +36,7 @@ public interface NurseService {
 
     void deleteVAS(String mrn);
 
+    public List<RecommendationDTO> getAllApprovedRecommendations();
     RecommendationDTO createRecommendation(String mrn);
 
     RecommendationDTO getLastRecommendation(String mrn);

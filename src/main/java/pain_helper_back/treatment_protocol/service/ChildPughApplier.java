@@ -34,31 +34,31 @@ public class ChildPughApplier implements TreatmentRuleApplier {
                 ? tp.getFirstChildPugh()
                 : tp.getSecondChildPugh();
 
-        // 1️⃣ Проверяем, есть ли вообще данные в ячейке
+        // 1 Проверяем, есть ли вообще данные в ячейке
         if (childPughRule == null || childPughRule.isBlank() || childPughRule.equalsIgnoreCase("NA")) {
-            log.debug("ℹ️ ChildPugh rule empty or NA for protocol {}", tp.getId());
+            log.debug(" ChildPugh rule empty or NA for protocol {}", tp.getId());
             return;
         }
 
-        // 2️⃣ Нормализуем символы
+        // 2 Нормализуем символы
         childPughRule = childPughRule
                 .replace("–", "-")
                 .replace("—", "-")
                 .replace("\u00A0", " ")
                 .trim();
 
-        // 3️⃣ Извлекаем шаблон “A - 8h B - 12h C - avoid”
+        // 3 Извлекаем шаблон “A - 8h B - 12h C - avoid”
         Matcher m = CHILD_PUGH_PATTERN.matcher(childPughRule);
         Map<String, String> liverRules = new HashMap<>();
         while (m.find()) {
             liverRules.put(m.group(1), m.group(2).trim()); // {"A" -> "50 mg 8h", "B" -> "25 mg 12h", "C" -> "avoid"}
         }
 
-        // 4️⃣ Ищем конкретное правило для категории пациента
+        // 4 Ищем конкретное правило для категории пациента
         String patientRule = liverRules.get(patientChildPugh);
 
         if (patientRule == null || patientRule.isBlank()) {
-            log.debug("⚠️ No ChildPugh rule found for category {} in protocol {}", patientChildPugh, tp.getId());
+            log.debug(" No ChildPugh rule found for category {} in protocol {}", patientChildPugh, tp.getId());
             return;
         }
 
@@ -67,7 +67,7 @@ public class ChildPughApplier implements TreatmentRuleApplier {
         //если содержит "mg" → изменить drug.setDosing()
         //если содержит "h" → изменить drug.setInterval()
 
-        // 5️⃣ Применяем правило
+        // 5 Применяем правило
         if (patientRule.contains("avoid")) {
             recommendation.getComments().add("System: avoid for Child-Pugh " + patientChildPugh);
             DrugUtils.clearDrug(drug);
@@ -84,7 +84,7 @@ public class ChildPughApplier implements TreatmentRuleApplier {
             drug.setInterval(h.group(1) + "h");
         }
 
-        log.debug("✅ Applied ChildPugh rule '{}' for {} category (protocol {})",
+        log.debug(" Applied ChildPugh rule '{}' for {} category (protocol {})",
                 patientRule, patientChildPugh, tp.getId());
     }
 }
