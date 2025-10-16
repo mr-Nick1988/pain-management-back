@@ -24,12 +24,20 @@ import java.util.List;
  */
 
 @Service
-@RequiredArgsConstructor
+//@RequiredArgsConstructor
 @Slf4j
 public class TreatmentProtocolService {
     private final TreatmentProtocolRepository treatmentProtocolRepository;
     private final List<TreatmentRuleApplier> ruleAppliers;
 
+
+    public TreatmentProtocolService(TreatmentProtocolRepository treatmentProtocolRepository,
+                                    List<TreatmentRuleApplier> ruleAppliers) {
+        this.treatmentProtocolRepository = treatmentProtocolRepository;
+        this.ruleAppliers = ruleAppliers;
+        log.info("✅ Loaded TreatmentRuleAppliers: {}",
+                ruleAppliers.stream().map(r -> r.getClass().getSimpleName()).toList());
+    }
     /**
      * Текущая сигнатура возвращает single Recommendation (первую соответствующую).
      * Если нужно вернуть все, меняем сигнатуру на List<Recommendation>.

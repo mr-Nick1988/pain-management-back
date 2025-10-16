@@ -15,7 +15,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
-@Order(11)
+@Order(9)
 @Slf4j
 public class GfrRuleApplier implements TreatmentRuleApplier {
 // GFR — это показатель фильтрационной способности почек, измеряемый в мл/мин.
