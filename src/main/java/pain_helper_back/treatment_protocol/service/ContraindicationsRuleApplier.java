@@ -30,23 +30,23 @@ public class ContraindicationsRuleApplier implements TreatmentRuleApplier {
     private static final Pattern ICD_PATTERN = Pattern.compile("[A-Z]?[0-9]{3}(?:\\.[0-9A-Z]+)?");
 
     @Override    public void apply(DrugRecommendation drug, Recommendation recommendation, TreatmentProtocol tp, Patient patient) {
-        // 1️⃣ Если у лекарства нет данных, выходим (чтобы не обрабатывать пустые строки)
+        // 1 Если у лекарства нет данных, выходим (чтобы не обрабатывать пустые строки)
         if (!DrugUtils.hasInfo(drug)) return;
 
-        // 2️⃣ Получаем список диагнозов последнего EMR пациента
+        // 2 Получаем список диагнозов последнего EMR пациента
         Set<Diagnosis> patientDiagnoses = patient.getEmr().getLast().getDiagnoses();
         if (patientDiagnoses == null || patientDiagnoses.isEmpty()) return;
 
-        // 3️⃣ Извлекаем поле contraindications из протокола (может быть NA или пустым)
+        // 3 Извлекаем поле contraindications из протокола (может быть NA или пустым)
         String raw = tp.getContraindications();
         if (raw == null || raw.trim().isEmpty() || raw.equalsIgnoreCase("NA"))
             return;
 
-        // 4️⃣ Санитизируем строку противопоказаний:
+        // 4 Санитизируем строку противопоказаний:
         // убираем неразрывные пробелы, длинные тире, лишние пробелы и т.п.
         String contraindications = SanitizeUtils.clean(raw);
 
-        // 5️⃣ Извлекаем ICD-коды из очищенной строки
+        // 5 Извлекаем ICD-коды из очищенной строки
         Set<String> contraindicationsSet = extractICDCodes(contraindications);
 
         // 🔍 Временные диагностические логи (для отладки)
@@ -54,7 +54,7 @@ public class ContraindicationsRuleApplier implements TreatmentRuleApplier {
         log.info("Contra raw: {}", raw);
         log.info("Contra parsed: {}", contraindicationsSet);
 
-        // 6️⃣ Проверяем каждый диагноз пациента на совпадение с противопоказаниями
+        // 6 Проверяем каждый диагноз пациента на совпадение с противопоказаниями
         for (Diagnosis diagnosis : patientDiagnoses) {
             // Очищаем и нормализуем код болезни пациента (TRIM + UPPERCASE)
             String code = normalizeCode(diagnosis.getIcdCode());
@@ -69,7 +69,7 @@ public class ContraindicationsRuleApplier implements TreatmentRuleApplier {
                     .map(this::normalizeCode)  // на всякий случай нормализуем
                     .anyMatch(c -> c.equals(baseCode)); // сравниваем напрямую
 
-            // 7️⃣ Если нашли совпадение — очищаем все препараты и добавляем комментарий
+            // 7 Если нашли совпадение — очищаем все препараты и добавляем комментарий
             if (matchFound) {
                 recommendation.getDrugs().forEach(DrugUtils::clearDrug);
                 recommendation.getComments().add(
@@ -78,7 +78,7 @@ public class ContraindicationsRuleApplier implements TreatmentRuleApplier {
                 );
                 log.info("Avoid triggered by contraindications (base match): patient={}, code={}, desc={}",
                         patient.getId(), diagnosis.getIcdCode(), diagnosis.getDescription());
-                return; // 💡 сразу выходим, т.к. дальше проверять смысла нет
+                return; //  сразу выходим, т.к. дальше проверять смысла нет
             }
         }
     }

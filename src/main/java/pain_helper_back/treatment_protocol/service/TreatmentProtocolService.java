@@ -38,6 +38,7 @@ public class TreatmentProtocolService {
         log.info("✅ Loaded TreatmentRuleAppliers: {}",
                 ruleAppliers.stream().map(r -> r.getClass().getSimpleName()).toList());
     }
+
     /**
      * Текущая сигнатура возвращает single Recommendation (первую соответствующую).
      * Если нужно вернуть все, меняем сигнатуру на List<Recommendation>.
@@ -93,14 +94,14 @@ public class TreatmentProtocolService {
                 ruleApplier.apply(altDrug, recommendation, tp, patient);
 
             }
+            if (recommendation.getDrugs().isEmpty()) {
+                log.warn("⚠️ All drugs were cleared for protocol id={} — possibly inconsistent contraindications", tp.getId());
+            }
             if (!recommendation.getDrugs().stream()
                     .allMatch(drugRecommendation ->
                             drugRecommendation.getActiveMoiety() == null ||
                                     drugRecommendation.getActiveMoiety().isBlank())) {
-                String contraindications = tp.getContraindications();
-                if (contraindications != null && !contraindications.isBlank()) {
-                    recommendation.getContraindications().add(contraindications);
-                }
+                log.info("Recommendation kept: tpId{}",tp.getId());
                 recommendations.add(recommendation);
             }
 
@@ -120,7 +121,7 @@ public class TreatmentProtocolService {
             int high = (parts.length > 1) ? Integer.parseInt(parts[1]) : low;
             return new int[]{low, high};
         } catch (NumberFormatException e) {
-            log.warn("⚠️ Invalid pain level '{}'", painLevel);
+            log.warn(" Invalid pain level '{}'", painLevel);
             return new int[]{0, 0};
         }
     }
