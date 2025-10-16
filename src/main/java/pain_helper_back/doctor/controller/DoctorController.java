@@ -107,20 +107,20 @@ public class DoctorController {
     public RecommendationWithVasDTO getLastRecommendationByMrn(@PathVariable String mrn) {
         return doctorService.getLastRecommendationByMrn(mrn);
     }
-
-    @PostMapping("/patients/{mrn}/recommendations/approve")
+    @PostMapping("/recommendations/{recommendationId}/approve")
     public RecommendationDTO approveRecommendation(
-            @PathVariable String mrn,
+            @PathVariable Long recommendationId,
             @RequestBody @Valid RecommendationApprovalRejectionDTO dto
     ) {
-        return doctorService.approveRecommendation(mrn, dto);
+        return doctorService.approveRecommendation(recommendationId, dto);
     }
 
-    @PostMapping("/patients/{mrn}/recommendations/reject")
+    @PostMapping("/recommendations/{recommendationId}/reject")
     public RecommendationDTO rejectRecommendation(
-            @PathVariable String mrn,
+            @PathVariable Long recommendationId,
             @RequestBody @Valid RecommendationApprovalRejectionDTO dto
     ) {
-        return doctorService.rejectRecommendation(mrn, dto);
+        return doctorService.rejectRecommendation(recommendationId, dto);
     }
+
 }

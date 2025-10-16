@@ -10,6 +10,8 @@ import java.util.List;
 @Data
 public class RecommendationDTO {
 
+    private Long id;
+
     @NotNull(message = "Regimen hierarchy is required")
     private int regimenHierarchy; // первая линия лекарства, вторая, если не помогло и т.д.
     private RecommendationStatus status;     // Статус рекомендации: pending, approved, rejected

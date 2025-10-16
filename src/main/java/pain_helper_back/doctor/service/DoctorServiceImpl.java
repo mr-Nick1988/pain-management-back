@@ -319,13 +319,12 @@ public class DoctorServiceImpl implements DoctorService {
     }
 
     // ================= WORKFLOW: APPROVAL/REJECTION ================= //
-
     @Override
-    public RecommendationDTO approveRecommendation(String mrn, RecommendationApprovalRejectionDTO dto) {
-        log.info("Approving recommendation for patient MRN: {}", mrn);
+    public RecommendationDTO approveRecommendation(Long recommendationId, RecommendationApprovalRejectionDTO dto) {
+        log.info("Approving recommendation with id: {}", recommendationId);
 
-        Patient patient = findPatientOrThrow(mrn);
-        Recommendation recommendation = patient.getRecommendations().getLast();
+        Recommendation recommendation = recommendationRepository.findById(recommendationId)
+                .orElseThrow(() -> new NotFoundException("Recommendation not found"));
 
         // Проверяем, что рекомендация ещё в статусе PENDING
         if (recommendation.getStatus() != RecommendationStatus.PENDING) {
@@ -361,7 +360,7 @@ public class DoctorServiceImpl implements DoctorService {
                 this,
                 recommendation.getId(),
                 recommendation.getDoctorId(),
-                patient.getMrn(),
+                recommendation.getPatient().getMrn(),
                 recommendation.getDoctorActionAt(),
                 recommendation.getDoctorComment(),
                 processingTimeMs
@@ -370,11 +369,11 @@ public class DoctorServiceImpl implements DoctorService {
     }
 
     @Override
-    public RecommendationDTO rejectRecommendation(String mrn, RecommendationApprovalRejectionDTO dto) {
-        log.info("Rejecting recommendation for patient MRN: {}", mrn);
+    public RecommendationDTO rejectRecommendation(Long recommendationId, RecommendationApprovalRejectionDTO dto) {
+        log.info("Rejecting recommendation with id: {}", recommendationId);
 
-        Patient patient = findPatientOrThrow(mrn);
-        Recommendation recommendation = patient.getRecommendations().getLast();
+        Recommendation recommendation = recommendationRepository.findById(recommendationId)
+                .orElseThrow(() -> new NotFoundException("Recommendation not found"));
 
         // Проверяем, что рекомендация ещё в статусе PENDING
         if (recommendation.getStatus() != RecommendationStatus.PENDING) {
@@ -404,7 +403,7 @@ public class DoctorServiceImpl implements DoctorService {
         escalation.setDescription("Doctor rejected recommendation: " + dto.getRejectedReason());
 
         // 4. Определяем приоритет эскалации по уровню боли (VAS)
-        Vas vas = patient.getVas().stream()
+        Vas vas = recommendation.getPatient().getVas().stream()
                 .max((v1, v2) -> v1.getCreatedAt().compareTo(v2.getCreatedAt()))
                 .orElse(null);
 
@@ -444,19 +443,19 @@ public class DoctorServiceImpl implements DoctorService {
                 this,
                 recommendation.getId(),
                 recommendation.getDoctorId(),
-                patient.getMrn(),
+                recommendation.getPatient().getMrn(),
                 recommendation.getDoctorActionAt(),
                 recommendation.getRejectedReason(),
                 recommendation.getDoctorComment()
         ));
 
-         //  Публикуем событие создания эскалации
+        //  Публикуем событие создания эскалации
         eventPublisher.publishEvent(new EscalationCreatedEvent(
                 this,
                 escalation.getId(),
                 recommendation.getId(),
                 escalation.getEscalatedBy(),
-                patient.getMrn(),
+                recommendation.getPatient().getMrn(),
                 escalation.getEscalatedAt(),
                 escalation.getPriority(),
                 escalation.getEscalationReason(),

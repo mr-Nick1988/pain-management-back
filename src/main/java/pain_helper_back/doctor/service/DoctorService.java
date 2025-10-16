@@ -161,7 +161,7 @@ import java.util.List;
          * @throws NotFoundException если пациент не найден
          * @throws IllegalStateException если рекомендация не в статусе PENDING
          */
-        RecommendationDTO approveRecommendation(String mrn, RecommendationApprovalRejectionDTO dto);
+        RecommendationDTO approveRecommendation(Long recommendationId, RecommendationApprovalRejectionDTO dto);
 
         /*
          * Отклонение рекомендации врачом с автоматической эскалацией
@@ -187,7 +187,7 @@ import java.util.List;
          * @throws IllegalStateException если рекомендация не в статусе PENDING
          * @throws IllegalArgumentException если не указана причина отказа
          */
-        RecommendationDTO rejectRecommendation(String mrn, RecommendationApprovalRejectionDTO dto);
+        RecommendationDTO rejectRecommendation(Long recommendationId, RecommendationApprovalRejectionDTO dto);
 
 
 }
