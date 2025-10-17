@@ -1,5 +1,6 @@
 package pain_helper_back.treatment_protocol.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import pain_helper_back.common.patients.entity.DrugRecommendation;
@@ -8,8 +9,7 @@ import pain_helper_back.common.patients.entity.Recommendation;
 import pain_helper_back.enums.DrugRole;
 import pain_helper_back.treatment_protocol.entity.TreatmentProtocol;
 import pain_helper_back.treatment_protocol.utils.PatternUtils;
-import java.util.regex.Pattern;
-
+@Slf4j
 @Component
 @Order(1)
 public class AgeRuleApplier implements TreatmentRuleApplier {
@@ -22,6 +22,8 @@ public class AgeRuleApplier implements TreatmentRuleApplier {
     @Override
     public void apply(DrugRecommendation drug, Recommendation recommendation, TreatmentProtocol tp, Patient patient) {
         int patientAge = patient.getAge();
+        log.info("=== [START] {} for Patient ID={} Age={} ===",
+                AgeRuleApplier.class.getSimpleName(), patient.getId(), patientAge);
         String ageAdjustment = (drug.getRole() == DrugRole.MAIN) ? tp.getFirstAgeAdjustments() : tp.getSecondAgeAdjustments();
 
         // Если правило пустое или "NA" — возраст не ограничивает
@@ -42,16 +44,23 @@ public class AgeRuleApplier implements TreatmentRuleApplier {
         if (drug.getRole() == DrugRole.MAIN) {
             if (patientAge <= limit) {
                 fillDrugFromProtocol(drug, tp);
+                log.info("Filter {} accepted the main Drug {} ", AgeRuleApplier.class.getSimpleName(),drug.getDrugName());
             } else {
+                log.info("Filter {} rejected the main Drug {} ", AgeRuleApplier.class.getSimpleName(),drug.getDrugName());
                 recommendation.getComments().add("System: " + "First drug avoid: patient age (" + patientAge + ") > " + limit);
             }
         } else { // DrugRole.ALTERNATIVE
             if (patientAge >= limit) {
                 fillDrugFromProtocol(drug, tp);
+                log.info("Filter {} accepted the alternative Drug {} ", AgeRuleApplier.class.getSimpleName(),drug.getDrugName());
+
             } else {
+                log.info("Filter {} rejected the alternative Drug {} ", AgeRuleApplier.class.getSimpleName(),drug.getDrugName());
                 recommendation.getComments().add("System: " + "Second drug avoid: patient age (" + patientAge + ") < " + limit);
             }
         }
+        log.info("=== [END] {} for Patient ID={} ===",
+                AgeRuleApplier.class.getSimpleName(), patient.getId());
     }
 
     /**

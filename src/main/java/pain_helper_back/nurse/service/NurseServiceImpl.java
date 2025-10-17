@@ -208,13 +208,13 @@ public class NurseServiceImpl implements NurseService {
             emr.getDiagnoses().clear();
             // Переносим новые диагнозы из DTO → Entity
             Set<Diagnosis> updatedDiagnoses = emrUpdateDto.getDiagnoses().stream()
-                    .map(dto -> {
-                        Diagnosis d = modelMapper.map(dto, Diagnosis.class);
+                    .map(diagnosisDTO -> {
+                        Diagnosis d = modelMapper.map(diagnosisDTO, Diagnosis.class);
                         d.setEmr(emr); // ВАЖНО: обратная связь
+                        emr.getDiagnoses().add(d);
                         return d;
                     })
                     .collect(Collectors.toSet());
-            emr.setDiagnoses(updatedDiagnoses);
         }
         return modelMapper.map(emr, EmrDTO.class);
     }

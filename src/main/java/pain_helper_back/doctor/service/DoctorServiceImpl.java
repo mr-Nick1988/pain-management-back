@@ -267,10 +267,10 @@ public class DoctorServiceImpl implements DoctorService {
                     .map(diagnosisDTO -> {
                         Diagnosis d = modelMapper.map(diagnosisDTO, Diagnosis.class);
                         d.setEmr(emr);
+                        emr.getDiagnoses().add(d);
                         return d;
                     })
                     .collect(Collectors.toSet());
-            emr.setDiagnoses(updatedDiagnoses);
         }
         return modelMapper.map(emr, EmrDTO.class);
     }

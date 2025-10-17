@@ -35,7 +35,7 @@ public class TreatmentProtocolService {
                                     List<TreatmentRuleApplier> ruleAppliers) {
         this.treatmentProtocolRepository = treatmentProtocolRepository;
         this.ruleAppliers = ruleAppliers;
-        log.info("✅ Loaded TreatmentRuleAppliers: {}",
+        log.info(" Loaded TreatmentRuleAppliers (Классы-фильтры, реализующие интерфейс TreatmentRuleApplier): {}",
                 ruleAppliers.stream().map(r -> r.getClass().getSimpleName()).toList());
     }
 
@@ -95,7 +95,7 @@ public class TreatmentProtocolService {
 
             }
             if (recommendation.getDrugs().isEmpty()) {
-                log.warn("⚠️ All drugs were cleared for protocol id={} — possibly inconsistent contraindications", tp.getId());
+                log.warn(" All drugs were cleared for protocol id={} — possibly inconsistent contraindications", tp.getId());
             }
             if (!recommendation.getDrugs().stream()
                     .allMatch(drugRecommendation ->
