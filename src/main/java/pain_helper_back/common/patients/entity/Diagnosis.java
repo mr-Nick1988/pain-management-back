@@ -23,6 +23,6 @@ public class Diagnosis {
     private Emr emr;
 
     //  код и описание болезни
-    private String IcdCode;        // E11.9
+    private String icdCode;        // E11.9
     private String description; // Type 2 diabetes mellitus
 }
