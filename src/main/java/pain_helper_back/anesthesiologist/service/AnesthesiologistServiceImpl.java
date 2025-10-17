@@ -25,6 +25,7 @@ import pain_helper_back.enums.RecommendationStatus;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -141,6 +142,8 @@ public class AnesthesiologistServiceImpl implements AnesthesiologistServiceInter
                 true, // approved = true
                 escalation.getResolution(),
                 resolutionTimeMs
+        ,
+                new ArrayList<>()
         ));
         return modelMapper.map(savedEscalation, EscalationResponseDTO.class);
     }
@@ -192,6 +195,8 @@ public class AnesthesiologistServiceImpl implements AnesthesiologistServiceInter
                 false, // approved = false (reject)
                 escalation.getResolution(),
                 resolutionTimeMs
+        ,
+                new ArrayList<>()
         ));
 
         return modelMapper.map(savedEscalation, EscalationResponseDTO.class);

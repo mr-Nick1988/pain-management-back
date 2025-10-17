@@ -6,6 +6,7 @@ import org.springframework.context.ApplicationEvent;
 import pain_helper_back.enums.EscalationPriority;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /*
  * Событие: Создана эскалация (автоматически при отклонении врачом)
@@ -21,10 +22,12 @@ public class EscalationCreatedEvent extends ApplicationEvent {
     private final EscalationPriority priority; // HIGH, MEDIUM, LOW
     private final String escalationReason;
     private final Integer vasLevel;
+    private final List<String> patientDiagnosisCodes; // ICD коды диагнозов пациента
 
     public EscalationCreatedEvent(Object source, Long escalationId, Long recommendationId,
                                   String escalatedBy, String patientMrn, LocalDateTime escalatedAt,
-                                  EscalationPriority priority, String escalationReason, Integer vasLevel) {
+                                  EscalationPriority priority, String escalationReason, Integer vasLevel,
+                                  List<String> patientDiagnosisCodes) {
         super(source);
         this.escalationId = escalationId;
         this.recommendationId = recommendationId;
@@ -34,5 +37,6 @@ public class EscalationCreatedEvent extends ApplicationEvent {
         this.priority = priority;
         this.escalationReason = escalationReason;
         this.vasLevel = vasLevel;
+        this.patientDiagnosisCodes = patientDiagnosisCodes;
     }
 }

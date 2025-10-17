@@ -4,9 +4,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import pain_helper_back.common.patients.dto.EmrDTO;
+import pain_helper_back.common.patients.entity.Diagnosis;
 import pain_helper_back.common.patients.entity.Emr;
 import pain_helper_back.common.patients.entity.Patient;
+import pain_helper_back.common.patients.repository.DiagnosisRepository;
 import pain_helper_back.common.patients.repository.EmrRepository;
 import pain_helper_back.common.patients.repository.PatientRepository;
 import pain_helper_back.external_emr_integration_service.client.HapiFhirClient;
@@ -20,9 +23,7 @@ import pain_helper_back.enums.MatchConfidence;
 import pain_helper_back.enums.PatientsGenders;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /*
@@ -58,6 +59,7 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
     // Репозитории для работы с общей логикой пациентов (common/patients)
     private final PatientRepository patientRepository;
     private final EmrRepository emrRepository;
+    private final DiagnosisRepository diagnosisRepository;
 
     /*
      * МЕТОД 1: Импорт пациента из FHIR системы другой больницы.
@@ -129,7 +131,7 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
 
             // ШАГ 6-7: Создаем Patient и Emr в общей таблице (ОБЩИЙ МЕТОД)
             // ВАЖНО: Используем общий метод для устранения дублирования кода
-            Long patientId = createPatientAndEmrFromFhir(fhirPatient, observations, internalEmrNumber, importedBy);
+            Long patientId = createPatientAndEmrFromFhir(fhirPatient, observations, new ArrayList<>(), internalEmrNumber, importedBy);
 
             // ШАГ 8: Формируем результат импорта
             EmrImportResultDTO result = EmrImportResultDTO.success("Patient imported successfully from FHIR server");
@@ -195,15 +197,18 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
             FhirPatientDTO mockPatient = mockEmrDataGenerator.generateRandomPatient();
 
             // ШАГ 2: Генерируем лабораторные анализы
-            // МЕДИЦИНСКИЕ ПОКАЗАТЕЛИ:
-            // - Креатинин: 0.5-3.0 mg/dL (функция почек)
-            // - Билирубин: 0.3-5.0 mg/dL (функция печени)
-            // - Тромбоциты (PLT): 50-400 (риск кровотечений)
-            // - Лейкоциты (WBC): 3-15 (инфекции)
-            // - Натрий: 130-150 mmol/L (водно-электролитный баланс)
-            // - Сатурация (SpO2): 85-100% (дыхательная функция)
+            // МЕДИЦИНСКИЕ ПОКАЗАТЕЛИ (ОБНОВЛЕНО: реалистичные значения из Clinical_Norms_and_Units.csv):
+            // - GFR (функция почек): A(≥90), B(60-89), C(45-59), D(30-44), E(15-29), F(<15)
+            // - Тромбоциты (PLT): 150-450 (норма), возможный диапазон 0-1000
+            // - Лейкоциты (WBC): 4.0-10.0 (норма), возможный диапазон 2-40
+            // - Натрий: 135-145 (норма), возможный диапазон 120-160
+            // - Сатурация (SpO2): 95-100% (норма), возможный диапазон 85-100%
+            // - Вес: >50 кг
             List<FhirObservationDTO> observations = mockEmrDataGenerator
                     .generateObservationForPatient(mockPatient.getPatientIdInFhirResource());
+            
+            // Генерируем диагнозы для мокового пациента из ICD кодов
+            List<IcdCodeLoaderService.IcdCode> diagnoses = mockEmrDataGenerator.generateDiagnosesForPatient();
 
             // ШАГ 3: Присваиваем внутренний EMR номер
             String internalEmrNumber = generateInternalEmrNumber();
@@ -221,7 +226,7 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
 
             // ШАГ 5-6: Создаем Patient и Emr в общей таблице (ОБЩИЙ МЕТОД)
             // ВАЖНО: Используем общий метод для устранения дублирования кода
-            Long patientId = createPatientAndEmrFromFhir(mockPatient, observations, internalEmrNumber, createdBy);
+            Long patientId = createPatientAndEmrFromFhir(mockPatient, observations, diagnoses, internalEmrNumber, createdBy);
 
             // ШАГ 7: Формируем результат
             EmrImportResultDTO result = EmrImportResultDTO.success("Mock patient generated and imported successfully");
@@ -482,8 +487,12 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
             List<FhirObservationDTO> observations = mockEmrDataGenerator
                     .generateObservationForPatient(mockPatient.getPatientIdInFhirResource());
 
+            
+            // Генерируем диагнозы
+            List<IcdCodeLoaderService.IcdCode> diagnoses = mockEmrDataGenerator.generateDiagnosesForPatient();
+
             // Создаем Patient и Emr в общей таблице (ОБЩИЙ МЕТОД)
-            Long patientId = createPatientAndEmrFromFhir(mockPatient, observations, internalEmrNumber, createdBy);
+            Long patientId = createPatientAndEmrFromFhir(mockPatient, observations, diagnoses, internalEmrNumber, createdBy);
 
             EmrImportResultDTO result = EmrImportResultDTO.success("Mock patient imported");
             result.setExternalPatientIdInFhirResource(mockPatient.getPatientIdInFhirResource());
@@ -517,6 +526,7 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
      *
      * @param fhirPatient данные пациента из FHIR
      * @param observations лабораторные показатели из FHIR
+     * @param diagnoses список диагнозов (ICD коды)
      * @param internalEmrNumber внутренний EMR номер (используется как MRN)
      * @param createdBy кто создал запись
      * @return ID созданного пациента в таблице Patient
@@ -524,6 +534,7 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
     private Long createPatientAndEmrFromFhir(
             FhirPatientDTO fhirPatient,
             List<FhirObservationDTO> observations,
+            List<IcdCodeLoaderService.IcdCode> diagnoses,
             String internalEmrNumber,
             String createdBy) {
 
@@ -584,10 +595,27 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
         if (emr.getSat() == null) emr.setSat(98.0);
         if (emr.getChildPughScore() == null) emr.setChildPughScore("A");  // Дефолт: нормальная печень
 
-        emrRepository.save(emr);
+        Emr savedEmr = emrRepository.save(emr);
 
         log.info("Created Emr: gfr={}, plt={}, wbc={}",
                 emr.getGfr(), emr.getPlt(), emr.getWbc());
+
+        // Создаем и сохраняем диагнозы
+        if (diagnoses != null && !diagnoses.isEmpty()) {
+            Set<Diagnosis> diagnosisEntities = new HashSet<>();
+            for (IcdCodeLoaderService.IcdCode icdCode : diagnoses) {
+                Diagnosis diagnosis = new Diagnosis();
+                diagnosis.setEmr(savedEmr);
+                diagnosis.setIcdCode(icdCode.getCode());
+                diagnosis.setDescription(icdCode.getDescription());
+                diagnosisEntities.add(diagnosis);
+            }
+            diagnosisRepository.saveAll(diagnosisEntities);
+            log.info("Created {} diagnoses for patient: {}", diagnosisEntities.size(),
+                    diagnosisEntities.stream()
+                            .map(d -> d.getIcdCode() + " - " + d.getDescription())
+                            .collect(Collectors.joining(", ")));
+        }
 
         return savedPatient.getId();
     }

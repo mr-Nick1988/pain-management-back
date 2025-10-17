@@ -13,13 +13,8 @@ import pain_helper_back.anesthesiologist.entity.Escalation;
 import pain_helper_back.common.patients.dto.*;
 import pain_helper_back.common.patients.dto.exceptions.EntityExistsException;
 import pain_helper_back.common.patients.dto.exceptions.NotFoundException;
-import pain_helper_back.common.patients.entity.Emr;
-import pain_helper_back.common.patients.entity.Patient;
-import pain_helper_back.common.patients.entity.Recommendation;
-import pain_helper_back.common.patients.entity.Vas;
-import pain_helper_back.common.patients.repository.EmrRepository;
 import pain_helper_back.common.patients.entity.*;
-
+import pain_helper_back.common.patients.repository.EmrRepository;
 import pain_helper_back.common.patients.repository.PatientRepository;
 import pain_helper_back.common.patients.repository.RecommendationRepository;
 import pain_helper_back.doctor.dto.RecommendationApprovalRejectionDTO;
@@ -32,6 +27,7 @@ import pain_helper_back.enums.RecommendationStatus;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -220,18 +216,27 @@ public class DoctorServiceImpl implements DoctorService {
         }
         patient.getEmr().add(emr);
         emrRepository.save(emr);
+
+        // Извлекаем диагнозы для аналитики
+        List<String> diagnosisCodes = emr.getDiagnoses() != null ?
+                emr.getDiagnoses().stream().map(Diagnosis::getIcdCode).toList() : new ArrayList<>();
+        List<String> diagnosisDescriptions = emr.getDiagnoses() != null ?
+                emr.getDiagnoses().stream().map(Diagnosis::getDescription).toList() : new ArrayList<>();
+
         // Публикация события
         eventPublisher.publishEvent(new EmrCreatedEvent(
                 this,
                 emr.getId(),
                 mrn,
-                "doctor_id", // TODO: заменить на реальный ID из Security Context
+                "doctor_id",
                 "DOCTOR",
                 LocalDateTime.now(),
                 emr.getGfr(),
                 emr.getChildPughScore(),
                 emr.getWeight(),
-                emr.getHeight()
+                emr.getHeight(),
+                diagnosisCodes,
+                diagnosisDescriptions
         ));
         return modelMapper.map(emr, EmrDTO.class);
     }
@@ -468,6 +473,19 @@ public class DoctorServiceImpl implements DoctorService {
                 recommendation.getDoctorComment()
         ));
 
+        // Извлекаем диагнозы пациента для аналитики
+        List<String> patientDiagnosisCodes = new ArrayList<>();
+        if (recommendation.getPatient() != null && recommendation.getPatient().getEmr() != null) {
+            for (Emr emr : recommendation.getPatient().getEmr()) {
+                if (emr.getDiagnoses() != null) {
+                    patientDiagnosisCodes.addAll(
+                            emr.getDiagnoses().stream()
+                                    .map(Diagnosis::getIcdCode)
+                                    .toList()
+                    );
+                }
+            }
+        }
         //  Публикуем событие создания эскалации
         eventPublisher.publishEvent(new EscalationCreatedEvent(
                 this,
@@ -478,9 +496,9 @@ public class DoctorServiceImpl implements DoctorService {
                 escalation.getEscalatedAt(),
                 escalation.getPriority(),
                 escalation.getEscalationReason(),
-                vas != null ? vas.getPainLevel() : 0
+                vas != null ? vas.getPainLevel() : 0,
+                patientDiagnosisCodes
         ));
-
         return modelMapper.map(recommendation, RecommendationDTO.class);
     }
 
