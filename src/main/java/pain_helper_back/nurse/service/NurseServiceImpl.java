@@ -6,7 +6,6 @@ import org.modelmapper.ModelMapper;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import pain_helper_back.analytics.event.EmrCreatedEvent;
 import pain_helper_back.analytics.event.PatientRegisteredEvent;
 import pain_helper_back.analytics.event.VasRecordedEvent;
 import pain_helper_back.common.patients.dto.*;
@@ -164,18 +163,18 @@ public class NurseServiceImpl implements NurseService {
 
         emrRepository.save(emr);
 
-        eventPublisher.publishEvent(new EmrCreatedEvent(
-                this,
-                emr.getId(),
-                mrn,
-                "nurse_id", // TODO: заменить на реальный ID из Security Context
-                "NURSE",
-                LocalDateTime.now(),
-                emr.getGfr(),
-                emr.getChildPughScore(),
-                emr.getWeight(),
-                emr.getHeight()
-        ));
+//        eventPublisher.publishEvent(new EmrCreatedEvent(
+//                this,
+//                emr.getId(),
+//                mrn,
+//                "nurse_id", // TODO: заменить на реальный ID из Security Context
+//                "NURSE",
+//                LocalDateTime.now(),
+//                emr.getGfr(),
+//                emr.getChildPughScore(),
+//                emr.getWeight(),
+//                emr.getHeight()
+//        ));
 
         // 5 Hibernate сам сохранит всё (EMR + Diagnosis) в конце транзакции
         return modelMapper.map(emr, EmrDTO.class);
