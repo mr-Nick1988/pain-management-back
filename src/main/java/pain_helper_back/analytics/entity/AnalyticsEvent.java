@@ -7,6 +7,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 /*
@@ -45,4 +46,8 @@ public class AnalyticsEvent {
     private String rejectionReason;
     //KPI calculation
     private Long processingTimeMs;
+    // Диагнозы пациента (ICD коды)
+    @Indexed
+    private List<String> diagnosisCodes; // Для аналитики по диагнозам
+    private List<String> diagnosisDescriptions; // Описания для читаемости
 }

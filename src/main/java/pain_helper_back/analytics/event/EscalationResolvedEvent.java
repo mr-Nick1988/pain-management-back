@@ -4,6 +4,7 @@ import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /*
  * Событие: Эскалация разрешена анестезиологом
@@ -20,10 +21,12 @@ public class EscalationResolvedEvent extends ApplicationEvent {
     private final Boolean approved; // true = approve, false = reject
     private final String resolution;
     private final Long resolutionTimeMs; //time from escalation creation to resolution
+    private final List<String> patientDiagnosisCodes; // ICD коды диагнозов пациента
 
     public EscalationResolvedEvent(Object source, Long escalationId, Long recommendationId,
                                    String resolvedBy, String patientMrn, LocalDateTime resolvedAt,
-                                   Boolean approved, String resolution, Long resolutionTimeMs) {
+                                   Boolean approved, String resolution, Long resolutionTimeMs,
+                                   List<String> patientDiagnosisCodes) {
         super(source);
         this.escalationId = escalationId;
         this.recommendationId = recommendationId;
@@ -33,5 +36,6 @@ public class EscalationResolvedEvent extends ApplicationEvent {
         this.approved = approved;
         this.resolution = resolution;
         this.resolutionTimeMs = resolutionTimeMs;
+        this.patientDiagnosisCodes = patientDiagnosisCodes;
     }
 }

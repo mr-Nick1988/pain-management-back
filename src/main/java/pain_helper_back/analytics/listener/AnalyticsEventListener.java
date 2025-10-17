@@ -224,6 +224,11 @@ public class AnalyticsEventListener {
             metadata.put("escalationReason", event.getEscalationReason());
             metadata.put("escalatedAt", event.getEscalatedAt().toString());
             metadata.put("priority", event.getPriority().toString());
+            
+            // Добавляем диагнозы в metadata для дополнительной информации
+            if (event.getPatientDiagnosisCodes() != null && !event.getPatientDiagnosisCodes().isEmpty()) {
+                metadata.put("diagnosisCount", event.getPatientDiagnosisCodes().size());
+            }
 
             AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
                     .timestamp(LocalDateTime.now())
@@ -235,12 +240,14 @@ public class AnalyticsEventListener {
                     .userRole("DOCTOR")
                     .priority(event.getPriority().toString())
                     .vasLevel(event.getVasLevel())
+                    .diagnosisCodes(event.getPatientDiagnosisCodes()) // Сохраняем ICD коды
                     .metadata(metadata)
                     .build();
 
             analyticsEventRepository.save(analyticsEvent);
-            log.info("Analytics event saved: ESCALATION_CREATED, escalationId={}, recommendationId={}, priority={}",
-                    event.getEscalationId(), event.getRecommendationId(), event.getPriority());
+            log.info("Analytics event saved: ESCALATION_CREATED, escalationId={}, recommendationId={}, priority={}, diagnoses={}",
+                    event.getEscalationId(), event.getRecommendationId(), event.getPriority(), 
+                    event.getPatientDiagnosisCodes() != null ? event.getPatientDiagnosisCodes().size() : 0);
 
         } catch (Exception e) {
             log.error("Failed to save analytics event for escalation creation: {}", e.getMessage());
@@ -257,6 +264,11 @@ public class AnalyticsEventListener {
             metadata.put("resolution", event.getResolution());
             metadata.put("resolvedAt", event.getResolvedAt().toString());
             metadata.put("approved", event.getApproved());
+            
+            // Добавляем информацию о диагнозах
+            if (event.getPatientDiagnosisCodes() != null && !event.getPatientDiagnosisCodes().isEmpty()) {
+                metadata.put("diagnosisCount", event.getPatientDiagnosisCodes().size());
+            }
 
             AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
                     .timestamp(LocalDateTime.now())
@@ -268,12 +280,14 @@ public class AnalyticsEventListener {
                     .userRole("ANESTHESIOLOGIST")
                     .status(event.getApproved() ? "RESOLVED" : "REJECTED")
                     .processingTimeMs(event.getResolutionTimeMs())
+                    .diagnosisCodes(event.getPatientDiagnosisCodes()) // Сохраняем ICD коды
                     .metadata(metadata)
                     .build();
 
             analyticsEventRepository.save(analyticsEvent);
-            log.info("Analytics event saved: ESCALATION_RESOLVED, escalationId={}, approved={}, resolutionTime={}ms",
-                    event.getEscalationId(), event.getApproved(), event.getResolutionTimeMs());
+            log.info("Analytics event saved: ESCALATION_RESOLVED, escalationId={}, approved={}, resolutionTime={}ms, diagnoses={}",
+                    event.getEscalationId(), event.getApproved(), event.getResolutionTimeMs(),
+                    event.getPatientDiagnosisCodes() != null ? event.getPatientDiagnosisCodes().size() : 0);
 
         } catch (Exception e) {
             log.error("Failed to save analytics event for escalation resolution: {}", e.getMessage());
@@ -316,27 +330,34 @@ public class AnalyticsEventListener {
     @Async("analyticsTaskExecutor")
     public void handleEmrCreated(EmrCreatedEvent event) {
         try {
-            AnalyticsEvent analyticsEvent = new AnalyticsEvent();
-            analyticsEvent.setEventType("EMR_CREATED");
-            analyticsEvent.setTimestamp(event.getCreatedAt());
-            analyticsEvent.setUserId(event.getCreatedBy());
-            analyticsEvent.setUserRole(event.getCreatedByRole());
-            analyticsEvent.setPatientMrn(event.getPatientMrn());
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("gfr", event.getGfr() != null ? event.getGfr() : "N/A");
+            metadata.put("childPughScore", event.getChildPughScore() != null ? event.getChildPughScore() : "N/A");
+            metadata.put("weight", event.getWeight() != null ? event.getWeight() : 0.0);
+            metadata.put("height", event.getHeight() != null ? event.getHeight() : 0.0);
+            metadata.put("createdAt", event.getCreatedAt().toString());
+            
+            // Добавляем информацию о диагнозах
+            if (event.getDiagnosisCodes() != null && !event.getDiagnosisCodes().isEmpty()) {
+                metadata.put("diagnosisCount", event.getDiagnosisCodes().size());
+                metadata.put("diagnosisList", String.join(", ", event.getDiagnosisCodes()));
+            }
 
-            // Формируем детали события
-            String details = String.format(
-                    "EMR created for patient %s. GFR: %s, Child-Pugh: %s, Weight: %.1f kg, Height: %.1f cm",
-                    event.getPatientMrn(),
-                    event.getGfr() != null ? event.getGfr() : "N/A",
-                    event.getChildPughScore() != null ? event.getChildPughScore() : "N/A",
-                    event.getWeight() != null ? event.getWeight() : 0.0,
-                    event.getHeight() != null ? event.getHeight() : 0.0
-            );
-            analyticsEvent.setEventType(details);
+            AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
+                    .timestamp(LocalDateTime.now())
+                    .eventType("EMR_CREATED")
+                    .userId(event.getCreatedBy())
+                    .userRole(event.getCreatedByRole())
+                    .patientMrn(event.getPatientMrn())
+                    .diagnosisCodes(event.getDiagnosisCodes()) // Сохраняем ICD коды
+                    .diagnosisDescriptions(event.getDiagnosisDescriptions()) // Сохраняем описания
+                    .metadata(metadata)
+                    .build();
 
             analyticsEventRepository.save(analyticsEvent);
-            log.info("EMR_CREATED event saved: patient={}, createdBy={}",
-                    event.getPatientMrn(), event.getCreatedBy());
+            log.info("EMR_CREATED event saved: patient={}, createdBy={}, diagnoses={}",
+                    event.getPatientMrn(), event.getCreatedBy(),
+                    event.getDiagnosisCodes() != null ? event.getDiagnosisCodes().size() : 0);
         } catch (Exception e) {
             log.error("Failed to save EMR_CREATED event: {}", e.getMessage(), e);
         }

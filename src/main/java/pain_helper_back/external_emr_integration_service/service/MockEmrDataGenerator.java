@@ -2,6 +2,7 @@ package pain_helper_back.external_emr_integration_service.service;
 
 
 import com.github.javafaker.Faker;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import pain_helper_back.external_emr_integration_service.dto.FhirIdentifierDTO;
@@ -34,8 +35,10 @@ import java.util.stream.IntStream;
  */
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class MockEmrDataGenerator {
     private final Faker faker = new Faker();
+    private final IcdCodeLoaderService icdCodeLoaderService;
 
     /*
      * Генерирует случайного пациента с реалистичными данными.
@@ -89,8 +92,8 @@ public class MockEmrDataGenerator {
         mrn.setUse("official");
         identifiers.add(mrn);
 
-        // Страховой полис (20% вероятность)
-        if (faker.number().numberBetween(1, 100) <= 20) {
+        // Страховой полис (70% вероятность - большинство имеют страховку)
+        if (faker.number().numberBetween(1, 100) <= 70) {
             FhirIdentifierDTO insurance = new FhirIdentifierDTO();
             insurance.setType("INS");
             insurance.setSystem("http://insurance-company.com");
@@ -106,19 +109,49 @@ public class MockEmrDataGenerator {
         log.debug("Generated mock patient: {} {}", patient.getFirstName(), patient.getLastName());
         return patient;
     }
+    
+    /**
+     * Генерирует список диагнозов для пациента.
+     * 
+     * ЛОГИКА:
+     * - 60% пациентов имеют 1 диагноз
+     * - 25% пациентов имеют 2 диагноза
+     * - 10% пациентов имеют 3 диагноза
+     * - 5% пациентов имеют 4-5 диагнозов
+     * 
+     * @return список ICD кодов с описаниями
+     */
+    public List<IcdCodeLoaderService.IcdCode> generateDiagnosesForPatient() {
+        double rand = faker.random().nextDouble();
+        int diagnosisCount;
+        
+        if (rand < 0.60) {
+            diagnosisCount = 1;
+        } else if (rand < 0.85) {
+            diagnosisCount = 2;
+        } else if (rand < 0.95) {
+            diagnosisCount = 3;
+        } else {
+            diagnosisCount = faker.number().numberBetween(4, 6);
+        }
+        
+        return icdCodeLoaderService.getRandomDiagnoses(diagnosisCount);
+    }
 
     /*
      * Генерирует лабораторные показатели для пациента.
      *
-     * ГЕНЕРИРУЕМЫЕ ПОКАЗАТЕЛИ:
-     * - Креатинин (функция почек): 0.5-3.0 mg/dL
-     * - Билирубин (функция печени): 0.3-5.0 mg/dL
-     * - Тромбоциты (PLT): 50-400 10*3/uL
-     * - Лейкоциты (WBC): 3-15 10*3/uL
-     * - Натрий: 130-150 mmol/L
-     * - Сатурация (SpO2): 85-100%
+     * ОБНОВЛЕНО: Используются реалистичные значения из Clinical_Norms_and_Units.csv
      *
-     * ЗАЧЕМ: Для тестирования корректировки доз препаратов в Treatment Protocol
+     * ГЕНЕРИРУЕМЫЕ ПОКАЗАТЕЛИ (с правильными диапазонами):
+     * - GFR (функция почек): A(≥90), B(60-89), C(45-59), D(30-44), E(15-29), F(<15)
+     * - Тромбоциты (PLT): 150-450 (норма), возможный диапазон 0-1000
+     * - Лейкоциты (WBC): 4.0-10.0 (норма), возможный диапазон 2-40
+     * - Натрий: 135-145 (норма), возможный диапазон 120-160
+     * - Сатурация (SpO2): 95-100% (норма), возможный диапазон 85-100%
+     * - Вес: >50 кг
+     *
+     * ВАЖНО: Теперь генерируются ТОЧНЫЕ значения, а не диапазоны!
      *
      * @param patientFhirId FHIR ID пациента
      * @return список лабораторных показателей
@@ -126,85 +159,167 @@ public class MockEmrDataGenerator {
     public List<FhirObservationDTO> generateObservationForPatient(String patientFhirId) {
         List<FhirObservationDTO> observations = new ArrayList<>();
 
-        // Креатинин (почки)
+        // Креатинин (почки) - для расчета GFR
+        // Норма: 0.6-1.2 mg/dL, возможный диапазон: 0.5-3.0
+        // 80% пациентов - норма, 15% - умеренное повышение, 5% - высокое
+        double creatinine;
+        double rand = faker.random().nextDouble();
+        if (rand < 0.80) {
+            // Норма: 0.6-1.2
+            creatinine = 0.6 + (faker.random().nextDouble() * 0.6);
+        } else if (rand < 0.95) {
+            // Умеренное повышение: 1.2-2.0
+            creatinine = 1.2 + (faker.random().nextDouble() * 0.8);
+        } else {
+            // Высокое: 2.0-3.0
+            creatinine = 2.0 + (faker.random().nextDouble() * 1.0);
+        }
         observations.add(createObservation(
                 patientFhirId,
                 "2160-0",
                 "Creatinine",
-                0.5 + (faker.random().nextDouble() * 2.5), // 0.5-3.0
+                Math.round(creatinine * 100.0) / 100.0, // Округляем до 2 знаков
                 "mg/dL",
                 0.6, 1.2
         ));
 
         // Билирубин (печень)
+        // Норма: 0.3-1.2 mg/dL
+        double bilirubin;
+        rand = faker.random().nextDouble();
+        if (rand < 0.85) {
+            // Норма: 0.3-1.2
+            bilirubin = 0.3 + (faker.random().nextDouble() * 0.9);
+        } else if (rand < 0.95) {
+            // Умеренное повышение: 1.2-2.5
+            bilirubin = 1.2 + (faker.random().nextDouble() * 1.3);
+        } else {
+            // Высокое: 2.5-5.0
+            bilirubin = 2.5 + (faker.random().nextDouble() * 2.5);
+        }
         observations.add(createObservation(
                 patientFhirId,
                 "1975-2",
                 "Bilirubin",
-                0.3 + (faker.random().nextDouble() * 4.7), // 0.3-5.0
+                Math.round(bilirubin * 100.0) / 100.0,
                 "mg/dL",
                 0.3, 1.2
         ));
 
-        // Тромбоциты
+        // Тромбоциты (PLT)
+        // Норма: 150-450, возможный диапазон: 0-1000
+        double plt;
+        rand = faker.random().nextDouble();
+        if (rand < 0.85) {
+            // Норма: 150-450
+            plt = 150.0 + (faker.random().nextDouble() * 300.0);
+        } else if (rand < 0.92) {
+            // Тромбоцитопения: 50-150
+            plt = 50.0 + (faker.random().nextDouble() * 100.0);
+        } else {
+            // Тромбоцитоз: 450-600
+            plt = 450.0 + (faker.random().nextDouble() * 150.0);
+        }
         observations.add(createObservation(
                 patientFhirId,
                 "777-3",
                 "Platelets",
-                50.0 + (faker.random().nextDouble() * 350.0), // 50-400
+                Math.round(plt * 10.0) / 10.0,
                 "10*3/uL",
-                150.0, 400.0
+                150.0, 450.0
         ));
 
-        // Лейкоциты
+        // Лейкоциты (WBC)
+        // Норма: 4.0-10.0, возможный диапазон: 2-40
+        double wbc;
+        rand = faker.random().nextDouble();
+        if (rand < 0.85) {
+            // Норма: 4.0-10.0
+            wbc = 4.0 + (faker.random().nextDouble() * 6.0);
+        } else if (rand < 0.92) {
+            // Лейкопения: 2.0-4.0
+            wbc = 2.0 + (faker.random().nextDouble() * 2.0);
+        } else {
+            // Лейкоцитоз: 10.0-15.0
+            wbc = 10.0 + (faker.random().nextDouble() * 5.0);
+        }
         observations.add(createObservation(
                 patientFhirId,
                 "6690-2",
                 "White Blood Cells",
-                faker.number().randomDouble(1, 3, 15),
+                Math.round(wbc * 10.0) / 10.0,
                 "10*3/uL",
-                4.0, 11.0
+                4.0, 10.0
         ));
-        // Натрий
+        
+        // Натрий (Na+)
+        // Норма: 135-145, возможный диапазон: 120-160
+        double sodium;
+        rand = faker.random().nextDouble();
+        if (rand < 0.90) {
+            // Норма: 135-145
+            sodium = 135.0 + (faker.random().nextDouble() * 10.0);
+        } else if (rand < 0.95) {
+            // Гипонатриемия: 125-135
+            sodium = 125.0 + (faker.random().nextDouble() * 10.0);
+        } else {
+            // Гипернатриемия: 145-155
+            sodium = 145.0 + (faker.random().nextDouble() * 10.0);
+        }
         observations.add(createObservation(
                 patientFhirId,
                 "2951-2",
                 "Sodium",
-                130.0 + (faker.random().nextDouble() * 20.0), // 130-150
+                Math.round(sodium * 10.0) / 10.0,
                 "mmol/L",
                 135.0, 145.0
         ));
-        // Сатурация
+        
+        // Сатурация (SpO2)
+        // Норма: 95-100%, возможный диапазон: 85-100%
+        double spo2;
+        rand = faker.random().nextDouble();
+        if (rand < 0.90) {
+            // Норма: 95-100%
+            spo2 = 95.0 + (faker.random().nextDouble() * 5.0);
+        } else {
+            // Гипоксия: 88-95%
+            spo2 = 88.0 + (faker.random().nextDouble() * 7.0);
+        }
         observations.add(createObservation(
                 patientFhirId,
                 "59408-5",
                 "Oxygen Saturation",
-                85.0 + (faker.random().nextDouble() * 15.0), // 85-100
+                Math.round(spo2 * 10.0) / 10.0,
                 "%",
                 95.0, 100.0
         ));
         
         // Рост (Height)
+        // Реалистичный диапазон: 150-200 cm
+        double height = 160.0 + (faker.random().nextDouble() * 30.0); // 160-190 cm
         observations.add(createObservation(
                 patientFhirId,
                 "8302-2",
                 "Body Height",
-                150.0 + (faker.random().nextDouble() * 50.0), // 150-200 cm
+                Math.round(height * 10.0) / 10.0,
                 "cm",
                 150.0, 200.0
         ));
         
         // Вес (Weight)
+        // Норма: >50 кг, реалистичный диапазон: 50-120 кг
+        double weight = 55.0 + (faker.random().nextDouble() * 45.0); // 55-100 кг
         observations.add(createObservation(
                 patientFhirId,
                 "29463-7",
                 "Body Weight",
-                50.0 + (faker.random().nextDouble() * 70.0), // 50-120 kg
+                Math.round(weight * 10.0) / 10.0,
                 "kg",
                 50.0, 100.0
         ));
         
-        log.debug("Generated {} observations for patient {}", observations.size(), patientFhirId);
+        log.debug("Generated {} realistic observations for patient {}", observations.size(), patientFhirId);
         return observations;
     }
 

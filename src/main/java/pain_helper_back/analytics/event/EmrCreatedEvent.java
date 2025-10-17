@@ -5,6 +5,7 @@ import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /*
  * Событие: Создана запись EMR (Electronic Medical Record)
@@ -21,10 +22,13 @@ public class EmrCreatedEvent extends ApplicationEvent {
     private final String childPughScore;
     private final Double weight;
     private final Double height;
+    private final List<String> diagnosisCodes; // ICD коды диагнозов
+    private final List<String> diagnosisDescriptions; // Описания диагнозов
 
     public EmrCreatedEvent(Object source, Long emrId, String patientMrn,
                            String createdBy, String createdByRole, LocalDateTime createdAt,
-                           String gfr, String childPughScore, Double weight, Double height) {
+                           String gfr, String childPughScore, Double weight, Double height,
+                           List<String> diagnosisCodes, List<String> diagnosisDescriptions) {
         super(source);
         this.emrId = emrId;
         this.patientMrn = patientMrn;
@@ -35,5 +39,7 @@ public class EmrCreatedEvent extends ApplicationEvent {
         this.childPughScore = childPughScore;
         this.weight = weight;
         this.height = height;
+        this.diagnosisCodes = diagnosisCodes;
+        this.diagnosisDescriptions = diagnosisDescriptions;
     }
 }
