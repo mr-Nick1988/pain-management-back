@@ -20,7 +20,7 @@ Sodium (Na⁺) — концентрация натрия в крови.
 при которой рекомендуется избегать большинства препаратов (avoid).
 */
 
-@Component
+//@Component
 @Order(7)
 @Slf4j
 public class SodiumRuleApplier implements TreatmentRuleApplier{

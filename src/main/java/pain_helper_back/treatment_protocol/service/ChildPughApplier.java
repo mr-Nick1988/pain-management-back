@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@Component
+//@Component
 @Order(8)
 @Slf4j
 public class ChildPughApplier implements TreatmentRuleApplier {

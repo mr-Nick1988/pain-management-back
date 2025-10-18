@@ -13,7 +13,7 @@ import pain_helper_back.treatment_protocol.utils.DrugUtils;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@Component
+//@Component
 @Order(10)
 @Slf4j
 public class WeightRuleApplier implements TreatmentRuleApplier {

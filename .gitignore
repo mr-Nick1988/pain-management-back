@@ -31,3 +31,13 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Local MongoDB data
+/data/db/
+*.bson
+*.lock
+*.mongod
+
+# Logs
+*.log
+/logs/

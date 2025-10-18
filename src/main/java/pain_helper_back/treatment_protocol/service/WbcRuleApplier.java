@@ -12,7 +12,7 @@ import pain_helper_back.treatment_protocol.utils.DrugUtils;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@Component
+//@Component
 @Order(5)
 @Slf4j
 public class WbcRuleApplier implements TreatmentRuleApplier {

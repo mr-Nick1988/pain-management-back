@@ -19,7 +19,7 @@ AVOID if sensitivity — правило исключения препарато�
 и одно из веществ совпадает с пациентскими, препараты из рекомендации исключаются (avoid).
 */
 
-@Component
+//@Component
 @Slf4j
 @Order(3)
 public class SensitivityRuleApplier implements TreatmentRuleApplier {

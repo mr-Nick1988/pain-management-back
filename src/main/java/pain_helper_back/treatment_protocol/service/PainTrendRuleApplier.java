@@ -19,9 +19,9 @@ import java.util.List;
  * Если боль регрессирует (ухудшается) или ведёт себя нестабильно (скачет вверх-вниз),
  * система не генерирует новую рекомендацию и очищает список препаратов.
  */
-@Component
+//@Component
 @Slf4j
-@Order(0) // выполняется самым первым, до AgeRuleApplier
+//@Order(0) // выполняется самым первым, до AgeRuleApplier
 public class PainTrendRuleApplier implements TreatmentRuleApplier {
 
     private static final int MIN_HISTORY = 3; // минимальное количество записей для анализа

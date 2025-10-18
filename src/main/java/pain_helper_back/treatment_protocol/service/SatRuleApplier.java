@@ -18,7 +18,7 @@ SAT (oxygen saturation, SpO₂) — уровень насыщения крови
 Если сатурация <93%, рекомендуется избегать большинства препаратов (avoid).
 */
 
-@Component
+//@Component
 @Order(6)
 @Slf4j
 public class SatRuleApplier implements TreatmentRuleApplier {

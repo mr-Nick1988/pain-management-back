@@ -47,7 +47,7 @@ public class AgeRuleApplier implements TreatmentRuleApplier {
                 log.info("Filter {} accepted the main Drug {} ", AgeRuleApplier.class.getSimpleName(),drug.getDrugName());
             } else {
                 log.info("Filter {} rejected the main Drug {} ", AgeRuleApplier.class.getSimpleName(),drug.getDrugName());
-                recommendation.getComments().add("System: " + "First drug avoid: patient age (" + patientAge + ") > " + limit);
+                recommendation.getComments().add("System: " + "First drug " + drug.getDrugName() + " avoid: patient age (" + patientAge + ") > " + limit);
             }
         } else { // DrugRole.ALTERNATIVE
             if (patientAge >= limit) {
@@ -91,3 +91,8 @@ public class AgeRuleApplier implements TreatmentRuleApplier {
 
 
 }
+// Тест пройден для 3 пациентов с разными возрастами при уровне боли для всех = 4
+/*№ пациента	Возраст	Ожидаемое поведение	Реальный результат	Комментарий
+1	85 лет	Tramal 🚫 (avoid), Paracetamol ✅	Tramal rejected, Paracetamol accepted	System: First drug avoid: patient age (85) > 75
+2	45 лет	Tramal ✅, Paracetamol ✅	Оба accepted	Без комментариев — корректно
+3	12 лет	Tramal ✅, Paracetamol 🚫 (avoid)	Paracetamol rejected	System: Second drug avoid: patient age (12) < 18*/

@@ -16,7 +16,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-@Component
+//@Component
 @Slf4j
 @Order(2)
 public class ContraindicationsRuleApplier implements TreatmentRuleApplier {
