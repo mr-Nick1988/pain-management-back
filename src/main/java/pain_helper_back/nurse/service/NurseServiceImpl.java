@@ -6,6 +6,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import pain_helper_back.analytics.event.EmrCreatedEvent;
 import pain_helper_back.analytics.event.PatientRegisteredEvent;
 import pain_helper_back.analytics.event.VasRecordedEvent;
 import pain_helper_back.common.patients.dto.*;
@@ -20,6 +21,7 @@ import pain_helper_back.treatment_protocol.service.TreatmentProtocolService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -162,20 +164,26 @@ public class NurseServiceImpl implements NurseService {
         patient.getEmr().add(emr);
 
         emrRepository.save(emr);
+        // Извлекаем диагнозы для аналитики
+        List<String> diagnosisCodes = emr.getDiagnoses() != null ?
+                emr.getDiagnoses().stream().map(d -> d.getIcdCode()).toList() : new ArrayList<>();
+        List<String> diagnosisDescriptions = emr.getDiagnoses() != null ?
+                emr.getDiagnoses().stream().map(d -> d.getDescription()).toList() : new ArrayList<>();
 
-//        eventPublisher.publishEvent(new EmrCreatedEvent(
-//                this,
-//                emr.getId(),
-//                mrn,
-//                "nurse_id", // TODO: заменить на реальный ID из Security Context
-//                "NURSE",
-//                LocalDateTime.now(),
-//                emr.getGfr(),
-//                emr.getChildPughScore(),
-//                emr.getWeight(),
-//                emr.getHeight()
-//        ));
-
+        eventPublisher.publishEvent(new EmrCreatedEvent(
+                this,
+                emr.getId(),
+                mrn,
+                "nurse_id", // TODO: заменить на реальный ID
+                "NURSE",
+                LocalDateTime.now(),
+                emr.getGfr(),
+                emr.getChildPughScore(),
+                emr.getWeight(),
+                emr.getHeight(),
+                diagnosisCodes,
+                diagnosisDescriptions
+        ));
         // 5 Hibernate сам сохранит всё (EMR + Diagnosis) в конце транзакции
         return modelMapper.map(emr, EmrDTO.class);
     }
