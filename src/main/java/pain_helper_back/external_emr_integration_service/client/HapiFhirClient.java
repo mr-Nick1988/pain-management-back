@@ -26,10 +26,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.*;
 import org.springframework.stereotype.Component;
+import pain_helper_back.enums.EmrSourceType;
 import pain_helper_back.external_emr_integration_service.dto.FhirIdentifierDTO;
 import pain_helper_back.external_emr_integration_service.dto.FhirObservationDTO;
 import pain_helper_back.external_emr_integration_service.dto.FhirPatientDTO;
-import pain_helper_back.enums.EmrSourceType;
+import pain_helper_back.external_emr_integration_service.service.IcdCodeLoaderService;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -401,10 +402,10 @@ public class HapiFhirClient {
      * @param patientId FHIR ID пациента
      * @return список ICD кодов с описаниями
      */
-    public List<pain_helper_back.external_emr_integration_service.service.IcdCodeLoaderService.IcdCode> getConditionsForPatient(String patientId) {
+    public List<IcdCodeLoaderService.IcdCode> getConditionsForPatient(String patientId) {
         log.debug("Fetching conditions (diagnoses) for patient: {}", patientId);
         
-        List<pain_helper_back.external_emr_integration_service.service.IcdCodeLoaderService.IcdCode> diagnoses = new ArrayList<>();
+        List<IcdCodeLoaderService.IcdCode> diagnoses = new ArrayList<>();
         
         try {
             // Выполняем FHIR запрос для получения диагнозов
