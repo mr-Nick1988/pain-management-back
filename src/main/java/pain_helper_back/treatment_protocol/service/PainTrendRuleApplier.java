@@ -10,44 +10,76 @@ import pain_helper_back.common.patients.entity.Vas;
 import pain_helper_back.treatment_protocol.entity.TreatmentProtocol;
 import pain_helper_back.treatment_protocol.utils.DrugUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 🔍 PainTrendRuleApplier
- *
+ * PainTrendRuleApplier
  * Анализирует динамику боли (VAS) за последние визиты пациента.
  * Если боль регрессирует (ухудшается) или ведёт себя нестабильно (скачет вверх-вниз),
  * система не генерирует новую рекомендацию и очищает список препаратов.
  */
 //@Component
 @Slf4j
-//@Order(0) // выполняется самым первым, до AgeRuleApplier
+@Order(0) // выполняется самым первым, до AgeRuleApplier
 public class PainTrendRuleApplier implements TreatmentRuleApplier {
 
     private static final int MIN_HISTORY = 3; // минимальное количество записей для анализа
 
     @Override
-    public void apply(DrugRecommendation drug, Recommendation recommendation,
-                      TreatmentProtocol tp, Patient patient) {
+    public void apply(DrugRecommendation drug,
+                      Recommendation recommendation,
+                      TreatmentProtocol tp,
+                      Patient patient,
+                      List<String> rejectionReasons) {
+
+        log.info("=== [START] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
 
         // Извлекаем историю болевых шкал пациента
         List<Integer> vasHistory = patient.getVas().stream()
                 .map(Vas::getPainLevel)
                 .toList();
 
-        if (vasHistory.size() < MIN_HISTORY) return;
+        // Если данных слишком мало, фильтр не применяется
+        if (vasHistory.size() < MIN_HISTORY) {
+            log.info("Not enough VAS history to apply {} (size={})", getClass().getSimpleName(), vasHistory.size());
+            log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
+            return;
+        }
 
-        if (isRegressing(vasHistory) || isUnstable(vasHistory)) {
+        boolean regressing = isRegressing(vasHistory);
+        boolean unstable = isUnstable(vasHistory);
+
+        if (regressing || unstable) {
+
             // очищаем препараты
             recommendation.getDrugs().forEach(DrugUtils::clearDrug);
 
-            // добавляем системный комментарий
-            recommendation.getComments().add(
-                    "[SYSTEM] Recommendation stopped: pain trend worsening or unstable. VAS history=" + vasHistory
-            );
+            if (recommendation.getComments() == null)
+                recommendation.setComments(new ArrayList<>());
 
-            log.warn("PainTrendRuleApplier triggered for patient {}. VAS history = {}", patient.getMrn(), vasHistory);
+            String reason = regressing
+                    ? "pain trend worsening (VAS increasing)"
+                    : "pain trend unstable (VAS fluctuating)";
+
+            // добавляем системные комментарии
+            recommendation.getComments().add(String.format(
+                    "System: recommendation stopped due to %s. VAS history=%s",
+                    reason,
+                    vasHistory
+            ));
+
+            rejectionReasons.add(String.format(
+                    "[%s] Recommendation stopped due to %s. VAS history=%s",
+                    getClass().getSimpleName(),
+                    reason,
+                    vasHistory
+            ));
+
+            log.warn("{} triggered for patient {} (VAS history={})", getClass().getSimpleName(), patient.getMrn(), vasHistory);
         }
+
+        log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
     }
 
     /**
@@ -75,7 +107,6 @@ public class PainTrendRuleApplier implements TreatmentRuleApplier {
             int b = vasHistory.get(i + 1);
             int c = vasHistory.get(i + 2);
 
-            // если сначала боль падает, потом снова растёт (или наоборот)
             if ((a > b && b < c) || (a < b && b > c)) {
                 return true;
             }

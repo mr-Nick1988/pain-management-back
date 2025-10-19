@@ -5,12 +5,15 @@ import pain_helper_back.common.patients.dto.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface NurseService {
     PatientDTO createPatient(PatientDTO patientDto);
 
     PatientDTO getPatientByMrn(String mrn);
+
     PatientDTO getPatientByEmail(String email);
+
     PatientDTO getPatientByPhoneNumber(String phoneNumber);
 
     List<PatientDTO> searchPatients(
@@ -36,10 +39,11 @@ public interface NurseService {
 
     void deleteVAS(String mrn);
 
-    public VasDTO getLastVAS(String mrn);
+    public Optional<VasDTO> getLastVAS(String mrn);
 
     public List<RecommendationDTO> getAllApprovedRecommendations();
+
     RecommendationDTO createRecommendation(String mrn);
 
-    RecommendationDTO getLastRecommendation(String mrn);
+    Optional<RecommendationDTO> getLastRecommendation(String mrn);
 }

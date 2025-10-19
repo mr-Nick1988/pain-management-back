@@ -2,6 +2,7 @@ package pain_helper_back.nurse.service;
 
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -23,9 +24,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NurseServiceImpl implements NurseService {
@@ -278,13 +280,15 @@ public class NurseServiceImpl implements NurseService {
 
     @Override
     @Transactional(readOnly = true)
-    public VasDTO getLastVAS(String mrn) {
+    public Optional<VasDTO> getLastVAS(String mrn) {
         Patient patient = findPatientOrThrow(mrn);
         if (patient.getVas().isEmpty()) {
-            throw new NotFoundException("No VAS complaints found for this patient");
+           log.warn("No VAS found for patient with MRN={}", mrn);
+           return Optional.empty();
         }
         Vas vas = patient.getVas().getLast();
-        return modelMapper.map(vas, VasDTO.class);
+        VasDTO dto = modelMapper.map(vas, VasDTO.class);
+        return Optional.of(dto);
     }
 
 
@@ -319,6 +323,7 @@ public class NurseServiceImpl implements NurseService {
 //            throw new EntityExistsException("Recommendation with this status already exists");
 //        }
         Recommendation recommendation = treatmentProtocolService.generateRecommendation( vas, patient);
+
         vas.setResolved(true);
         recommendation.setPatient(patient);
         patient.getRecommendations().add(recommendation);
@@ -328,12 +333,14 @@ public class NurseServiceImpl implements NurseService {
 
     @Override
     @Transactional(readOnly = true)
-    public RecommendationDTO getLastRecommendation(String mrn) {
+    public Optional <RecommendationDTO> getLastRecommendation(String mrn) {
         Patient patient = findPatientOrThrow(mrn);
         if (patient.getRecommendations().isEmpty()) {
-            throw new NotFoundException("No recommendation found for this patient");
+            log.warn("No recommendation found for patient with MRN={}", mrn);
+            return Optional.empty();
         }
         Recommendation recommendation = patient.getRecommendations().getLast();
-        return modelMapper.map(recommendation, RecommendationDTO.class);
+        RecommendationDTO dto = modelMapper.map(recommendation, RecommendationDTO.class);
+        return Optional.of(dto);
     }
 }

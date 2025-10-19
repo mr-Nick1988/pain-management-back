@@ -11,6 +11,7 @@ import pain_helper_back.treatment_protocol.entity.TreatmentProtocol;
 import pain_helper_back.treatment_protocol.utils.DrugUtils;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -24,10 +25,11 @@ public class ChildPughApplier implements TreatmentRuleApplier {
     private static final Pattern CHILD_PUGH_PATTERN = Pattern.compile("([ABC])\\s*-\\s*([^A|B|C]+)(?=$|[ABC])");
 
     @Override
-    public void apply(DrugRecommendation drug, Recommendation recommendation, TreatmentProtocol tp, Patient patient) {
+    public void apply(DrugRecommendation drug, Recommendation recommendation, TreatmentProtocol tp, Patient patient, List<String> rejectionReasons) {
 
         // Если препарат ранее был отвергнут по возрасту (или не заполнен) — не применяем печёночную корректировку
         if (!DrugUtils.hasInfo(drug)) return;
+        log.info("=== [START] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
 
         String patientChildPugh = patient.getEmr().getLast().getChildPughScore(); // "A", "B" или "C"
         String childPughRule = (drug.getRole() == DrugRole.MAIN)
@@ -70,6 +72,12 @@ public class ChildPughApplier implements TreatmentRuleApplier {
         // 5 Применяем правило
         if (patientRule.contains("avoid")) {
             recommendation.getComments().add("System: avoid for Child-Pugh " + patientChildPugh);
+            rejectionReasons.add(String.format(
+                    "[%s] Avoid for Child-Pugh category %s (rule='%s')",
+                    getClass().getSimpleName(),
+                    patientChildPugh,
+                    patientRule
+            ));
             DrugUtils.clearDrug(drug);
             return;
         }
@@ -86,5 +94,9 @@ public class ChildPughApplier implements TreatmentRuleApplier {
 
         log.debug(" Applied ChildPugh rule '{}' for {} category (protocol {})",
                 patientRule, patientChildPugh, tp.getId());
+
+        log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
+
     }
+
 }

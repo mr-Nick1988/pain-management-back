@@ -1,7 +1,7 @@
 package pain_helper_back.treatment_protocol.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import pain_helper_back.common.patients.entity.*;
 import pain_helper_back.enums.DrugRole;
@@ -29,14 +29,16 @@ import java.util.List;
 public class TreatmentProtocolService {
     private final TreatmentProtocolRepository treatmentProtocolRepository;
     private final List<TreatmentRuleApplier> ruleAppliers;
+    private final ModelMapper modelMapper;
 
 
     public TreatmentProtocolService(TreatmentProtocolRepository treatmentProtocolRepository,
-                                    List<TreatmentRuleApplier> ruleAppliers) {
+                                    List<TreatmentRuleApplier> ruleAppliers, ModelMapper modelMapper) {
         this.treatmentProtocolRepository = treatmentProtocolRepository;
         this.ruleAppliers = ruleAppliers;
         log.info(" Loaded TreatmentRuleAppliers (Классы-фильтры, реализующие интерфейс TreatmentRuleApplier): {}",
                 ruleAppliers.stream().map(r -> r.getClass().getSimpleName()).toList());
+        this.modelMapper = modelMapper;
     }
 
     /**
@@ -47,16 +49,16 @@ public class TreatmentProtocolService {
         Integer painLevel = vas.getPainLevel();
         List<TreatmentProtocol> painRageFilter = treatmentProtocolRepository.findAll().stream()
                 .filter(tp -> {
-
                     int[] range = parsePainLevel(tp.getPainLevel());
                     int painLevelFrom = range[0];
                     int painLevelTo = range[1];
-
                     return painLevel >= painLevelFrom && painLevel <= painLevelTo;
                 }).toList();
 
 
         List<Recommendation> recommendations = new ArrayList<>();
+        Recommendation recommendationFailed = new Recommendation(); // на случай есл все рекомендации отвергнуться
+        List<String> rejectionReasons = new ArrayList<>();  // причины отказов этих рекомендаций
 
         for (TreatmentProtocol tp : painRageFilter) {
             Recommendation recommendation = new Recommendation();
@@ -79,9 +81,11 @@ public class TreatmentProtocolService {
                 // Применяем возрастные правила(<=18 or >75)
                 /**
                  * Contraindications — это список состояний (обычно в виде ICD-10 кодов),
-                 * Эти данные  участвуют в фильтрации и исключают рекомендацию вовсе, если у пациента есть
+                 * Эти данные участвуют в фильтрации и исключают рекомендацию вовсе, если у пациента есть
                  * одно из заболеваний
                  */
+                // Применяем корректировку на чувствительность к препаратам (Sensitivity)
+
                 // Применяем весовые правила (только если вес < 50 — по протоколу)
                 // Применяем печёночную корректировку (ChildPugh)
                 // Применяем почечную корректировку (GFR)
@@ -89,27 +93,39 @@ public class TreatmentProtocolService {
                 // Применяем корректировку по лейкоцитам (WBC)
                 // Применяем корректировку по сатурации (SAT)
                 // Применяем корректировку по натрию (Sodium)
-                // Применяем корректировку на чувствительность к препаратам (Sensitivity)
 
-                ruleApplier.apply(mainDrug, recommendation, tp, patient);
-                ruleApplier.apply(altDrug, recommendation, tp, patient);
+
+                ruleApplier.apply(mainDrug, recommendation, tp, patient, rejectionReasons);
+                ruleApplier.apply(altDrug, recommendation, tp, patient, rejectionReasons);
 
             }
-            if (recommendation.getDrugs().isEmpty()) {
-                log.warn(" All drugs were cleared for protocol id={} — possibly inconsistent contraindications", tp.getId());
-            }
-            if (!recommendation.getDrugs().stream()
-                    .allMatch(drugRecommendation ->
-                            drugRecommendation.getActiveMoiety() == null ||
-                                    drugRecommendation.getActiveMoiety().isBlank())) {
-                log.info("Recommendation kept: tpId{}",tp.getId());
+            boolean allCleared = recommendation.getDrugs().stream()
+                    .allMatch(dr -> dr.getActiveMoiety() == null || dr.getActiveMoiety().isBlank());
+
+            if (!allCleared) {
+                // успешная рекомендация
+                recommendation.setGenerationFailed(false);
                 recommendations.add(recommendation);
+                log.warn(" All drugs cleared for protocol id={}, reasons={}", tp.getId(), rejectionReasons);
+            } else {
+                //  всё очищено — запоминаем причины
+                recommendationFailed.setGenerationFailed(true);
+                recommendationFailed.getRejectionReasonsSummary().addAll(rejectionReasons);
+                log.info(" Recommendation kept: protocol id={} (some drugs active)", tp.getId());
+
             }
 
         }
-        // Вернём первую рекомендацию (если их несколько). При желании вернуть все — меняем сигнатуру.
-        return recommendations.isEmpty() ? null : recommendations.getFirst();
+        if (recommendations.isEmpty()) {
+            log.warn("No valid recommendations generated for patient {}, all filters rejected drugs", patient.getMrn());
+            return recommendationFailed;
+        } else {
+            log.info("Generated {} valid recommendations for patient {}", recommendations.size(), patient.getMrn());
+            // Вернём первую рекомендацию (если их несколько). При желании вернуть все — меняем сигнатуру.
+            return recommendations.getFirst();
+        }
     }
+
 
     private int[] parsePainLevel(String painLevel) {
         if (painLevel == null) return new int[]{0, 0};

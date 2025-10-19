@@ -52,6 +52,17 @@ public class Recommendation {
     @Column(name = "element")
     private List<String> comments = new ArrayList<>();      // свободные комментарии
 
+    // ========== NON-PERSISTENT (transient) FIELDS ========== //
+    @Column(name = "generation_failed")
+    private Boolean generationFailed; // не сохраняется в БД, используется только на уровне логики
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+            name = "recommendation_rejection_reasons",
+            joinColumns = @JoinColumn(name = "recommendation_id")
+    )
+    @Column(name = "reason", length = 2000)
+    private List<String> rejectionReasonsSummary = new ArrayList<>(); // копим системные причины отказа
+
     // ========== WORKFLOW: DOCTOR LEVEL ========== //
     @Column(name = "doctor_id", length = 50)
     private String doctorId;

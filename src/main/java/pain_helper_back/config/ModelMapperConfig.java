@@ -6,8 +6,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import pain_helper_back.common.patients.dto.DiagnosisDTO;
 import pain_helper_back.common.patients.dto.PatientDTO;
+import pain_helper_back.common.patients.dto.RecommendationDTO;
 import pain_helper_back.common.patients.entity.Diagnosis;
 import pain_helper_back.common.patients.entity.Patient;
+import pain_helper_back.common.patients.entity.Recommendation;
 
 @Configuration
 public class ModelMapperConfig {
@@ -41,6 +43,12 @@ public class ModelMapperConfig {
                     m.map(DiagnosisDTO::getIcdCode, Diagnosis::setIcdCode);
                     // Маппинг описания болезни
                     m.map(DiagnosisDTO::getDescription, Diagnosis::setDescription);
+                });
+        //  Кастомная карта для Recommendation → RecommendationDTO
+        mapper.createTypeMap(Recommendation.class, RecommendationDTO.class)
+                .addMappings(m -> {
+                    m.map(Recommendation::getGenerationFailed, RecommendationDTO::setGenerationFailed);
+                    m.map(Recommendation::getRejectionReasonsSummary, RecommendationDTO::setRejectionReasonsSummary);
                 });
 
         // TODO (будущее улучшение):

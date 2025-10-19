@@ -12,6 +12,7 @@ import pain_helper_back.treatment_protocol.utils.DrugUtils;
 import pain_helper_back.treatment_protocol.utils.SanitizeUtils;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,7 +32,7 @@ public class ContraindicationsRuleApplier implements TreatmentRuleApplier {
             Pattern.compile("[A-Z]?[0-9]{2,3}(?:\\.[0-9A-Z]{1,4})?");
 
     @Override
-    public void apply(DrugRecommendation drug, Recommendation recommendation, TreatmentProtocol tp, Patient patient) {
+    public void apply(DrugRecommendation drug, Recommendation recommendation, TreatmentProtocol tp, Patient patient, List<String> rejectionReasons) {
         // 1 Если у лекарства нет данных или у пациента нет диагнозов или в протоколе нет противопоказаний
         // ---> выходим (чтобы не обрабатывать пустые строки)
         if (!DrugUtils.hasInfo(drug)
@@ -91,7 +92,12 @@ public class ContraindicationsRuleApplier implements TreatmentRuleApplier {
                         "System: avoid for contraindications (match by base ICD): " +
                                 diagnosis.getDescription() + " (" + diagnosis.getIcdCode() + ")"
                 );
-                log.info("Avoid triggered by contraindications (base match): patient={}, code={}, desc={}",
+                rejectionReasons.add(String.format(
+                        "[%s] Avoid triggered by contraindications (ICD match): %s (%s)",
+                        ContraindicationsRuleApplier.class.getSimpleName(),
+                        diagnosis.getDescription(),
+                        diagnosis.getIcdCode()
+                ));                log.info("Avoid triggered by contraindications (base match): patient={}, code={}, desc={}",
                         patient.getId(), diagnosis.getIcdCode(), diagnosis.getDescription());
                 return; //  сразу выходим, т.к. дальше проверять смысла нет
             }

@@ -9,7 +9,9 @@ import pain_helper_back.common.patients.entity.Recommendation;
 import pain_helper_back.treatment_protocol.entity.TreatmentProtocol;
 import pain_helper_back.treatment_protocol.utils.DrugUtils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -18,25 +20,13 @@ import java.util.regex.Pattern;
 @Order(9)
 @Slf4j
 public class GfrRuleApplier implements TreatmentRuleApplier {
-// GFR — это показатель фильтрационной способности почек, измеряемый в мл/мин.
-// На фронте врач может ввести либо цифру (например 62), либо класс A|B|C|D|E:
-// Оба типа ввода врача тут поддерживаются: и числа, и буквы.
-// A >90     Норма
-// B 60–89   Незначительное снижение
-// C 30–59   Умеренное снижение
-// D 15–29   Тяжёлое снижение
-// E <15     Почечная недостаточность
-// Т.е. пациент может быть описан либо как “C”, либо как “48 мл/мин”, а это одно и то же состояние.
-
 
     private static final Pattern COMPLEX_PATTERN = Pattern.compile(
-            //Эта страшная строка на самом деле просто “ловит” два варианта записи в таблице: Class B - 12h или <30 ml/min - avoid
             "(Class\\s*[ABC])\\s*-\\s*([^C]+)(?=$|Class)|(<\\d+[^-]*)-\\s*([^A-Z]+)"
     );
 
-    // Соответствие классов (A–E) диапазонам GFR в мл/мин
     private static final Map<String, double[]> GFR_CLASSES = Map.of(
-            "A", new double[]{90, Double.MAX_VALUE}, // >90
+            "A", new double[]{90, Double.MAX_VALUE},
             "B", new double[]{60, 89},
             "C", new double[]{30, 59},
             "D", new double[]{15, 29},
@@ -44,37 +34,40 @@ public class GfrRuleApplier implements TreatmentRuleApplier {
     );
 
     @Override
-    public void apply(DrugRecommendation drug, Recommendation recommendation, TreatmentProtocol tp, Patient patient) {
-        // если препарат пустой или уже "отвергнут" ранее — не трогаем
+    public void apply(DrugRecommendation drug,
+                      Recommendation recommendation,
+                      TreatmentProtocol tp,
+                      Patient patient,
+                      List<String> rejectionReasons) {
+
         if (!DrugUtils.hasInfo(drug)) return;
 
         String patientGfr = patient.getEmr().getLast().getGfr();
         String normalizedPatientGfr = normalizeGfrValue(patientGfr);
         String gfrRule = tp.getGfr();
+
         if (gfrRule == null || gfrRule.trim().isEmpty() || gfrRule.toUpperCase().contains("NA")) return;
 
-        // Сопоставляем все возможные группы (Class A/B/C или <число)
+        log.info("=== [START] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
+
         Matcher m = COMPLEX_PATTERN.matcher(gfrRule);
         Map<String, String> rules = new HashMap<>();
         while (m.find()) {
-            String key = m.group(1) != null ? m.group(1).replace("Class", "").trim() : m.group(3).trim(); // "B" или "<60"
+            String key = m.group(1) != null ? m.group(1).replace("Class", "").trim() : m.group(3).trim();
             String value = m.group(2) != null ? m.group(2).trim() : m.group(4).trim();
             rules.put(key, value);
         }
-        // 1 Проверяем по ключу "Class A/B/C"
-        String patientRule = rules.get(normalizedPatientGfr);  // <----Пробуем найти подходящее правило по ключу
-        // 2 Если не нашли буквенное правило — ищем по числовым порогам
+
+        String patientRule = rules.get(normalizedPatientGfr);
+
         if (patientRule == null) {
             double gfrValue;
-
-            // если врач ввёл букву — переводим её в среднее числовое значение
-            if (normalizedPatientGfr.matches("[A-E]")) {
+            if (normalizedPatientGfr != null && normalizedPatientGfr.matches("[A-E]")) {
                 gfrValue = getAverageGfrForClass(normalizedPatientGfr);
             } else {
                 gfrValue = Double.parseDouble(patientGfr.replaceAll("[^\\d.]", ""));
             }
 
-            // сравниваем с порогами из протокола
             for (Map.Entry<String, String> e : rules.entrySet()) {
                 if (e.getKey().startsWith("<")) {
                     double limit = Double.parseDouble(e.getKey().replaceAll("[^\\d.]", ""));
@@ -85,69 +78,92 @@ public class GfrRuleApplier implements TreatmentRuleApplier {
                 }
             }
         }
-        // 3 Если не нашли совпадений patientRule с полученными Map rules - корректировки и ограничений нет
-        if (patientRule == null) return;
-        //Если написано “avoid” — добавляем комментарий и обнуляем объекты DrugRecommendation и останавливаемся.
-        if (patientRule.toLowerCase().contains("avoid")) {
-            recommendation.getComments().add("System: avoid for GFR rule " + gfrRule);
-            log.info("Avoid triggered by GFR rule: patient={}, value={}, rule={}", patient.getId(), patientGfr, gfrRule);
-            for (DrugRecommendation drugs : recommendation.getDrugs()) {
-                DrugUtils.clearDrug(drugs);
-            }
+
+        if (patientRule == null) {
+            log.info("No GFR rule matched for patient={} (value={})", patient.getId(), patientGfr);
+            log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
             return;
         }
 
-        //Если написано “reduce by 50%”: Уменьшаем дозировку и оставляем пометку в комментариях.
-        if (patientRule.toLowerCase().contains("reduce")) {
+        patientRule = patientRule.toLowerCase();
+
+        if (recommendation.getComments() == null)
+            recommendation.setComments(new ArrayList<>());
+
+        // === AVOID CASE ===
+        if (patientRule.contains("avoid")) {
+            recommendation.getComments().add("System: avoid for GFR rule " + gfrRule);
+            rejectionReasons.add(String.format(
+                    "[%s] Avoid for GFR value %s (rule='%s')",
+                    getClass().getSimpleName(),
+                    patientGfr,
+                    gfrRule
+            ));
+            log.warn("Avoid triggered by GFR rule: patient={}, value={}, rule={}", patient.getId(), patientGfr, gfrRule);
+
+            for (DrugRecommendation d : recommendation.getDrugs()) {
+                DrugUtils.clearDrug(d);
+            }
+
+            log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
+            return;
+        }
+
+        // === REDUCE CASE ===
+        if (patientRule.contains("reduce")) {
             Matcher perc = Pattern.compile("(\\d+)%").matcher(patientRule);
             if (perc.find() && drug.getDosing() != null) {
-                String originalDose = drug.getDosing(); // сохраняем исходное значение
+                String originalDose = drug.getDosing();
                 String percent = perc.group(1);
-                recommendation.getComments().add(
-                        "System: reduce dose by " + percent + "% (original dosing: " + originalDose + ")" + "by the reason of GFR rule:" + gfrRule
-                );
-                // Ничего не затираем! Просто оставляем как есть
-                // drug.setDosing(originalDose); // не трогаем
+                recommendation.getComments().add(String.format(
+                        "System: reduce dose by %s%% (original dosing: %s) due to GFR rule: %s",
+                        percent,
+                        originalDose,
+                        gfrRule
+                ));
             }
         }
-        //Если есть упоминание 8h, 12h и т.п.:
+
+        // === INTERVAL ADJUSTMENT CASE ===
         Matcher h = Pattern.compile("(\\d+)\\s*h").matcher(patientRule);
         if (h.find()) {
-            drug.setInterval(h.group(1) + "h");
-            recommendation.getComments().add("System: interval set to " + h.group(1) + "h due to GFR");
+            String newInterval = h.group(1) + "h";
+            drug.setInterval(newInterval);
+            recommendation.getComments().add(
+                    String.format("System: interval set to %s due to GFR rule: %s", newInterval, gfrRule)
+            );
         }
+
+        log.info("Applied GFR rule '{}' for patient={} (value={})", patientRule, patient.getId(), patientGfr);
+        log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
     }
 
+    // ------------------------- Helpers ----------------------------
 
-    //---------------------------------------- Additional Methods for reducing GFR data----------------------------------
-
-    //Если в протоколе только буквы, а врач ввёл число - внутри метода normalizeGfrValue мы просто унифицируем входное значение
     private String normalizeGfrValue(String rawGfr) {
         if (rawGfr == null || rawGfr.isBlank()) return null;
 
-        // 1 Если врач ввёл букву — просто возвращаем в верхнем регистре
         if (rawGfr.matches("(?i)[abcde]")) {
             return rawGfr.toUpperCase();
         }
 
-        // 2 Если врач ввёл число — определяем класс по диапазону
         double value = Double.parseDouble(rawGfr.replaceAll("[^\\d.]", ""));
         for (Map.Entry<String, double[]> entry : GFR_CLASSES.entrySet()) {
             double min = entry.getValue()[0];
             double max = entry.getValue()[1];
             if (value >= min && value <= max) {
-                return entry.getKey(); // вернёт "B", "C" и т.д.
+                return entry.getKey();
             }
         }
         return null;
     }
 
-    // Если наоборот (врач ввёл B, а протокол говорит <60) - возвращаем среднее значение диапазона GFR для класса A–E
     private double getAverageGfrForClass(String gfrClass) {
         double[] range = GFR_CLASSES.get(gfrClass);
         if (range == null) return Double.NaN;
         return (range[0] + range[1]) / 2.0;
     }
+}
 
  /*
  Итого этот фильтр:
@@ -165,4 +181,4 @@ reduce by N% → уменьшить дозу
 Всё это делает в рамках интерфейса TreatmentRuleApplier, что даёт
  настоящий полиморфизм и расширяемость микросервиса.*/
 
-}
+
