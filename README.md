@@ -855,7 +855,7 @@ Nick:
 
 2. **Добавлена обработка диагнозов из FHIR сервера:'''
    - Создан метод `getConditionsForPatient()` в `HapiFhirClient` для получения Condition resources
-   - Извлекаются ICD-9 коды и описания из FHIR Condition resources
+   - Извлекаются ICD-9 коды и описания из FHIR Condition resources-
    - Обновлен метод `importPatientFromFhir()` для получения и сохранения диагнозов
 
 **Техническая реализация:**
