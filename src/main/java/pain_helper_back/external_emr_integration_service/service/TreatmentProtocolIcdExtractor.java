@@ -110,24 +110,26 @@ public class TreatmentProtocolIcdExtractor {
     
     /**
      * Возвращает случайный диагноз из протокола лечения.
+     * Если протокол пуст, использует полный список ICD кодов.
      */
     public IcdCodeLoaderService.IcdCode getRandomProtocolDiagnosis() {
         if (protocolIcdCodes.isEmpty()) {
-            log.warn("No protocol ICD codes available, falling back to default");
-            return new IcdCodeLoaderService.IcdCode("571.2", "Alcoholic cirrhosis of liver");
+            log.warn("No protocol ICD codes available, falling back to full ICD code list");
+            return icdCodeLoaderService.getRandomDiagnosis();
         }
         return protocolIcdCodes.get(random.nextInt(protocolIcdCodes.size()));
     }
     
     /**
      * Возвращает список случайных диагнозов из протокола лечения.
+     * Если протокол пуст, использует полный список ICD кодов.
      * 
      * @param count количество диагнозов (1-5)
      */
     public List<IcdCodeLoaderService.IcdCode> getRandomProtocolDiagnoses(int count) {
         if (protocolIcdCodes.isEmpty()) {
-            log.warn("No protocol ICD codes available, falling back to default");
-            return List.of(new IcdCodeLoaderService.IcdCode("571.2", "Alcoholic cirrhosis of liver"));
+            log.warn("No protocol ICD codes available, falling back to full ICD code list");
+            return icdCodeLoaderService.getRandomDiagnoses(count);
         }
         
         // Ограничиваем количество диагнозов
