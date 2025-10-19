@@ -6,11 +6,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import pain_helper_back.common.patients.dto.EmrDTO;
 import pain_helper_back.external_emr_integration_service.dto.EmrImportResultDTO;
+import pain_helper_back.external_emr_integration_service.dto.EmrSyncResultDTO;
 import pain_helper_back.external_emr_integration_service.dto.FhirObservationDTO;
 import pain_helper_back.external_emr_integration_service.dto.FhirPatientDTO;
 import pain_helper_back.external_emr_integration_service.service.EmrIntegrationService;
+import pain_helper_back.external_emr_integration_service.service.EmrSyncScheduler;
+import pain_helper_back.external_emr_integration_service.service.TreatmentProtocolIcdExtractor;
 
 import java.util.List;
+import java.util.Map;
 
 /*
  * Controller for EMR integration with external FHIR systems.
@@ -31,6 +35,7 @@ import java.util.List;
 public class EmrIntegrationController {
 
     private final EmrIntegrationService emrIntegrationService;
+    private final TreatmentProtocolIcdExtractor treatmentProtocolIcdExtractor;
 
     /**
      * Импорт пациента из FHIR системы другой больницы.
@@ -119,6 +124,57 @@ public class EmrIntegrationController {
     }
 
     public record ImportCheckResponse(boolean alreadyImported, String internalEmrNumber) {
-
+    }
+    
+    // ============================================
+    // EMR СИНХРОНИЗАЦИЯ
+    // ============================================
+    
+    private final EmrSyncScheduler emrSyncScheduler;
+    
+    /*
+     * Ручная синхронизация всех FHIR пациентов.
+     * Обновляет лабораторные показатели из внешних FHIR систем.
+     * 
+     * КОГДА ИСПОЛЬЗОВАТЬ:
+     * - Для тестирования синхронизации
+     * - Для принудительного обновления всех данных
+     * - После добавления новых пациентов из FHIR
+     */
+    @PostMapping("/sync/all")
+    public ResponseEntity<EmrSyncResultDTO> syncAllPatients() {
+        EmrSyncResultDTO result = emrSyncScheduler.manualSyncAll();
+        return ResponseEntity.ok(result);
+    }
+    
+    /*
+     * Синхронизация конкретного пациента по MRN.
+     * 
+     * КОГДА ИСПОЛЬЗОВАТЬ:
+     * - Когда нужно обновить данные конкретного пациента
+     * - Перед генерацией новой рекомендации
+     * - После получения информации о изменении состояния пациента
+     */
+    @PostMapping("/sync/patient/{mrn}")
+    public ResponseEntity<String> syncPatientByMrn(@PathVariable String mrn) {
+        boolean hasChanges = emrSyncScheduler.syncPatientByMrn(mrn);
+        String message = hasChanges ? 
+                "Синхронизация завершена успешно. Обнаружены изменения в EMR." :
+                "Синхронизация завершена. Изменений не обнаружено.";
+        return ResponseEntity.ok(message);
+    }
+    
+    /**
+     * Получить список ICD кодов из Treatment Protocol.
+     * Используется для проверки, какие диагнозы используются для генерации моковых пациентов.
+     */
+    @GetMapping("/protocol-icd-codes")
+    public ResponseEntity<Map<String, Object>> getProtocolIcdCodes() {
+        int count = treatmentProtocolIcdExtractor.getProtocolIcdCodesCount();
+        return ResponseEntity.ok(Map.of(
+            "count", count,
+            "message", "Mock patients are generated with " + count + " ICD codes from Treatment Protocol",
+            "info", "These are the contraindication codes that affect treatment selection"
+        ));
     }
 }
