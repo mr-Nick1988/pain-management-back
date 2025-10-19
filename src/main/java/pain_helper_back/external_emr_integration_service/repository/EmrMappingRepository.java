@@ -88,4 +88,6 @@ public interface EmrMappingRepository extends JpaRepository<EmrMapping, Long> {
      * @return true если маппинг существует, false иначе
      */
     boolean existsByExternalFhirId(String externalFhirId);
+
+    Optional<EmrMapping> findByInternalEmrNumber(String internalEmrNumber);
 }
