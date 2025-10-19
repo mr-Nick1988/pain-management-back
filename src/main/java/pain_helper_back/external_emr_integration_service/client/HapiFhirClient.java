@@ -26,10 +26,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.r4.model.*;
 import org.springframework.stereotype.Component;
+import pain_helper_back.enums.EmrSourceType;
 import pain_helper_back.external_emr_integration_service.dto.FhirIdentifierDTO;
 import pain_helper_back.external_emr_integration_service.dto.FhirObservationDTO;
 import pain_helper_back.external_emr_integration_service.dto.FhirPatientDTO;
-import pain_helper_back.enums.EmrSourceType;
+import pain_helper_back.external_emr_integration_service.service.IcdCodeLoaderService;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -383,5 +384,67 @@ public class HapiFhirClient {
             dto.setPatientReference(fhirObservation.getSubject().getReference());
         }
         return dto;
+    }
+
+    /*
+     * Получить диагнозы (Conditions) пациента из FHIR сервера.
+     *
+     * ЧТО ДЕЛАЕТ:
+     * 1. Выполняет FHIR запрос: GET /Condition?patient=Patient/123
+     * 2. Получает список диагнозов (Condition resources)
+     * 3. Извлекает ICD-9 коды и описания
+     *
+     * ЗАЧЕМ: Диагнозы нужны для:
+     * - Выбора правильного протокола лечения
+     * - Учета противопоказаний
+     * - Аналитики (какие диагнозы чаще приводят к эскалациям)
+     *
+     * @param patientId FHIR ID пациента
+     * @return список ICD кодов с описаниями
+     */
+    public List<IcdCodeLoaderService.IcdCode> getConditionsForPatient(String patientId) {
+        log.debug("Fetching conditions (diagnoses) for patient: {}", patientId);
+        
+        List<IcdCodeLoaderService.IcdCode> diagnoses = new ArrayList<>();
+        
+        try {
+            // Выполняем FHIR запрос для получения диагнозов
+            Bundle conditionBundle = fhirClient.search()
+                    .forResource(Condition.class)
+                    .where(Condition.PATIENT.hasId(patientId))
+                    .returnBundle(Bundle.class)
+                    .execute();
+            
+            if (conditionBundle.hasEntry()) {
+                for (Bundle.BundleEntryComponent entry : conditionBundle.getEntry()) {
+                    if (entry.getResource() instanceof Condition) {
+                        Condition condition = (Condition) entry.getResource();
+                        
+                        // Извлекаем ICD код и описание
+                        if (condition.hasCode() && condition.getCode().hasCoding()) {
+                            for (Coding coding : condition.getCode().getCoding()) {
+                                // Ищем ICD-9 коды (система: http://hl7.org/fhir/sid/icd-9-cm)
+                                if (coding.hasSystem() && coding.getSystem().contains("icd-9")) {
+                                    String code = coding.getCode();
+                                    String description = coding.hasDisplay() ? coding.getDisplay() : 
+                                                        condition.getCode().hasText() ? condition.getCode().getText() : "Unknown";
+                                    
+                                    diagnoses.add(new pain_helper_back.external_emr_integration_service.service.IcdCodeLoaderService.IcdCode(code, description));
+                                    log.debug("Found ICD-9 diagnosis: {} - {}", code, description);
+                                }
+                            }
+                        }
+                    }
+                }
+                log.info("Retrieved {} diagnoses for patient: {}", diagnoses.size(), patientId);
+            } else {
+                log.warn("No conditions found for patient: {}", patientId);
+            }
+            
+        } catch (Exception e) {
+            log.error("Error fetching conditions for patient {}: {}", patientId, e.getMessage());
+        }
+        
+        return diagnoses;
     }
 }

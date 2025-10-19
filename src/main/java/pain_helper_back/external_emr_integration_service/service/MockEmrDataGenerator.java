@@ -38,7 +38,7 @@ import java.util.stream.IntStream;
 @RequiredArgsConstructor
 public class MockEmrDataGenerator {
     private final Faker faker = new Faker();
-    private final IcdCodeLoaderService icdCodeLoaderService;
+    private final TreatmentProtocolIcdExtractor treatmentProtocolIcdExtractor;
 
     /*
      * Генерирует случайного пациента с реалистичными данными.
@@ -113,13 +113,17 @@ public class MockEmrDataGenerator {
     /**
      * Генерирует список диагнозов для пациента.
      * 
+     * ВАЖНО: Теперь генерируются ТОЛЬКО диагнозы из Treatment Protocol!
+     * Это гарантирует, что моковые пациенты имеют только те противопоказания,
+     * которые реально влияют на выбор лечения.
+     * 
      * ЛОГИКА:
      * - 60% пациентов имеют 1 диагноз
      * - 25% пациентов имеют 2 диагноза
      * - 10% пациентов имеют 3 диагноза
      * - 5% пациентов имеют 4-5 диагнозов
      * 
-     * @return список ICD кодов с описаниями
+     * @return список ICD кодов с описаниями из Treatment Protocol
      */
     public List<IcdCodeLoaderService.IcdCode> generateDiagnosesForPatient() {
         double rand = faker.random().nextDouble();
@@ -135,7 +139,8 @@ public class MockEmrDataGenerator {
             diagnosisCount = faker.number().numberBetween(4, 6);
         }
         
-        return icdCodeLoaderService.getRandomDiagnoses(diagnosisCount);
+        // ИЗМЕНЕНИЕ: Используем только ICD коды из Treatment Protocol
+        return treatmentProtocolIcdExtractor.getRandomProtocolDiagnoses(diagnosisCount);
     }
 
     /*

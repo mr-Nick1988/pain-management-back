@@ -112,6 +112,11 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
             log.debug("Fetching observations (lab results) for patient: {}", fhirPatientId);
             List<FhirObservationDTO> observations = hapiFhirClient.getObservationsForPatient(fhirPatientId);
 
+            // ШАГ 3.5: Получаем диагнозы (Conditions) из FHIR
+            // ВАЖНО: Диагнозы нужны для выбора правильного протокола лечения и аналитики
+            log.debug("Fetching conditions (diagnoses) for patient: {}", fhirPatientId);
+            List<IcdCodeLoaderService.IcdCode> diagnoses = hapiFhirClient.getConditionsForPatient(fhirPatientId);
+
             // ШАГ 4: Присваиваем внутренний EMR номер
             // Формат: EMR-A1B2C3D4 (уникальный для нашей системы)
             String internalEmrNumber = generateInternalEmrNumber();
@@ -131,7 +136,7 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
 
             // ШАГ 6-7: Создаем Patient и Emr в общей таблице (ОБЩИЙ МЕТОД)
             // ВАЖНО: Используем общий метод для устранения дублирования кода
-            Long patientId = createPatientAndEmrFromFhir(fhirPatient, observations, new ArrayList<>(), internalEmrNumber, importedBy);
+            Long patientId = createPatientAndEmrFromFhir(fhirPatient, observations, diagnoses, internalEmrNumber, importedBy);
 
             // ШАГ 8: Формируем результат импорта
             EmrImportResultDTO result = EmrImportResultDTO.success("Patient imported successfully from FHIR server");
@@ -650,17 +655,28 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
         // Упрощенный расчет: GFR ≈ 100 / креатинин
         double estimatedGfr = 100.0 / creatinine;
 
-        if (estimatedGfr >= 90) return "≥90 (Normal)";  // Норма
-        if (estimatedGfr >= 60) return "60-89 (Mild decrease)";  // Легкое снижение
-        if (estimatedGfr >= 30) return "30-59 (Moderate decrease)";  // Умеренное снижение
-        if (estimatedGfr >= 15) return "15-29 (Severe decrease)";  // Тяжелое снижение
-        return "<15 (Kidney failure)";  // Почечная недостаточность
+        // Ограничиваем значение диапазоном 0-120
+        if (estimatedGfr > 120) estimatedGfr = 120;
+        if (estimatedGfr < 0) estimatedGfr = 0;
+
+        // РАНДОМНО выбираем: либо букву (A/B/C/D), либо точное число (0-120)
+        boolean useLetter = Math.random() < 0.5;  // 50% вероятность буквы
+        
+        if (useLetter) {
+            // Возвращаем букву в зависимости от диапазона
+            if (estimatedGfr >= 90) return "A";  // Норма (≥90)
+            if (estimatedGfr >= 60) return "B";  // Легкое снижение (60-89)
+            if (estimatedGfr >= 30) return "C";  // Умеренное снижение (30-59)
+            return "D";  // Тяжелое снижение (<30)
+        } else {
+            // Возвращаем точное число 0-120
+            return String.valueOf((int) Math.round(estimatedGfr));
+        }
     }
 
     /*
      * Рассчитать упрощенный Child-Pugh Score по билирубину.
      *
-     * МЕДИЦИНСКОЕ ОБЪЯСНЕНИЕ:
      * Child-Pugh Score = Оценка функции печени (5-15 баллов)
      * Используется для корректировки дозы препаратов при печеночной недостаточности.
      *
