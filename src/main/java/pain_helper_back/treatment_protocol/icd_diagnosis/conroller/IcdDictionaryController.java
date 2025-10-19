@@ -14,11 +14,20 @@ import java.util.List;
 @RequestMapping("/api/icd")
 @RequiredArgsConstructor
 public class IcdDictionaryController {
+
     private final IcdDictionaryRepository repo;
 
-    @GetMapping("/search")      // Автодополнение по описанию
+    @GetMapping("/search")
     public List<IcdDictionary> search(@RequestParam String query) {
-        // Находим первые 20 диагнозов, где описание содержит фразу (без учёта регистра)
-        return repo.findTop20ByDescriptionContainingIgnoreCase(query);
+        String q = query.trim();
+
+        // если похоже на код (буква + цифры, может быть точка)
+        boolean looksLikeCode = q.matches("^[A-Za-z]?[0-9]{2,3}(\\.[0-9A-Za-z]{0,4})?$");
+
+        if (looksLikeCode) {
+            return repo.findTop20ByCodeStartingWithIgnoreCase(q);
+        } else {
+            return repo.findTop20ByDescriptionContainingIgnoreCase(q);
+        }
     }
 }

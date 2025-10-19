@@ -18,7 +18,8 @@ public class Vas {
     private String painPlace;
     @Column(name = "pain_level")
     private Integer painLevel; // 0-10 scale
-
+    @Column(name = "is_resolved")
+    private boolean resolved = false;
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
     @Column(name = "updated_at")

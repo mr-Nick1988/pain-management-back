@@ -276,6 +276,17 @@ public class NurseServiceImpl implements NurseService {
         patient.getVas().removeLast();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public VasDTO getLastVAS(String mrn) {
+        Patient patient = findPatientOrThrow(mrn);
+        if (patient.getVas().isEmpty()) {
+            throw new NotFoundException("No VAS complaints found for this patient");
+        }
+        Vas vas = patient.getVas().getLast();
+        return modelMapper.map(vas, VasDTO.class);
+    }
+
 
     @Override
     @Transactional(readOnly = true)
@@ -308,6 +319,7 @@ public class NurseServiceImpl implements NurseService {
 //            throw new EntityExistsException("Recommendation with this status already exists");
 //        }
         Recommendation recommendation = treatmentProtocolService.generateRecommendation( vas, patient);
+        vas.setResolved(true);
         recommendation.setPatient(patient);
         patient.getRecommendations().add(recommendation);
         patientRepository.save(patient);

@@ -9,6 +9,7 @@ import pain_helper_back.common.patients.entity.Recommendation;
 import pain_helper_back.enums.DrugRole;
 import pain_helper_back.treatment_protocol.entity.TreatmentProtocol;
 import pain_helper_back.treatment_protocol.utils.PatternUtils;
+
 @Slf4j
 @Component
 @Order(1)
@@ -44,19 +45,19 @@ public class AgeRuleApplier implements TreatmentRuleApplier {
         if (drug.getRole() == DrugRole.MAIN) {
             if (patientAge <= limit) {
                 fillDrugFromProtocol(drug, tp);
-                log.info("Filter {} accepted the main Drug {} ", AgeRuleApplier.class.getSimpleName(),drug.getDrugName());
+                log.info("Filter {} accepted the main Drug {} ", AgeRuleApplier.class.getSimpleName(), drug.getDrugName());
             } else {
-                log.info("Filter {} rejected the main Drug {} ", AgeRuleApplier.class.getSimpleName(),drug.getDrugName());
-                recommendation.getComments().add("System: " + "First drug " + drug.getDrugName() + " avoid: patient age (" + patientAge + ") > " + limit);
+                log.info("Filter {} rejected the main Drug {} ", AgeRuleApplier.class.getSimpleName(), drug.getDrugName());
+                recommendation.getComments().add("System: " + "First drug " + drug.getActiveMoiety() + " avoid: patient age (" + patientAge + ") > " + limit);
             }
         } else { // DrugRole.ALTERNATIVE
             if (patientAge >= limit) {
                 fillDrugFromProtocol(drug, tp);
-                log.info("Filter {} accepted the alternative Drug {} ", AgeRuleApplier.class.getSimpleName(),drug.getDrugName());
+                log.info("Filter {} accepted the alternative Drug {} ", AgeRuleApplier.class.getSimpleName(), drug.getDrugName());
 
             } else {
-                log.info("Filter {} rejected the alternative Drug {} ", AgeRuleApplier.class.getSimpleName(),drug.getDrugName());
-                recommendation.getComments().add("System: " + "Second drug avoid: patient age (" + patientAge + ") < " + limit);
+                log.info("Filter {} rejected the alternative Drug {} ", AgeRuleApplier.class.getSimpleName(), drug.getDrugName());
+                recommendation.getComments().add("System: " + "Second drug avoid: " + drug.getActiveMoiety() + " patient age (" + patientAge + ") < " + limit);
             }
         }
         log.info("=== [END] {} for Patient ID={} ===",

@@ -95,6 +95,11 @@ public class NurseController {
         nurseService.deleteVAS(mrn);
     }
 
+    @GetMapping("patients/{mrn}/vas")
+    public VasDTO getLastVAS(@PathVariable String mrn) {
+        return nurseService.getLastVAS(mrn);
+    }
+
 
     @GetMapping("/recommendations/approved")
     public List<RecommendationDTO> getAllPendingRecommendations() {

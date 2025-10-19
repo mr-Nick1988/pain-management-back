@@ -16,31 +16,41 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-//@Component
+@Component
 @Slf4j
 @Order(2)
 public class ContraindicationsRuleApplier implements TreatmentRuleApplier {
 
     /**
      * Регулярное выражение для извлечения ICD-кодов (например: 571.201, V45.1103, E11.9 и т.п.)
-     * - Может начинаться с буквы (A-Z)
-     * - За ней идут минимум 3 цифры
-     * - После этого — необязательная часть с точкой и буквами/цифрами
+     * [A-Z] допускаем любую опциональную в начале (характерно для ICD-9-CM);
+     * [0-9]{3} — три цифры после неё;
+     * (?:\\.[0-9])? — точка и ровно одна цифра после неё, опционально.
      */
-    private static final Pattern ICD_PATTERN = Pattern.compile("[A-Z]?[0-9]{3}(?:\\.[0-9A-Z]+)?");
+    private static final Pattern ICD_PATTERN =
+            Pattern.compile("[A-Z]?[0-9]{2,3}(?:\\.[0-9A-Z]{1,4})?");
 
-    @Override    public void apply(DrugRecommendation drug, Recommendation recommendation, TreatmentProtocol tp, Patient patient) {
-        // 1 Если у лекарства нет данных, выходим (чтобы не обрабатывать пустые строки)
-        if (!DrugUtils.hasInfo(drug)) return;
+    @Override
+    public void apply(DrugRecommendation drug, Recommendation recommendation, TreatmentProtocol tp, Patient patient) {
+        // 1 Если у лекарства нет данных или у пациента нет диагнозов или в протоколе нет противопоказаний
+        // ---> выходим (чтобы не обрабатывать пустые строки)
+        if (!DrugUtils.hasInfo(drug)
+                || patient.getEmr().isEmpty()
+                || patient.getEmr().getLast().getDiagnoses().isEmpty()
+                || tp.getContraindications() == null
+                || tp.getContraindications().isBlank()
+                || tp.getContraindications().equalsIgnoreCase("NA")) {
+            return;
+        }
+        log.info("=== [START] {} for Patient ID={} ===",
+                ContraindicationsRuleApplier.class.getSimpleName(), patient.getId());
 
         // 2 Получаем список диагнозов последнего EMR пациента
         Set<Diagnosis> patientDiagnoses = patient.getEmr().getLast().getDiagnoses();
-        if (patientDiagnoses == null || patientDiagnoses.isEmpty()) return;
 
         // 3 Извлекаем поле contraindications из протокола (может быть NA или пустым)
         String raw = tp.getContraindications();
-        if (raw == null || raw.trim().isEmpty() || raw.equalsIgnoreCase("NA"))
-            return;
+
 
         // 4 Санитизируем строку противопоказаний:
         // убираем неразрывные пробелы, длинные тире, лишние пробелы и т.п.
@@ -49,7 +59,7 @@ public class ContraindicationsRuleApplier implements TreatmentRuleApplier {
         // 5 Извлекаем ICD-коды из очищенной строки
         Set<String> contraindicationsSet = extractICDCodes(contraindications);
 
-        // 🔍 Временные диагностические логи (для отладки)
+        //  Временные диагностические логи (для отладки)
         log.info("Patient ICDs: {}", patientDiagnoses.stream().map(Diagnosis::getIcdCode).toList());
         log.info("Contra raw: {}", raw);
         log.info("Contra parsed: {}", contraindicationsSet);
@@ -60,14 +70,19 @@ public class ContraindicationsRuleApplier implements TreatmentRuleApplier {
             String code = normalizeCode(diagnosis.getIcdCode());
             if (code.isEmpty()) continue;
 
-            // Извлекаем "основную часть" кода — до точки и 1 цифру после (571.201 → 571.2)
-            String baseCode = getBaseCode(code);
-
-            // Проверяем, совпадает ли базовая часть с любой из противопоказаний
+            //  Проверяем, совпадает ли диагноз пациента с каким-либо кодом противопоказаний
             boolean matchFound = contraindicationsSet.stream()
-                    .map(this::getBaseCode)    // у всех противопоказаний берём базу (571.201 → 571.2)
-                    .map(this::normalizeCode)  // на всякий случай нормализуем
-                    .anyMatch(c -> c.equals(baseCode)); // сравниваем напрямую
+                    // Приводим все коды противопоказаний к чистому и верхнему регистру,
+                    // чтобы сравнение было нечувствительно к пробелам, разным символам и регистру.
+                    .map(this::normalizeCode)
+                    // Проверяем для каждого кода противопоказания (contra):
+                    //  - если код противопоказания начинается с кода диагноза пациента
+                    //    → пример: contra = "V45.1101", code = "V45.11" → true
+                    //  - ИЛИ если код диагноза начинается с кода противопоказания
+                    //    → пример: contra = "V45.11", code = "V45.1101" → true
+                    // Таким образом, мы учитываем и полное совпадение, и иерархические подуровни ICD,
+                    // когда, например, V45.11 и V45.1101 относятся к одной категории болезней.
+                    .anyMatch(contra -> contra.startsWith(code) || code.startsWith(contra));
 
             // 7 Если нашли совпадение — очищаем все препараты и добавляем комментарий
             if (matchFound) {
@@ -81,14 +96,16 @@ public class ContraindicationsRuleApplier implements TreatmentRuleApplier {
                 return; //  сразу выходим, т.к. дальше проверять смысла нет
             }
         }
+        log.info("=== [END] {} for Patient ID={} ===",
+                ContraindicationsRuleApplier.class.getSimpleName(), patient.getId());
     }
 
     /**
-     * Нормализует код (удаляет мусор и делает верхний регистр)
+     * Нормализует код диагноза пациента (удаляет пробелы и делает верхний регистр)
      * Например: " 571.201 " → "571.201"
      */
     private String normalizeCode(String code) {
-        return code == null ? "" : SanitizeUtils.clean(code).toUpperCase();
+        return code == null ? "" : code.trim().replace("\u00A0", "").toUpperCase();
     }
 
     /**
@@ -100,24 +117,8 @@ public class ContraindicationsRuleApplier implements TreatmentRuleApplier {
         Matcher matcher = ICD_PATTERN.matcher(contraindications);
         while (matcher.find()) {
             // Добавляем каждый найденный код, предварительно очищая его
-            codes.add(normalizeCode(matcher.group()));
+            codes.add(matcher.group().toUpperCase());
         }
         return codes;
-    }
-
-    /**
-     * Возвращает "базовую часть" ICD-кода — до точки и одной цифры после.
-     * Пример:
-     *  - "571.201" → "571.2"
-     *  - "E11.9" → "E11.9"
-     *  - "571" → "571"
-     */
-    private String getBaseCode(String code) {
-        if (code == null) return "";
-        int dotIndex = code.indexOf('.');
-        if (dotIndex != -1 && dotIndex + 2 <= code.length()) {
-            return code.substring(0, Math.min(dotIndex + 2, code.length()));
-        }
-        return code; // если точки нет — возвращаем весь код
     }
 }
