@@ -264,7 +264,7 @@ public class AnalyticsEventListener {
             metadata.put("resolution", event.getResolution());
             metadata.put("resolvedAt", event.getResolvedAt().toString());
             metadata.put("approved", event.getApproved());
-            
+
             // Добавляем информацию о диагнозах
             if (event.getPatientDiagnosisCodes() != null && !event.getPatientDiagnosisCodes().isEmpty()) {
                 metadata.put("diagnosisCount", event.getPatientDiagnosisCodes().size());
@@ -391,6 +391,47 @@ public class AnalyticsEventListener {
 
         } catch (Exception e) {
             log.error("Failed to save analytics event for VAS recording: {}", e.getMessage());
+        }
+    }
+    /*
+     * Обработка события: Создана рекомендация
+     */
+    @EventListener
+    @Async("analyticsTaskExecutor")
+    public void handleRecommendationCreated(RecommendationCreatedEvent event) {
+        try {
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("drugName", event.getDrugName());
+            metadata.put("dosage", event.getDosage());
+            metadata.put("route", event.getRoute());
+            metadata.put("createdAt", event.getCreatedAt().toString());
+
+            // Добавляем информацию о диагнозах
+            if (event.getDiagnosisCodes() != null && !event.getDiagnosisCodes().isEmpty()) {
+                metadata.put("diagnosisCount", event.getDiagnosisCodes().size());
+                metadata.put("diagnosisList", String.join(", ", event.getDiagnosisCodes()));
+            }
+
+            AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
+                    .timestamp(LocalDateTime.now())
+                    .eventType("RECOMMENDATION_CREATED")
+                    .recommendationId(event.getRecommendationId())
+                    .patientMrn(event.getPatientMrn())
+                    .userId(event.getCreatedBy())
+                    .userRole("NURSE") // Обычно медсестра генерирует рекомендацию
+                    .vasLevel(event.getVasLevel())
+                    .processingTimeMs(event.getProcessingTimeMs())
+                    .diagnosisCodes(event.getDiagnosisCodes()) // Сохраняем ICD коды
+                    .metadata(metadata)
+                    .build();
+
+            analyticsEventRepository.save(analyticsEvent);
+            log.info("Analytics event saved: RECOMMENDATION_CREATED, recommendationId={}, patientMrn={}, drug={}, vasLevel={}, diagnoses={}",
+                    event.getRecommendationId(), event.getPatientMrn(), event.getDrugName(), event.getVasLevel(),
+                    event.getDiagnosisCodes() != null ? event.getDiagnosisCodes().size() : 0);
+
+        } catch (Exception e) {
+            log.error("Failed to save analytics event for recommendation creation: {}", e.getMessage());
         }
     }
 }
