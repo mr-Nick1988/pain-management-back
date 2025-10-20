@@ -10,8 +10,10 @@ import pain_helper_back.common.patients.entity.Recommendation;
 import pain_helper_back.treatment_protocol.entity.TreatmentProtocol;
 import pain_helper_back.treatment_protocol.utils.DrugUtils;
 import pain_helper_back.treatment_protocol.utils.SafeValueUtils;
+import pain_helper_back.treatment_protocol.utils.SanitizeUtils;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Stream;
 
 /*
@@ -56,15 +58,18 @@ public class SensitivityRuleApplier implements TreatmentRuleApplier {
         }
 
         // Нормализуем данные: приводим всё к верхнему регистру
-        List<String> ruleSensitivities = Stream.of(rule.split("OR"))
-                .map(String::trim)
-                .map(String::toUpperCase)
+        List<String> ruleSensitivities = Stream.of(rule.split("\\s*OR\\s*")) //Разделить строку в тех местах, где встречается слово OR
+                .map(SanitizeUtils::normalize)
+                .filter(s -> !s.isEmpty())
                 .toList();
 
         List<String> normalizedPatientSens = sensitivities.stream()
-                .map(String::trim)
-                .map(String::toUpperCase)
+                .map(SanitizeUtils::normalize)
+                .filter(s -> !s.isEmpty())
                 .toList();
+
+        log.warn("[DEBUG] ruleRaw='{}' | ruleSensitivities={} | patientSensitivities={}",
+                rule, ruleSensitivities, normalizedPatientSens);
 
         //  Проверяем совпадения между протоколом и данными пациента
         boolean hasMatch = ruleSensitivities.stream().anyMatch(normalizedPatientSens::contains);
@@ -95,4 +100,7 @@ public class SensitivityRuleApplier implements TreatmentRuleApplier {
 
         log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
     }
+
+
+
 }
