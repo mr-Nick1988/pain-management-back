@@ -9,6 +9,7 @@ import pain_helper_back.common.patients.entity.Recommendation;
 import pain_helper_back.treatment_protocol.entity.TreatmentProtocol;
 import pain_helper_back.treatment_protocol.utils.DrugUtils;
 import pain_helper_back.treatment_protocol.utils.PatternUtils;
+import pain_helper_back.treatment_protocol.utils.SafeValueUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +21,7 @@ SAT (oxygen saturation, SpO₂) — уровень насыщения крови
 Если сатурация <93%, рекомендуется избегать большинства препаратов (avoid).
 */
 
-//@Component
+@Component
 @Order(6)
 @Slf4j
 public class SatRuleApplier implements TreatmentRuleApplier {
@@ -72,20 +73,17 @@ public class SatRuleApplier implements TreatmentRuleApplier {
             if (recommendation.getComments() == null)
                 recommendation.setComments(new ArrayList<>());
 
-            // Добавляем системные комментарии
-            String comment = String.format(
-                    "System: avoid for SAT < %.0f%% (patient %.1f%%)",
-                    limitDouble,
-                    patientSat
-            );
-            recommendation.getComments().add(comment);
+            //  Безопасно извлекаем имена препаратов
+            String mainDrugName = SafeValueUtils.safeValue(recommendation.getDrugs().getFirst());
+            String altMoiety = SafeValueUtils.safeValue(recommendation.getDrugs().get(1));
+
 
             // Добавляем причину в общий список отказов
             rejectionReasons.add(String.format(
                     "[%s] Avoid recommendation with drugs (%s and %s) triggered by SAT rule '%s' (limit=%.0f, patient=%.1f)",
                     getClass().getSimpleName(),
-                    recommendation.getDrugs().getFirst().getDrugName(),
-                    recommendation.getDrugs().get(1).getActiveMoiety(),
+                    mainDrugName,
+                    altMoiety,
                     rule,
                     limitDouble,
                     patientSat
