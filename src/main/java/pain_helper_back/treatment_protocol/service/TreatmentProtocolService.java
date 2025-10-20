@@ -79,11 +79,7 @@ public class TreatmentProtocolService {
             for (TreatmentRuleApplier ruleApplier : ruleAppliers) {
                 // Динамика боли (VAS). Анализирует последние жалобы пациента (ухудшения или инверсия).
                 // Применяем возрастные правила(<=18 or >75)
-                /**
-                 * Contraindications — это список состояний (обычно в виде ICD-10 кодов),
-                 * Эти данные участвуют в фильтрации и исключают рекомендацию вовсе, если у пациента есть
-                 * одно из заболеваний
-                 */
+                // Contraindications — это список состояний (обычно в виде ICD-10 кодов), участвуют в фильтрации и исключают рекомендацию при наличии заболевания у пациента.
                 // Применяем корректировку на чувствительность к препаратам (Sensitivity)
 
                 // Применяем весовые правила (только если вес < 50 — по протоколу)
@@ -102,17 +98,16 @@ public class TreatmentProtocolService {
             boolean allCleared = recommendation.getDrugs().stream()
                     .allMatch(dr -> dr.getActiveMoiety() == null || dr.getActiveMoiety().isBlank());
 
-            if (!allCleared) {
-                // успешная рекомендация
-                recommendation.setGenerationFailed(false);
-                recommendations.add(recommendation);
-                log.warn(" All drugs cleared for protocol id={}, reasons={}", tp.getId(), rejectionReasons);
-            } else {
-                //  всё очищено — запоминаем причины
+            if (allCleared) {
+                // все препараты очищены — отклоняем рекомендацию
                 recommendationFailed.setGenerationFailed(true);
                 recommendationFailed.getRejectionReasonsSummary().addAll(rejectionReasons);
+                log.warn(" All drugs cleared for protocol id={}, reasons={}", tp.getId(), rejectionReasons);
+            } else {
+                // есть хотя бы один живой препарат — сохраняем
+                recommendation.setGenerationFailed(false);
+                recommendations.add(recommendation);
                 log.info(" Recommendation kept: protocol id={} (some drugs active)", tp.getId());
-
             }
 
         }

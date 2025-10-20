@@ -316,20 +316,14 @@ public class NurseServiceImpl implements NurseService {
         Patient patient = findPatientOrThrow(mrn);
         Emr emr = patient.getEmr().getLast();
         Vas vas = patient.getVas().getLast();
-
-        // 🔹 Алгоритм генерации рекомендации
-        // Проверка на существование рекомендации со статусом PENDING
-//        if (patient.getRecommendations().stream().anyMatch(r -> r.getStatus().equals("PENDING"))) {
-//            throw new EntityExistsException("Recommendation with this status already exists");
-//        }
         Recommendation recommendation = treatmentProtocolService.generateRecommendation( vas, patient);
-
         vas.setResolved(true);
         recommendation.setPatient(patient);
         patient.getRecommendations().add(recommendation);
         patientRepository.save(patient);
         return modelMapper.map(recommendation, RecommendationDTO.class);
     }
+
 
     @Override
     @Transactional(readOnly = true)

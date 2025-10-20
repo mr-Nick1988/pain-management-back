@@ -94,8 +94,10 @@ public class GfrRuleApplier implements TreatmentRuleApplier {
         if (patientRule.contains("avoid")) {
             recommendation.getComments().add("System: avoid for GFR rule " + gfrRule);
             rejectionReasons.add(String.format(
-                    "[%s] Avoid for GFR value %s (rule='%s')",
+                    "[%s] Avoid recommendation with drugs (%s and %s) for GFR value %s (rule='%s')",
                     getClass().getSimpleName(),
+                    recommendation.getDrugs().getFirst().getDrugName(),
+                    recommendation.getDrugs().get(1).getActiveMoiety(),
                     patientGfr,
                     gfrRule
             ));

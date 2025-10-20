@@ -73,8 +73,10 @@ public class ChildPughApplier implements TreatmentRuleApplier {
         if (patientRule.contains("avoid")) {
             recommendation.getComments().add("System: avoid for Child-Pugh " + patientChildPugh);
             rejectionReasons.add(String.format(
-                    "[%s] Avoid for Child-Pugh category %s (rule='%s')",
+                    "[%s] Avoid  recommendation with drugs (%s and %s) for Child-Pugh category %s (rule='%s')",
                     getClass().getSimpleName(),
+                    recommendation.getDrugs().getFirst().getDrugName(),
+                    recommendation.getDrugs().get(1).getActiveMoiety(),
                     patientChildPugh,
                     patientRule
             ));

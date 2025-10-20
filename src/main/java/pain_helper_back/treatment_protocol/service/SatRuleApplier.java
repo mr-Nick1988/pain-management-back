@@ -82,8 +82,10 @@ public class SatRuleApplier implements TreatmentRuleApplier {
 
             // Добавляем причину в общий список отказов
             rejectionReasons.add(String.format(
-                    "[%s] Avoid triggered by SAT rule '%s' (limit=%.0f, patient=%.1f)",
+                    "[%s] Avoid recommendation with drugs (%s and %s) triggered by SAT rule '%s' (limit=%.0f, patient=%.1f)",
                     getClass().getSimpleName(),
+                    recommendation.getDrugs().getFirst().getDrugName(),
+                    recommendation.getDrugs().get(1).getActiveMoiety(),
                     rule,
                     limitDouble,
                     patientSat
