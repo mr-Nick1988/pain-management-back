@@ -1,5 +1,4 @@
 package pain_helper_back.external_emr_integration_service.service;
-
 import com.github.javafaker.Faker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
