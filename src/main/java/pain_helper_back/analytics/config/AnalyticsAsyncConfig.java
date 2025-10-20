@@ -1,19 +1,11 @@
 package pain_helper_back.analytics.config;
 
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+
 import java.util.concurrent.Executor;
 
-/*
- * Конфигурация для асинхронной обработки событий
- * Используется для неблокирующей записи логов и событий в MongoDB
- */
-
-@Configuration
-@EnableAsync
-public class AsyncConfig {
+public class AnalyticsAsyncConfig {
     @Bean(name = "analyticsTaskExecutor")
     public Executor analyticsTaskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();

@@ -1,6 +1,4 @@
 package pain_helper_back.external_emr_integration_service.service;
-
-
 import com.github.javafaker.Faker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -110,7 +108,7 @@ public class MockEmrDataGenerator {
         return patient;
     }
     
-    /**
+    /*
      * Генерирует список диагнозов для пациента.
      * 
      * ВАЖНО: Теперь генерируются ТОЛЬКО диагнозы из Treatment Protocol!
@@ -142,6 +140,24 @@ public class MockEmrDataGenerator {
         // ИЗМЕНЕНИЕ: Используем только ICD коды из Treatment Protocol
         return treatmentProtocolIcdExtractor.getRandomProtocolDiagnoses(diagnosisCount);
     }
+    
+    /**
+     * Генерирует список аллергий (sensitivities) для пациента.
+     * 
+     * ВАЖНО: Генерируются ТОЛЬКО препараты из колонки avoidIfSensitivity в Treatment Protocol!
+     * Это гарантирует, что аллергии моковых пациентов реально влияют на выбор лечения.
+     * 
+     * ЛОГИКА:
+     * - 70% пациентов НЕ имеют аллергий (null)
+     * - 20% пациентов имеют 1 аллергию
+     * - 8% пациентов имеют 2 аллергии
+     * - 2% пациентов имеют 3+ аллергии
+     * 
+     * @return список аллергий или null
+     */
+    public List<String> generateSensitivitiesForPatient() {
+        return treatmentProtocolIcdExtractor.generateRandomSensitivities();
+    }
 
     /*
      * Генерирует лабораторные показатели для пациента.
@@ -151,7 +167,7 @@ public class MockEmrDataGenerator {
      * ГЕНЕРИРУЕМЫЕ ПОКАЗАТЕЛИ (с правильными диапазонами):
      * - GFR (функция почек): A(≥90), B(60-89), C(45-59), D(30-44), E(15-29), F(<15)
      * - Тромбоциты (PLT): 150-450 (норма), возможный диапазон 0-1000
-     * - Лейкоциты (WBC): 4.0-10.0 (норма), возможный диапазон 2-40
+     * - Лейкоциты (WBC): 3.5-10.0 (норма), возможный диапазон 2-40
      * - Натрий: 135-145 (норма), возможный диапазон 120-160
      * - Сатурация (SpO2): 95-100% (норма), возможный диапазон 85-100%
      * - Вес: >50 кг
@@ -235,15 +251,15 @@ public class MockEmrDataGenerator {
         ));
 
         // Лейкоциты (WBC)
-        // Норма: 4.0-10.0, возможный диапазон: 2-40
+        // Норма: 3.5-10.0, возможный диапазон: 2-40
         double wbc;
         rand = faker.random().nextDouble();
         if (rand < 0.85) {
-            // Норма: 4.0-10.0
-            wbc = 4.0 + (faker.random().nextDouble() * 6.0);
+            // Норма: 3.5-10.0
+            wbc = 3.5 + (faker.random().nextDouble() * 6.5);
         } else if (rand < 0.92) {
-            // Лейкопения: 2.0-4.0
-            wbc = 2.0 + (faker.random().nextDouble() * 2.0);
+            // Лейкопения: 2.0-3.5
+            wbc = 2.0 + (faker.random().nextDouble() * 1.5);
         } else {
             // Лейкоцитоз: 10.0-15.0
             wbc = 10.0 + (faker.random().nextDouble() * 5.0);
@@ -254,7 +270,7 @@ public class MockEmrDataGenerator {
                 "White Blood Cells",
                 Math.round(wbc * 10.0) / 10.0,
                 "10*3/uL",
-                4.0, 10.0
+                3.5, 10.0
         ));
         
         // Натрий (Na+)
