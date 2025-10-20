@@ -35,6 +35,7 @@ public class TreatmentProtocolIcdExtractor {
     private final IcdCodeLoaderService icdCodeLoaderService;
     
     private List<IcdCodeLoaderService.IcdCode> protocolIcdCodes = new ArrayList<>();
+    private List<String> protocolSensitivities = new ArrayList<>();
     private Random random = new Random();
     
     /**
@@ -103,9 +104,47 @@ public class TreatmentProtocolIcdExtractor {
             protocolIcdCodes.forEach(icd -> log.info("  - {} : {}", icd.getCode(), icd.getDescription()));
             log.info("=== END OF UNIQUE ICD CODES ===");
             
+            // Извлекаем sensitivities из avoidIfSensitivity колонки
+            extractSensitivitiesFromProtocol(protocols);
+            
         } catch (Exception e) {
             log.error("Failed to extract ICD codes from Treatment Protocol: {}", e.getMessage(), e);
         }
+    }
+    
+    /**
+     * Извлекает список препаратов из колонки avoidIfSensitivity.
+     * Эти препараты используются для генерации аллергий у моковых пациентов.
+     */
+    private void extractSensitivitiesFromProtocol(List<TreatmentProtocol> protocols) {
+        log.info("Extracting sensitivities from Treatment Protocol avoidIfSensitivity column...");
+        
+        Set<String> uniqueSensitivities = new HashSet<>();
+        
+        for (TreatmentProtocol protocol : protocols) {
+            String avoidIfSensitivity = protocol.getAvoidIfSensitivity();
+            
+            if (avoidIfSensitivity == null || avoidIfSensitivity.trim().isEmpty() 
+                    || avoidIfSensitivity.equalsIgnoreCase("NA")) {
+                continue;
+            }
+            
+            // Разделяем по "OR" и очищаем
+            String[] drugs = avoidIfSensitivity.split("OR");
+            for (String drug : drugs) {
+                String cleaned = drug.trim().toUpperCase();
+                if (!cleaned.isEmpty() && !cleaned.equals("NA")) {
+                    uniqueSensitivities.add(cleaned);
+                }
+            }
+        }
+        
+        protocolSensitivities.addAll(uniqueSensitivities);
+        
+        log.info("Successfully extracted {} unique sensitivities from Treatment Protocol:", protocolSensitivities.size());
+        log.info("=== UNIQUE SENSITIVITIES ===");
+        protocolSensitivities.forEach(sens -> log.info("  - {}", sens));
+        log.info("=== END OF UNIQUE SENSITIVITIES ===");
     }
     
     /**
@@ -204,5 +243,61 @@ public class TreatmentProtocolIcdExtractor {
      */
     public int getProtocolIcdCodesCount() {
         return protocolIcdCodes.size();
+    }
+    
+    /**
+     * Генерирует список аллергий для мокового пациента.
+     * 
+     * ЛОГИКА:
+     * - 70% пациентов НЕ имеют аллергий (null)
+     * - 20% пациентов имеют 1 аллергию
+     * - 8% пациентов имеют 2 аллергии
+     * - 2% пациентов имеют 3+ аллергии
+     * 
+     * @return список аллергий или null
+     */
+    public List<String> generateRandomSensitivities() {
+        if (protocolSensitivities.isEmpty()) {
+            log.warn("No protocol sensitivities available, returning null");
+            return null;
+        }
+        
+        double rand = random.nextDouble();
+        
+        // 70% пациентов без аллергий
+        if (rand < 0.70) {
+            return null;
+        }
+        
+        // Определяем количество аллергий
+        int count;
+        if (rand < 0.90) {
+            count = 1;  // 20% пациентов
+        } else if (rand < 0.98) {
+            count = 2;  // 8% пациентов
+        } else {
+            count = Math.min(3, protocolSensitivities.size());  // 2% пациентов
+        }
+        
+        // Выбираем случайные аллергии
+        List<String> selected = new ArrayList<>();
+        Set<Integer> usedIndices = new HashSet<>();
+        
+        while (selected.size() < count && usedIndices.size() < protocolSensitivities.size()) {
+            int index = random.nextInt(protocolSensitivities.size());
+            if (!usedIndices.contains(index)) {
+                selected.add(protocolSensitivities.get(index));
+                usedIndices.add(index);
+            }
+        }
+        
+        return selected.isEmpty() ? null : selected;
+    }
+    
+    /**
+     * Возвращает количество доступных sensitivities из протокола.
+     */
+    public int getProtocolSensitivitiesCount() {
+        return protocolSensitivities.size();
     }
 }

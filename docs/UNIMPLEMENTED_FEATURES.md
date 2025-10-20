@@ -381,7 +381,7 @@ public class PainEscalationService {
 - [Руководство по Тестированию EMR](EMR_INTEGRATION_TESTING_GUIDE.md)
 - [README Модуля Аналитики](ANALYTICS_MODULE_README.md)
 - [Модуль Протоколов Лечения](TREATMENT_PROTOCOL_MODULE.md)
-- [README Workflow](WORKFLOW_README.md)
+- [README Workflow](../WORKFLOW_README.md)
 
 ---
 

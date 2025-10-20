@@ -45,5 +45,8 @@ public interface AnalyticsEventRepository extends MongoRepository<AnalyticsEvent
     //stats statistic
     @Query(value = "{ 'eventType': ?0 }", count = true)
     Long countByEventTypeCustom(String eventType);
-
+    /**
+     * Найти события старше указанной даты (для cleanup старых данных)
+     */
+    List<AnalyticsEvent> findByTimestampBefore(LocalDateTime cutoffDate);
 }

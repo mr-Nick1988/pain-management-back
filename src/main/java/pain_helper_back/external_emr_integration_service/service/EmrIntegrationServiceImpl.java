@@ -136,7 +136,7 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
 
             // ШАГ 6-7: Создаем Patient и Emr в общей таблице (ОБЩИЙ МЕТОД)
             // ВАЖНО: Используем общий метод для устранения дублирования кода
-            Long patientId = createPatientAndEmrFromFhir(fhirPatient, observations, diagnoses, internalEmrNumber, importedBy);
+            Long patientId = createPatientAndEmrFromFhir(fhirPatient, observations, diagnoses, null, internalEmrNumber, importedBy);
 
             // ШАГ 8: Формируем результат импорта
             EmrImportResultDTO result = EmrImportResultDTO.success("Patient imported successfully from FHIR server");
@@ -214,6 +214,9 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
             
             // Генерируем диагнозы для мокового пациента из ICD кодов
             List<IcdCodeLoaderService.IcdCode> diagnoses = mockEmrDataGenerator.generateDiagnosesForPatient();
+            
+            // Генерируем аллергии (sensitivities) для мокового пациента
+            List<String> sensitivities = mockEmrDataGenerator.generateSensitivitiesForPatient();
 
             // ШАГ 3: Присваиваем внутренний EMR номер
             String internalEmrNumber = generateInternalEmrNumber();
@@ -231,7 +234,7 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
 
             // ШАГ 5-6: Создаем Patient и Emr в общей таблице (ОБЩИЙ МЕТОД)
             // ВАЖНО: Используем общий метод для устранения дублирования кода
-            Long patientId = createPatientAndEmrFromFhir(mockPatient, observations, diagnoses, internalEmrNumber, createdBy);
+            Long patientId = createPatientAndEmrFromFhir(mockPatient, observations, diagnoses, sensitivities, internalEmrNumber, createdBy);
 
             // ШАГ 7: Формируем результат
             EmrImportResultDTO result = EmrImportResultDTO.success("Mock patient generated and imported successfully");
@@ -495,9 +498,12 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
             
             // Генерируем диагнозы
             List<IcdCodeLoaderService.IcdCode> diagnoses = mockEmrDataGenerator.generateDiagnosesForPatient();
+            
+            // Генерируем аллергии
+            List<String> sensitivities = mockEmrDataGenerator.generateSensitivitiesForPatient();
 
             // Создаем Patient и Emr в общей таблице (ОБЩИЙ МЕТОД)
-            Long patientId = createPatientAndEmrFromFhir(mockPatient, observations, diagnoses, internalEmrNumber, createdBy);
+            Long patientId = createPatientAndEmrFromFhir(mockPatient, observations, diagnoses, sensitivities, internalEmrNumber, createdBy);
 
             EmrImportResultDTO result = EmrImportResultDTO.success("Mock patient imported");
             result.setExternalPatientIdInFhirResource(mockPatient.getPatientIdInFhirResource());
@@ -540,6 +546,7 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
             FhirPatientDTO fhirPatient,
             List<FhirObservationDTO> observations,
             List<IcdCodeLoaderService.IcdCode> diagnoses,
+            List<String> sensitivities,
             String internalEmrNumber,
             String createdBy) {
 
@@ -599,6 +606,13 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
         if (emr.getSodium() == null) emr.setSodium(140.0);
         if (emr.getSat() == null) emr.setSat(98.0);
         if (emr.getChildPughScore() == null) emr.setChildPughScore("A");  // Дефолт: нормальная печень
+
+        // Устанавливаем sensitivities (аллергии)
+        if (sensitivities != null && !sensitivities.isEmpty()) {
+            emr.setSensitivities(sensitivities);
+            log.info("Set {} sensitivities for patient: {}", sensitivities.size(), 
+                     String.join(", ", sensitivities));
+        }
 
         Emr savedEmr = emrRepository.save(emr);
 
