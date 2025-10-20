@@ -9,6 +9,7 @@ import pain_helper_back.common.patients.entity.Recommendation;
 import pain_helper_back.treatment_protocol.entity.TreatmentProtocol;
 import pain_helper_back.treatment_protocol.utils.DrugUtils;
 import pain_helper_back.treatment_protocol.utils.PatternUtils;
+import pain_helper_back.treatment_protocol.utils.SafeValueUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,7 +22,7 @@ Sodium (Na⁺) — концентрация натрия в крови.
 при которой рекомендуется избегать большинства препаратов (avoid).
 */
 
-//@Component
+@Component
 @Order(7)
 @Slf4j
 public class SodiumRuleApplier implements TreatmentRuleApplier {
@@ -71,22 +72,15 @@ public class SodiumRuleApplier implements TreatmentRuleApplier {
         // 4 Проверяем, ниже ли уровень натрия порога
         if (patientSodium < limitDouble) {
 
-            if (recommendation.getComments() == null)
-                recommendation.setComments(new ArrayList<>());
-
-            // Формируем системное сообщение
-            String comment = String.format(
-                    "System: avoid for sodium < %.0f mmol/L (patient %.1f mmol/L)",
-                    limitDouble,
-                    patientSodium
-            );
-
-            recommendation.getComments().add(comment);
+            //  Безопасно извлекаем имена препаратов
+            String mainDrugName = SafeValueUtils.safeValue(recommendation.getDrugs().getFirst());
+            String altMoiety = SafeValueUtils.safeValue(recommendation.getDrugs().get(1));
+            // Добавляем строку причину отклонения для отклонённой рекомендации (recommendationFailed)
             rejectionReasons.add(String.format(
-                    "[%s] Avoid recommendation with drugs (%s and %s) triggered by sodium rule '%s' (limit=%.0f, patient=%.1f)",
+                    "[%s] Avoid recommendation with drugs (%s and %s) triggered by sodium rule '%s' (limit=%.0f mEq/L, patient=%.1f mEq/L)",
                     getClass().getSimpleName(),
-                    recommendation.getDrugs().getFirst().getDrugName(),
-                    recommendation.getDrugs().get(1).getActiveMoiety(),
+                    mainDrugName,
+                    altMoiety,
                     rule,
                     limitDouble,
                     patientSodium
