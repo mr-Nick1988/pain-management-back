@@ -18,7 +18,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-//@Component
+@Component
 @Order(8)
 @Slf4j
 public class ChildPughApplier implements TreatmentRuleApplier {
@@ -95,12 +95,24 @@ public class ChildPughApplier implements TreatmentRuleApplier {
         }
 
         Matcher mg = Pattern.compile("(\\d+)\\s*mg").matcher(patientRule);
-        if (mg.find()) drug.setDosing(mg.group(1) + " mg");
+        if (mg.find()) {
+            String oldDosing = drug.getDosing();
+            String newDosing = mg.group(1) + " mg";
+            drug.setDosing(newDosing);
+            log.info("Dossing of the drug {} was adjusted from {} mg to {} mg, because of Child-Pugh patient category {}",
+                    drug.getActiveMoiety(),oldDosing,newDosing,patientChildPugh);
+        }
 
         Matcher h = Pattern.compile("(\\d+)\\s*h").matcher(patientRule);
-        if (h.find()) drug.setInterval(h.group(1) + "h");
+        if (h.find()){
+            String oldInterval = drug.getInterval();
+            String newInterval = h.group(1) + "h";
+            drug.setInterval(newInterval);
+            log.info("Interval of the drug {} was adjusted from {} h to {} h, because of Child-Pugh patient category {}",
+                    drug.getActiveMoiety(),oldInterval,newInterval,patientChildPugh);
+        }
 
-        log.debug("Applied ChildPugh rule '{}' for {} category (protocol {})",
+        log.info("Applied ChildPugh rule '{}' for {} category (protocol {})",
                 patientRule, patientChildPugh, drug.getId());
     }
 }
