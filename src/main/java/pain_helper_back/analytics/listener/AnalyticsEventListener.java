@@ -364,6 +364,7 @@ public class AnalyticsEventListener {
     }
     /*
      * Обработка события: VAS записан
+     * Различает внутренний (медсестра) и внешний (устройство) источник
      */
     @EventListener
     @Async("analyticsTaskExecutor")
@@ -373,21 +374,28 @@ public class AnalyticsEventListener {
             metadata.put("painLocation", event.getPainLocation());
             metadata.put("recordedAt", event.getRecordedAt().toString());
             metadata.put("isCritical", event.getIsCritical());
+            metadata.put("vasSource", event.getVasSource()); // INTERNAL или EXTERNAL
+            
+            // Для внешних источников добавляем deviceId
+            if ("EXTERNAL".equals(event.getVasSource()) && event.getDeviceId() != null) {
+                metadata.put("deviceId", event.getDeviceId());
+            }
 
             AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
                     .timestamp(LocalDateTime.now())
                     .eventType("VAS_RECORDED")
                     .patientMrn(event.getPatientMrn())
                     .userId(event.getRecordedBy())
-                    .userRole("NURSE")
+                    .userRole("EXTERNAL".equals(event.getVasSource()) ? "EXTERNAL_SYSTEM" : "NURSE")
                     .vasLevel(event.getVasLevel())
                     .priority(event.getIsCritical() ? "HIGH" : "NORMAL")
                     .metadata(metadata)
                     .build();
 
             analyticsEventRepository.save(analyticsEvent);
-            log.info("Analytics event saved: VAS_RECORDED, patientMrn={}, vasLevel={}, critical={}",
-                    event.getPatientMrn(), event.getVasLevel(), event.getIsCritical());
+            log.info("Analytics event saved: VAS_RECORDED, patientMrn={}, vasLevel={}, critical={}, source={}, device={}",
+                    event.getPatientMrn(), event.getVasLevel(), event.getIsCritical(), 
+                    event.getVasSource(), event.getDeviceId());
 
         } catch (Exception e) {
             log.error("Failed to save analytics event for VAS recording: {}", e.getMessage());
