@@ -14,8 +14,8 @@ import java.util.List;
 public class RecommendationCreatedEvent extends ApplicationEvent {
     private final Long recommendationId;
     private final String patientMrn;
-    private final String drugName;
-    private final String dosage;
+    private final List<String> drugName;
+    private final List<String> dosage;
     private final String route;
     private final Integer vasLevel;
     private final String createdBy; // nurseId
@@ -24,7 +24,7 @@ public class RecommendationCreatedEvent extends ApplicationEvent {
     private final List<String> diagnosisCodes; // ICD коды диагнозов пациента
 
     public RecommendationCreatedEvent(Object source, Long recommendationId, String patientMrn,
-                                      String drugName, String dosage, String route,
+                                      List<String> drugName, List<String> dosage, String route,
                                       Integer vasLevel, String createdBy, LocalDateTime createdAt,
                                       Long processingTimeMs, List<String> diagnosisCodes) {
         super(source);

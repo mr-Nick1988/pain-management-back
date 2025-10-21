@@ -29,7 +29,6 @@ public class EmrDTO {
     private String gfr; //(функция почек)
 
     @Pattern(regexp = "^[A-C]$", message = "Child pugh score must be either A, B, or C")
-    @NotNull(message = "Child pugh score is required")
     private String childPughScore;//(печень)
 
     @Range(min = 0, max = 1000, message = "PLT must be between 0(K/µL) and 1000(K/µL)")
