@@ -8,5 +8,7 @@ public enum RecommendationStatus {
     APPROVED_BY_ANESTHESIOLOGIST,    // Одобрено анестезиологом
     REJECTED_BY_ANESTHESIOLOGIST,    // Отклонено анестезиологом
     FINAL_APPROVED,                  // Финальное одобрение
-    CANCELLED                        // Отменено
+    CANCELLED,                       // Отменено
+    REQUIRES_REVIEW,                 // Требует пересмотра из-за изменений EMR
+    APPROVED                         // Одобрено (общий статус)
 }

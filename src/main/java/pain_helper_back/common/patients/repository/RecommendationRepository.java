@@ -32,5 +32,5 @@ public interface RecommendationRepository extends JpaRepository<Recommendation, 
     List<Recommendation> findByStatus(RecommendationStatus status);
 
     // поиск по MRN и статусу
-   Recommendation findByPatientMrnAndStatus(String mrn, RecommendationStatus status);
+   List<Recommendation> findByPatientMrnAndStatus(String mrn, RecommendationStatus status);
 }

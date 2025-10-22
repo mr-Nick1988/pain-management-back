@@ -93,6 +93,25 @@ public class Recommendation {
     @JoinColumn(name = "patient_id")
     private Patient patient;
 
+    // ========== EMR RECALCULATION FIELDS ========== //
+    @Column(name = "review_reason", length = 2000)
+    private String reviewReason;  // Причина необходимости пересмотра
+    
+    @Column(name = "review_requested_at")
+    private LocalDateTime reviewRequestedAt;  // Когда запрошен пересмотр
+    
+    @Column(name = "reviewed_by", length = 50)
+    private String reviewedBy;  // Кто пересмотрел
+    
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;  // Когда пересмотрено
+    
+    @Column(name = "description", length = 5000, columnDefinition = "TEXT")
+    private String description;  // Описание рекомендации
+    
+    @Column(name = "justification", length = 5000, columnDefinition = "TEXT")
+    private String justification;  // Обоснование рекомендации
+
     // ========== LIFECYCLE CALLBACKS ========== //
     @PrePersist
     protected void onCreate() {

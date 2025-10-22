@@ -18,6 +18,7 @@ import pain_helper_back.common.patients.repository.EmrRepository;
 import pain_helper_back.common.patients.repository.PatientRepository;
 import pain_helper_back.common.patients.repository.RecommendationRepository;
 import pain_helper_back.enums.RecommendationStatus;
+import pain_helper_back.pain_escalation_tracking.service.PainEscalationService;
 import pain_helper_back.treatment_protocol.service.TreatmentProtocolService;
 
 import java.time.LocalDate;
@@ -36,9 +37,7 @@ public class NurseServiceImpl implements NurseService {
     private final ModelMapper modelMapper;
     private final ApplicationEventPublisher eventPublisher;
     private final RecommendationRepository recommendationRepository;
-
-
-
+    private final PainEscalationService painEscalationService;
 
 
     private Patient findPatientOrThrow(String mrn) {
@@ -246,8 +245,11 @@ public class NurseServiceImpl implements NurseService {
                 vas.getPainPlace(),
                 vas.getPainLevel() >= 8,  // isCritical если боль >= 8
                 "INTERNAL",  // vasSource - внутренний ввод медсестрой
-                null  // deviceId - не применимо для внутреннего ввода
+                null  //deviceId - не применимо для внутреннего ввода
         ));
+
+        //!! АВТОМАТИЧЕСКАЯ ПРОВЕРКА ЭСКАЛАЦИИ БОЛИ
+        painEscalationService.handleNewVasRecord(mrn, vas.getPainLevel());
 
         return modelMapper.map(vas, VasDTO.class);
     }
