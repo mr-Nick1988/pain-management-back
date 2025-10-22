@@ -9,8 +9,6 @@ import pain_helper_back.common.patients.entity.Recommendation;
 import pain_helper_back.enums.DrugRole;
 import pain_helper_back.treatment_protocol.entity.TreatmentProtocol;
 import pain_helper_back.treatment_protocol.utils.PatternUtils;
-
-import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -52,8 +50,7 @@ public class AgeRuleApplier implements TreatmentRuleApplier {
             throw new IllegalArgumentException("Invalid protocol config: " + ageAdjustment);
         }
 
-        if (recommendation.getComments() == null)
-            recommendation.setComments(new ArrayList<>());
+
 
         // 3 Применяем возрастное правило
         if (drug.getRole() == DrugRole.MAIN) {

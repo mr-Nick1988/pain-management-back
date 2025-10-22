@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import org.hibernate.validator.constraints.Range;
+import org.springframework.lang.Nullable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,7 +29,9 @@ public class EmrDTO {
     @NotNull(message = "GFR is required")
     private String gfr; //(функция почек)
 
-    @Pattern(regexp = "^[A-C]$", message = "Child pugh score must be either A, B, or C")
+
+    @Pattern(regexp = "^$|^[A-C]$", message = "Child Pugh score must be either A, B, or C") // допускает пустую строку
+    @Nullable
     private String childPughScore;//(печень)
 
     @Range(min = 0, max = 1000, message = "PLT must be between 0(K/µL) and 1000(K/µL)")

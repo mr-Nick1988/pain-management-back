@@ -99,17 +99,19 @@ public class ChildPughApplier implements TreatmentRuleApplier {
             String oldDosing = drug.getDosing();
             String newDosing = mg.group(1) + " mg";
             drug.setDosing(newDosing);
+            recommendation.getComments().add("System: corrected dosing of " + drugName + " from" + oldDosing + "to" + newDosing + "for patient with Child-Pugh = " + patientChildPugh);
             log.info("Dossing of the drug {} was adjusted from {} mg to {} mg, because of Child-Pugh patient category {}",
-                    drug.getActiveMoiety(),oldDosing,newDosing,patientChildPugh);
+                    drug.getActiveMoiety(), oldDosing, newDosing, patientChildPugh);
         }
 
         Matcher h = Pattern.compile("(\\d+)\\s*h").matcher(patientRule);
-        if (h.find()){
+        if (h.find()) {
             String oldInterval = drug.getInterval();
             String newInterval = h.group(1) + "h";
             drug.setInterval(newInterval);
+            recommendation.getComments().add("System: corrected interval of " + drugName + " from" + oldInterval + "to" + newInterval + "for patient with Child-Pugh = " + patientChildPugh);
             log.info("Interval of the drug {} was adjusted from {} h to {} h, because of Child-Pugh patient category {}",
-                    drug.getActiveMoiety(),oldInterval,newInterval,patientChildPugh);
+                    drug.getActiveMoiety(), oldInterval, newInterval, patientChildPugh);
         }
 
         log.info("Applied ChildPugh rule '{}' for {} category (protocol {})",
