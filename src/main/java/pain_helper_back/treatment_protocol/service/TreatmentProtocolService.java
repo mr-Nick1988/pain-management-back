@@ -92,13 +92,16 @@ public class TreatmentProtocolService {
                 // Применяем почечную корректировку (GFR)
 
 
-
                 ruleApplier.apply(mainDrug, recommendation, tp, patient, rejectionReasons);
                 ruleApplier.apply(altDrug, recommendation, tp, patient, rejectionReasons);
 
             }
             boolean allCleared = recommendation.getDrugs().stream()
-                    .allMatch(dr -> dr.getActiveMoiety() == null || dr.getActiveMoiety().isBlank());
+                    .allMatch(dr ->
+                            dr.getActiveMoiety() == null ||
+                                    dr.getActiveMoiety().isBlank() ||
+                                    dr.getActiveMoiety().equalsIgnoreCase("NA")
+                    );
 
             if (allCleared) {
                 // все препараты очищены — отклоняем рекомендацию
@@ -114,7 +117,10 @@ public class TreatmentProtocolService {
 
         }
         if (recommendations.isEmpty()) {
-            log.warn("No valid recommendations generated for patient {}, all filters rejected drugs", patient.getMrn());
+            log.warn("""
+                    [SUMMARY] Patient {} — all recommendations rejected.
+                    Reasons: {}
+                    """, patient.getMrn(), rejectionReasons);
             return recommendationFailed;
         } else {
             log.info("Generated {} valid recommendations for patient {}", recommendations.size(), patient.getMrn());

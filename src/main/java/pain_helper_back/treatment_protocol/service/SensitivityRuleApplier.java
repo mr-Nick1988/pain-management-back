@@ -57,20 +57,20 @@ public class SensitivityRuleApplier implements TreatmentRuleApplier {
             return;
         }
 
-        // Нормализуем данные: приводим всё к верхнему регистру
-        List<String> ruleSensitivities = Stream.of(rule.split("\\s*OR\\s*")) //Разделить строку в тех местах, где встречается слово OR
+        // Нормализуем данные: приводим всё к верхнему регистру,
+        // игнорирует регистр, разделяет по любым типам разделителей: OR, запятая, слеш, точка с запятой, вертикальная черта, не боится лишних пробелов.
+        List<String> ruleSensitivities = Stream.of(
+                        rule.split("(?i)(?:(?<=\\s)OR(?=\\s)|AND|[,;/|\\\\]+)") // OR — только если окружён пробелами
+                )
                 .map(SanitizeUtils::normalize)
                 .filter(s -> !s.isEmpty())
                 .toList();
 
         List<String> normalizedPatientSens = sensitivities.stream()
+                .flatMap(s -> Stream.of(s.split("\\s*,\\s*")))
                 .map(SanitizeUtils::normalize)
                 .filter(s -> !s.isEmpty())
                 .toList();
-
-        log.warn("[DEBUG] ruleRaw='{}' | ruleSensitivities={} | patientSensitivities={}",
-                rule, ruleSensitivities, normalizedPatientSens);
-
         //  Проверяем совпадения между протоколом и данными пациента
         boolean hasMatch = ruleSensitivities.stream().anyMatch(normalizedPatientSens::contains);
 
@@ -100,7 +100,6 @@ public class SensitivityRuleApplier implements TreatmentRuleApplier {
 
         log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
     }
-
 
 
 }

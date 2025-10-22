@@ -102,16 +102,12 @@ public class ContraindicationsRuleApplier implements TreatmentRuleApplier {
                 getClass().getSimpleName(), patient.getId());
     }
 
-    /**
-     * Нормализует код диагноза (удаляет пробелы, делает верхний регистр).
-     */
+    /*Нормализует код диагноза (удаляет пробелы, делает верхний регистр)*/
     private String normalizeCode(String code) {
         return code == null ? "" : code.trim().replace("\u00A0", "").toUpperCase();
     }
 
-    /**
-     * Извлекает все ICD-коды из длинной строки (например: "571.201 OR 571.901").
-     */
+    /* Извлекает все ICD-коды из длинной строки (например: "571.201 OR 571.901").*/
     private Set<String> extractICDCodes(String contraindications) {
         Set<String> codes = new HashSet<>();
         Matcher matcher = ICD_PATTERN.matcher(contraindications);
