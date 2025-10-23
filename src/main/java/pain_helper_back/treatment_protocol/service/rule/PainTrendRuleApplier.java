@@ -1,13 +1,13 @@
-package pain_helper_back.treatment_protocol.service;
+package pain_helper_back.treatment_protocol.service.rule;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
-import org.springframework.stereotype.Component;
 import pain_helper_back.common.patients.entity.DrugRecommendation;
 import pain_helper_back.common.patients.entity.Patient;
 import pain_helper_back.common.patients.entity.Recommendation;
 import pain_helper_back.common.patients.entity.Vas;
 import pain_helper_back.treatment_protocol.entity.TreatmentProtocol;
+import pain_helper_back.treatment_protocol.service.TreatmentRuleApplier;
 import pain_helper_back.treatment_protocol.utils.DrugUtils;
 
 import java.util.ArrayList;

@@ -1,4 +1,4 @@
-package pain_helper_back.treatment_protocol.service;
+package pain_helper_back.treatment_protocol.service.rule;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
@@ -8,6 +8,8 @@ import pain_helper_back.common.patients.entity.Patient;
 import pain_helper_back.common.patients.entity.Recommendation;
 import pain_helper_back.enums.DrugRole;
 import pain_helper_back.treatment_protocol.entity.TreatmentProtocol;
+import pain_helper_back.treatment_protocol.service.CorrectionAggregator;
+import pain_helper_back.treatment_protocol.service.TreatmentRuleApplier;
 import pain_helper_back.treatment_protocol.utils.DrugUtils;
 
 import java.util.List;
@@ -28,6 +30,12 @@ public class WeightRuleApplier implements TreatmentRuleApplier {
     private static final Pattern WEIGHT_ACTION_PATTERN = Pattern.compile(
             "(?i)<\\s*50\\s*kg\\s*[-:]\\s*(\\d+(?:\\.\\d+)?)\\s*(mg|h)\\b"
     );
+
+    private final CorrectionAggregator correctionAggregator;
+
+    public WeightRuleApplier(CorrectionAggregator correctionAggregator) {
+        this.correctionAggregator = correctionAggregator;
+    }
 
     @Override
     public void apply(DrugRecommendation drug,
@@ -85,6 +93,7 @@ public class WeightRuleApplier implements TreatmentRuleApplier {
             // Корректировка дозы, например "<50kg - 50mg"
             String newDose = number + " mg";
             drug.setDosing(newDose);
+            correctionAggregator.addDoseCorrection(drug,Integer.parseInt(number));
             recommendation.getComments().add(String.format(
                     "System: dose adjusted for weight <50kg → %s for %s (%.1fkg) [rule column=%s]",
                     newDose, drugLabel, patientWeight,
@@ -97,6 +106,7 @@ public class WeightRuleApplier implements TreatmentRuleApplier {
             // Корректировка интервала, например "<50kg - 8h"
             String newInterval = number + "h";
             drug.setInterval(newInterval);
+            correctionAggregator.addIntervalCorrection(drug,Integer.parseInt(number));
             recommendation.getComments().add(String.format(
                     "System: interval adjusted for weight <50kg → %s for %s (%.1fkg) [rule column=%s]",
                     newInterval, drugLabel, patientWeight,

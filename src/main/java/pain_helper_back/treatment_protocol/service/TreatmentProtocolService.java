@@ -1,5 +1,6 @@
 package pain_helper_back.treatment_protocol.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -24,22 +25,23 @@ import java.util.List;
  */
 
 @Service
-//@RequiredArgsConstructor
+@RequiredArgsConstructor
 @Slf4j
 public class TreatmentProtocolService {
     private final TreatmentProtocolRepository treatmentProtocolRepository;
     private final List<TreatmentRuleApplier> ruleAppliers;
+    private final CorrectionAggregator correctionAggregator;
     private final ModelMapper modelMapper;
 
 
-    public TreatmentProtocolService(TreatmentProtocolRepository treatmentProtocolRepository,
-                                    List<TreatmentRuleApplier> ruleAppliers, ModelMapper modelMapper) {
-        this.treatmentProtocolRepository = treatmentProtocolRepository;
-        this.ruleAppliers = ruleAppliers;
-        log.info(" Loaded TreatmentRuleAppliers (Классы-фильтры, реализующие интерфейс TreatmentRuleApplier): {}",
-                ruleAppliers.stream().map(r -> r.getClass().getSimpleName()).toList());
-        this.modelMapper = modelMapper;
-    }
+//    public TreatmentProtocolService(TreatmentProtocolRepository treatmentProtocolRepository,
+//                                    List<TreatmentRuleApplier> ruleAppliers, ModelMapper modelMapper) {
+//        this.treatmentProtocolRepository = treatmentProtocolRepository;
+//        this.ruleAppliers = ruleAppliers;
+//        log.info(" Loaded TreatmentRuleAppliers (Классы-фильтры, реализующие интерфейс TreatmentRuleApplier): {}",
+//                ruleAppliers.stream().map(r -> r.getClass().getSimpleName()).toList());
+//        this.modelMapper = modelMapper;
+//    }
 
     /**
      * Текущая сигнатура возвращает single Recommendation (первую соответствующую).
@@ -89,12 +91,15 @@ public class TreatmentProtocolService {
                 // Применяем почечную корректировку (GFR)
                 // Применяем весовые правила (только если вес < 50 — по протоколу)
 
-
-
                 ruleApplier.apply(mainDrug, recommendation, tp, patient, rejectionReasons);
                 ruleApplier.apply(altDrug, recommendation, tp, patient, rejectionReasons);
-
             }
+            //  применяем финальные корректировки к каждому препарату
+            for (DrugRecommendation drug : recommendation.getDrugs()) {
+                correctionAggregator.applyFinalAdjustments(drug);
+            }
+            // очищаем агрегатор, чтобы не перетянул данные на следующего пациента
+            correctionAggregator.clear();
             boolean allCleared = recommendation.getDrugs().stream()
                     .allMatch(dr ->
                             dr.getActiveMoiety() == null ||

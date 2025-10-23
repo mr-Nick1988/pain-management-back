@@ -1,4 +1,4 @@
-package pain_helper_back.treatment_protocol.service;
+package pain_helper_back.treatment_protocol.service.rule;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
@@ -8,23 +8,27 @@ import pain_helper_back.common.patients.entity.Patient;
 import pain_helper_back.common.patients.entity.Recommendation;
 import pain_helper_back.enums.DrugRole;
 import pain_helper_back.treatment_protocol.entity.TreatmentProtocol;
+import pain_helper_back.treatment_protocol.service.CorrectionAggregator;
+import pain_helper_back.treatment_protocol.service.TreatmentRuleApplier;
 import pain_helper_back.treatment_protocol.utils.DrugUtils;
 import pain_helper_back.treatment_protocol.utils.SafeValueUtils;
 import pain_helper_back.treatment_protocol.utils.SanitizeUtils;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.*;
+import java.util.regex.*;
 
 @Component
 @Order(8)
 @Slf4j
 public class ChildPughApplier implements TreatmentRuleApplier {
 
-    // Печеночная недостаточность может быть A/B/C категории
     private static final Pattern CHILD_PUGH_PATTERN = Pattern.compile("([ABC])\\s*-\\s*([^ABC]+)(?=$|[ABC])");
+
+    private final CorrectionAggregator correctionAggregator;
+
+    public ChildPughApplier(CorrectionAggregator correctionAggregator) {
+        this.correctionAggregator = correctionAggregator;
+    }
 
     @Override
     public void apply(DrugRecommendation drug,
@@ -33,45 +37,38 @@ public class ChildPughApplier implements TreatmentRuleApplier {
                       Patient patient,
                       List<String> rejectionReasons) {
 
-        // Если препарат ранее был отвергнут по возрасту (или не заполнен) — не применяем печёночную корректировку
         if (!DrugUtils.hasInfo(drug)) return;
 
         log.info("=== [START] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
 
-        String patientChildPugh = patient.getEmr().getLast().getChildPughScore(); // "A", "B" или "C"
+        String patientChildPugh = patient.getEmr().getLast().getChildPughScore();
         String childPughRule = (drug.getRole() == DrugRole.MAIN)
                 ? tp.getFirstChildPugh()
                 : tp.getSecondChildPugh();
 
-        // 1 Проверяем, есть ли вообще данные в ячейке
         if (childPughRule == null || childPughRule.isBlank() || childPughRule.equalsIgnoreCase("NA")) {
             log.debug("ChildPugh rule empty or NA for protocol {}", tp.getId());
             return;
         }
 
-        // 2 Очищаем от возможного мусора
         childPughRule = SanitizeUtils.clean(childPughRule);
 
-        // 3 Извлекаем шаблон “A - 8h B - 12h C - avoid”
         Matcher m = CHILD_PUGH_PATTERN.matcher(childPughRule);
         Map<String, String> liverRules = new HashMap<>();
         while (m.find()) {
             liverRules.put(m.group(1), m.group(2).trim());
         }
 
-        // 4 Ищем конкретное правило для категории пациента
         String patientRule = liverRules.get(patientChildPugh);
         if (patientRule == null || patientRule.isBlank()) {
             log.debug("No ChildPugh rule found for category {} in protocol {}", patientChildPugh, tp.getId());
             return;
         }
 
-        // 5 Применяем найденное правило для конкретного Drug
         applyRuleToDrug(drug, recommendation, patientRule.toLowerCase(), patientChildPugh, rejectionReasons);
 
         log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
     }
-
 
     private void applyRuleToDrug(DrugRecommendation drug,
                                  Recommendation recommendation,
@@ -81,6 +78,7 @@ public class ChildPughApplier implements TreatmentRuleApplier {
 
         String drugName = SafeValueUtils.safeValue(drug);
 
+        // 1. avoid → очищаем препарат
         if (patientRule.contains("avoid")) {
             recommendation.getComments().add("System: avoid " + drugName + " for patient with Child-Pugh = " + patientChildPugh);
             rejectionReasons.add(String.format(
@@ -94,24 +92,46 @@ public class ChildPughApplier implements TreatmentRuleApplier {
             return;
         }
 
+        // 2. Корректировка дозировки
         Matcher mg = Pattern.compile("(\\d+)\\s*mg").matcher(patientRule);
         if (mg.find()) {
             String oldDosing = drug.getDosing();
             String newDosing = mg.group(1) + " mg";
             drug.setDosing(newDosing);
-            recommendation.getComments().add("System: corrected dosing of " + drugName + " from" + oldDosing + "to" + newDosing + "for patient with Child-Pugh = " + patientChildPugh);
-            log.info("Dossing of the drug {} was adjusted from {} mg to {} mg, because of Child-Pugh patient category {}",
-                    drug.getActiveMoiety(), oldDosing, newDosing, patientChildPugh);
+
+            //  записываем в CorrectionAggregator
+            try {
+                int numericDose = Integer.parseInt(mg.group(1));
+                correctionAggregator.addDoseCorrection(drug, numericDose);
+            } catch (NumberFormatException ignored) {}
+
+            recommendation.getComments().add(
+                    String.format("System: corrected dosing of %s from %s to %s for Child-Pugh=%s",
+                            drugName, oldDosing, newDosing, patientChildPugh)
+            );
+            log.info("Dose adjusted: {} ({} → {}) [ChildPugh {}]",
+                    drug.getDrugName(), oldDosing, newDosing, patientChildPugh);
         }
 
+        // 3. Корректировка интервала
         Matcher h = Pattern.compile("(\\d+)\\s*h").matcher(patientRule);
         if (h.find()) {
             String oldInterval = drug.getInterval();
             String newInterval = h.group(1) + "h";
             drug.setInterval(newInterval);
-            recommendation.getComments().add("System: corrected interval of " + drugName + " from" + oldInterval + "to" + newInterval + "for patient with Child-Pugh = " + patientChildPugh);
-            log.info("Interval of the drug {} was adjusted from {} h to {} h, because of Child-Pugh patient category {}",
-                    drug.getActiveMoiety(), oldInterval, newInterval, patientChildPugh);
+
+            //  записываем в CorrectionAggregator
+            try {
+                int numericInterval = Integer.parseInt(h.group(1));
+                correctionAggregator.addIntervalCorrection(drug, numericInterval);
+            } catch (NumberFormatException ignored) {}
+
+            recommendation.getComments().add(
+                    String.format("System: corrected interval of %s from %s to %s for Child-Pugh=%s",
+                            drugName, oldInterval, newInterval, patientChildPugh)
+            );
+            log.info("Interval adjusted: {} ({} → {}) [ChildPugh {}]",
+                    drug.getDrugName(), oldInterval, newInterval, patientChildPugh);
         }
 
         log.info("Applied ChildPugh rule '{}' for {} category (protocol {})",

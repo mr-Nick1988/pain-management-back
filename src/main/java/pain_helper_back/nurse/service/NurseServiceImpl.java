@@ -105,6 +105,7 @@ public class NurseServiceImpl implements NurseService {
     }
 
 
+
     @Override
     @Transactional(readOnly = true)
     public PatientDTO getPatientByEmail(String email) {
@@ -150,6 +151,7 @@ public class NurseServiceImpl implements NurseService {
         return modelMapper.map(patient, PatientDTO.class);
     }
 
+
     @Override
     @Transactional
     public EmrDTO createEmr(String mrn, EmrDTO emrDto) {
@@ -165,7 +167,7 @@ public class NurseServiceImpl implements NurseService {
         // 4 Добавляем EMR в коллекцию пациента
         patient.getEmr().add(emr);
         emrRepository.save(emr);
-
+        // Извлекаем диагнозы для аналитики
         List<String> diagnosisCodes = emr.getDiagnoses() != null ?
                 emr.getDiagnoses().stream().map(Diagnosis::getIcdCode).toList() : new ArrayList<>();
         List<String> diagnosisDescriptions = emr.getDiagnoses() != null ?
@@ -184,7 +186,7 @@ public class NurseServiceImpl implements NurseService {
                 emr.getHeight(),
                 diagnosisCodes,
                 diagnosisDescriptions
-       ));
+        ));
         // 5 Hibernate сам сохранит всё (EMR + Diagnosis) в конце транзакции
         return modelMapper.map(emr, EmrDTO.class);
     }
@@ -212,17 +214,16 @@ public class NurseServiceImpl implements NurseService {
         if (emrUpdateDto.getSensitivities() != null)
             emr.setSensitivities(emrUpdateDto.getSensitivities());  // new filed that we missed
         if (emrUpdateDto.getSodium() != null) emr.setSodium(emrUpdateDto.getSodium());
-        if(emrUpdateDto.getDiagnoses() != null){
+        if (emrUpdateDto.getDiagnoses() != null) {
+            // полностью чистим старые диагнозы
             emr.getDiagnoses().clear();
-            // Переносим новые диагнозы из DTO → Entity
-            Set<Diagnosis> updatedDiagnoses = emrUpdateDto.getDiagnoses().stream()
-                    .map(diagnosisDTO -> {
-                        Diagnosis d = modelMapper.map(diagnosisDTO, Diagnosis.class);
-                        d.setEmr(emr); // ВАЖНО: обратная связь
-                        emr.getDiagnoses().add(d);
-                        return d;
-                    })
-                    .collect(Collectors.toSet());
+
+            // добавляем новые в ту же коллекцию (не создаём новый Set!)
+            emrUpdateDto.getDiagnoses().forEach(dto -> {
+                Diagnosis d = modelMapper.map(dto, Diagnosis.class);
+                d.setEmr(emr); // обратная связь
+                emr.getDiagnoses().add(d); // добавляем прямо в старый Set
+            });
         }
         return modelMapper.map(emr, EmrDTO.class);
     }
@@ -245,19 +246,6 @@ public class NurseServiceImpl implements NurseService {
                 vas.getPainLevel(),
                 vas.getPainPlace(),
                 vas.getPainLevel() >= 8  // isCritical если боль >= 8
-        ));
-
-
-        eventPublisher.publishEvent(new VasRecordedEvent(
-                this,
-                patient.getId(),
-                mrn,
-                "nurse_id", // TODO: заменить на реальный ID из Security Context
-                LocalDateTime.now(),
-                vasDto.getPainLevel(),
-                vasDto.getPainPlace(),
-                vasDto.getPainLevel() >= 8
-
         ));
         return modelMapper.map(vas, VasDTO.class);
     }

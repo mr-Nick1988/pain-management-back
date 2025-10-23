@@ -1,4 +1,4 @@
-package pain_helper_back.treatment_protocol.service;
+package pain_helper_back.treatment_protocol.service.rule;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
@@ -7,24 +7,25 @@ import pain_helper_back.common.patients.entity.DrugRecommendation;
 import pain_helper_back.common.patients.entity.Patient;
 import pain_helper_back.common.patients.entity.Recommendation;
 import pain_helper_back.treatment_protocol.entity.TreatmentProtocol;
+import pain_helper_back.treatment_protocol.service.TreatmentRuleApplier;
 import pain_helper_back.treatment_protocol.utils.DrugUtils;
 import pain_helper_back.treatment_protocol.utils.PatternUtils;
 import pain_helper_back.treatment_protocol.utils.SafeValueUtils;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /*
-SAT (oxygen saturation, SpO₂) — уровень насыщения крови кислородом.
-Измеряется в процентах (%).
-Нормальный диапазон: 95–100%.
-Если сатурация <93%, рекомендуется избегать большинства препаратов (avoid).
+Sodium (Na⁺) — концентрация натрия в крови.
+Измеряется в миллиэквивалентах на литр (mEq/L).
+Нормальный диапазон: 135–145 mEq/L.
+Если уровень Na⁺ <130 mEq/L — это гипонатриемия (пониженный натрий),
+при которой рекомендуется избегать большинства препаратов (avoid).
 */
 
 @Component
-@Order(6)
+@Order(7)
 @Slf4j
-public class SatRuleApplier implements TreatmentRuleApplier {
+public class SodiumRuleApplier implements TreatmentRuleApplier {
 
     @Override
     public void apply(DrugRecommendation drug,
@@ -35,64 +36,61 @@ public class SatRuleApplier implements TreatmentRuleApplier {
 
         log.info("=== [START] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
 
-        // 1 Проверка, есть ли что анализировать
+        // 1 Пропуск, если препарат уже очищен или пуст
         if (!DrugUtils.hasInfo(drug)) {
             log.debug("Skipping {} — drug already rejected or empty", getClass().getSimpleName());
             log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
             return;
         }
 
-        Double patientSat = patient.getEmr().getLast().getSat();  // Например: 91.0
-        String rule = tp.getSat();                                // Например: "<93 - avoid"
+        // 2 Извлекаем данные пациента и протокола
+        Double patientSodium = patient.getEmr().getLast().getSodium(); // напр. 128.0
+        String rule = tp.getSodium();                                 // напр. "<130 - avoid"
 
         if (rule == null || rule.trim().isEmpty() || rule.equalsIgnoreCase("NA")) {
-            log.debug("SAT rule empty or NA for protocol {}", tp.getId());
+            log.debug("Sodium rule empty or NA for protocol {}", tp.getId());
             log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
             return;
         }
 
-        if (patientSat == null) {
-            log.warn("Patient SAT is null — cannot apply {}", getClass().getSimpleName());
+        if (patientSodium == null) {
+            log.warn("Patient sodium is null — cannot apply {}", getClass().getSimpleName());
             log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
             return;
         }
 
-        // 2 Извлекаем числовой лимит (например из "<93 - avoid" → 93)
+        // 3 Извлекаем числовой порог из строки протокола (например "<130 - avoid" → 130)
         Integer limit = PatternUtils.extractFirstInt(rule);
         if (limit == null) {
-            log.warn("Could not extract numeric limit from SAT rule '{}'", rule);
+            log.warn("Could not extract numeric limit from sodium rule '{}'", rule);
             log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
             return;
         }
 
         double limitDouble = limit.doubleValue();
 
-        // 3 Проверяем условие (если сатурация ниже порога)
-        if (patientSat < limitDouble) {
-
-            if (recommendation.getComments() == null)
-                recommendation.setComments(new ArrayList<>());
+        // 4 Проверяем, ниже ли уровень натрия порога
+        if (patientSodium < limitDouble) {
 
             //  Безопасно извлекаем имена препаратов
             String mainDrugName = SafeValueUtils.safeValue(recommendation.getDrugs().getFirst());
             String altMoiety = SafeValueUtils.safeValue(recommendation.getDrugs().get(1));
-
-
-            // Добавляем причину в общий список отказов
+            // Добавляем строку причину отклонения для отклонённой рекомендации (recommendationFailed)
             rejectionReasons.add(String.format(
-                    "[%s] Avoid recommendation with drugs (%s and %s) triggered by SAT rule '%s' (limit=%.0f, patient=%.1f)",
+                    "[%s] Avoid recommendation with drugs (%s and %s) triggered by sodium rule '%s' (limit=%.0f mEq/L, patient=%.1f mEq/L)",
                     getClass().getSimpleName(),
                     mainDrugName,
                     altMoiety,
                     rule,
                     limitDouble,
-                    patientSat
+                    patientSodium
             ));
 
             // Очищаем препараты
             recommendation.getDrugs().forEach(DrugUtils::clearDrug);
 
-            log.warn("Avoid triggered by SAT rule: patient={}, value={}, rule={}", patient.getId(), patientSat, rule);
+            log.warn("Avoid triggered by sodium rule: patient={}, value={}, rule={}",
+                    patient.getId(), patientSodium, rule);
         }
 
         log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
