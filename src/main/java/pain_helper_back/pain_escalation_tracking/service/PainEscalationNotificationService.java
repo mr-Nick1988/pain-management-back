@@ -155,10 +155,10 @@ public class PainEscalationNotificationService {
                     UnifiedNotificationDTO.fromEscalationPriority(escalation.getPriority());
 
             // Формируем заголовок
-            String title = String.format("Эскалация боли: %s", escalation.getPriority().name());
+            String title = String.format("Pain escalation: %s", escalation.getPriority().name());
             
             // Формируем сообщение
-            String message = String.format("VAS изменился с %d на %d (+%d). %s",
+            String message = String.format("VAS changed from %d to %d (+%d). %s",
                     previousVas != null ? previousVas : 0,
                     currentVas,
                     currentVas - (previousVas != null ? previousVas : 0),
@@ -201,5 +201,7 @@ public class PainEscalationNotificationService {
             String resolvedBy,
             java.time.LocalDateTime updatedAt
     ) {}
+
+
 
 }

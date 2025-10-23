@@ -7,6 +7,8 @@ import org.springframework.stereotype.Component;
 import pain_helper_back.common.patients.entity.Patient;
 import pain_helper_back.common.patients.entity.Vas;
 import pain_helper_back.common.patients.repository.PatientRepository;
+import pain_helper_back.enums.EscalationPriority;
+import pain_helper_back.enums.EscalationStatus;
 import pain_helper_back.pain_escalation_tracking.service.PainEscalationService;
 
 import java.time.LocalDateTime;
@@ -44,6 +46,7 @@ public class PainMonitoringScheduler {
 
                 // Получаем последний VAS
                 Vas lastVas = patient.getVas().stream()
+                        .filter(v -> v.getRecordedAt() != null)
                         .max((v1, v2) -> v1.getRecordedAt().compareTo(v2.getRecordedAt()))
                         .orElse(null);
 
@@ -95,6 +98,7 @@ public class PainMonitoringScheduler {
 
                 // Получаем последний VAS
                 Vas lastVas = patient.getVas().stream()
+                        .filter(v -> v.getRecordedAt() != null)
                         .max((v1, v2) -> v1.getRecordedAt().compareTo(v2.getRecordedAt()))
                         .orElse(null);
 
@@ -145,11 +149,11 @@ public class PainMonitoringScheduler {
 
             long criticalCount = recentEscalations.stream()
                     .filter(e -> e.getCreatedAt().isAfter(yesterday))
-                    .filter(e -> e.getPriority() == pain_helper_back.enums.EscalationPriority.CRITICAL)
+                    .filter(e -> e.getPriority() == EscalationPriority.CRITICAL)
                     .count();
 
             long pendingCount = recentEscalations.stream()
-                    .filter(e -> e.getStatus() == pain_helper_back.enums.EscalationStatus.PENDING)
+                    .filter(e -> e.getStatus() == EscalationStatus.PENDING)
                     .count();
 
             log.info("=== DAILY ESCALATION SUMMARY ===");

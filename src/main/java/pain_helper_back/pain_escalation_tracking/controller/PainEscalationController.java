@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.*;
 import pain_helper_back.anesthesiologist.entity.Escalation;
 import pain_helper_back.pain_escalation_tracking.dto.DoseAdministrationRequestDTO;
 import pain_helper_back.pain_escalation_tracking.dto.DoseAdministrationResponseDTO;
-import pain_helper_back.pain_escalation_tracking.dto.PainEscalationCheckResult;
-import pain_helper_back.pain_escalation_tracking.dto.PainTrendAnalysis;
+import pain_helper_back.pain_escalation_tracking.dto.PainEscalationCheckResultDTO;
+import pain_helper_back.pain_escalation_tracking.dto.PainTrendAnalysisDTO;
 import pain_helper_back.pain_escalation_tracking.service.PainEscalationService;
 
 import java.util.List;
@@ -25,7 +25,7 @@ public class PainEscalationController {
     /**
      * Зарегистрировать факт введения новой дозы препарата
      */
-    @PostMapping("/patients/{mrn}/doses")
+    @PostMapping("/patients/{mrn}/administer-dose")
     @ResponseStatus(HttpStatus.CREATED)
     public DoseAdministrationResponseDTO registerDose(
             @PathVariable String mrn,
@@ -46,7 +46,7 @@ public class PainEscalationController {
      * Получить анализ тренда боли за последние часы
      */
     @GetMapping("/patients/{mrn}/trend")
-    public PainTrendAnalysis getPainTrend(@PathVariable String mrn) {
+    public PainTrendAnalysisDTO getPainTrend(@PathVariable String mrn) {
         return painEscalationService.analyzePainTrend(mrn);
     }
 
@@ -54,7 +54,7 @@ public class PainEscalationController {
      * Принудительно запустить проверку эскалации боли (например, с override текущего VAS)
      */
     @PostMapping("/patients/{mrn}/check")
-    public PainEscalationCheckResult checkEscalation(
+    public PainEscalationCheckResultDTO checkEscalation(
             @PathVariable String mrn,
             @RequestBody(required = false) PainEscalationCheckCommand command
     ) {

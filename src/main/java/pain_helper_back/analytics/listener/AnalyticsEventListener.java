@@ -442,5 +442,37 @@ public class AnalyticsEventListener {
             log.error("Failed to save analytics event for recommendation creation: {}", e.getMessage());
         }
     }
+
+    /*
+     * Обработка события: Введена доза препарата
+     */
+    @EventListener
+    @Async("analyticsTaskExecutor")
+    public void handleDoseAdministered(DoseAdministeredEvent event) {
+        try {
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("drugName", event.getDrugName());
+            metadata.put("dosage", event.getDosage());
+            metadata.put("unit", event.getUnit());
+            metadata.put("administeredBy", event.getAdministeredBy());
+            metadata.put("timestamp", event.getTimestamp());
+
+            AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
+                    .timestamp(LocalDateTime.now())
+                    .eventType("DOSE_ADMINISTERED")
+                    .patientMrn(event.getPatientMrn())
+                    .userId(event.getAdministeredBy())
+                    .userRole("NURSE") // Обычно медсестра вводит дозу
+                    .metadata(metadata)
+                    .build();
+
+            analyticsEventRepository.save(analyticsEvent);
+            log.info("Analytics event saved: DOSE_ADMINISTERED, patientMrn={}, drug={} {}{}, administeredBy={}",
+                    event.getPatientMrn(), event.getDosage(), event.getUnit(), event.getDrugName(), event.getAdministeredBy());
+
+        } catch (Exception e) {
+            log.error("Failed to save analytics event for dose administration: {}", e.getMessage());
+        }
+    }
 }
 

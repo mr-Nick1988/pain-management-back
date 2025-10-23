@@ -2,10 +2,7 @@ package pain_helper_back.pain_escalation_tracking.service;
 
 import pain_helper_back.anesthesiologist.entity.Escalation;
 import pain_helper_back.pain_escalation_tracking.controller.PainEscalationController;
-import pain_helper_back.pain_escalation_tracking.dto.DoseAdministrationRequestDTO;
-import pain_helper_back.pain_escalation_tracking.dto.DoseAdministrationResponseDTO;
-import pain_helper_back.pain_escalation_tracking.dto.PainEscalationCheckResult;
-import pain_helper_back.pain_escalation_tracking.dto.PainTrendAnalysis;
+import pain_helper_back.pain_escalation_tracking.dto.*;
 import pain_helper_back.pain_escalation_tracking.entity.DoseAdministration;
 
 import java.util.List;
@@ -22,7 +19,7 @@ public interface PainEscalationService {
      * @param mrn MRN пациента
      * @return результат проверки с рекомендациями
      */
-    PainEscalationCheckResult checkPainEscalation(String mrn);
+    PainEscalationCheckResultDTO checkPainEscalation(String mrn);
 
     /*
      * Проверить эскалацию с возможностью override VAS
@@ -31,7 +28,7 @@ public interface PainEscalationService {
      * @param command команда с vasLevelOverride
      * @return результат проверки
      */
-    PainEscalationCheckResult checkPainEscalation(String mrn, PainEscalationController.PainEscalationCheckCommand command);
+    PainEscalationCheckResultDTO checkPainEscalation(String mrn, PainEscalationController.PainEscalationCheckCommand command);
 
     /*
      * Проверить, можно ли ввести следующую дозу
@@ -72,7 +69,7 @@ public interface PainEscalationService {
      * @param mrn MRN пациента
      * @return анализ тренда боли
      */
-    PainTrendAnalysis analyzePainTrend(String mrn);
+    PainTrendAnalysisDTO analyzePainTrend(String mrn);
 
     /*
      * Автоматически обработать новую запись VAS
@@ -98,4 +95,20 @@ public interface PainEscalationService {
      * @return эскалация
      */
     Escalation findEscalationById(Long id);
+
+    // Новые методы для REST API
+    DoseAdministration registerDoseAdministration(
+            String mrn,
+            String drugName,
+            Double dosage,
+            String unit,
+            String route,
+            String administeredBy
+    );
+
+    List<DoseHistoryDTO> getDoseHistory(String mrn);
+
+    Escalation getLatestEscalation(String mrn);
+
+    PainEscalationStatisticsDTO getEscalationStatistics();
 }

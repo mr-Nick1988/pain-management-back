@@ -16,7 +16,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PainTrendAnalysis {
+public class PainTrendAnalysisDTO {
     private String patientMrn;
 
     private Integer currentVas;

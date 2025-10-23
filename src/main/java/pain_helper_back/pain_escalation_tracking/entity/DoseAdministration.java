@@ -28,7 +28,10 @@ public class DoseAdministration {
     private String drugName;
 
     @Column(name = "dosage", nullable = false)
-    private String dosage;
+    private Double dosage;
+
+    @Column(name = "unit")
+    private String unit;//единица измерения дозы например mg
 
     @Column(name = "route")
     private String route;
@@ -44,6 +47,9 @@ public class DoseAdministration {
 
     @Column(name = "vas_after")
     private Integer vasAfter;
+
+    @Column(name = "next_dose_allowed_at")
+    private LocalDateTime nextDoseAllowedAt;
 
     @Column(name = "notes", length = 1000)
     private String notes;

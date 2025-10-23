@@ -19,6 +19,7 @@ import java.util.Optional;
 
 @Repository
 public interface TreatmentEscalationRepository extends JpaRepository<Escalation, Long> {
+
     // ========== ПОИСК ПО СТАТУСУ ========== //
     List<Escalation> findByStatus(EscalationStatus status);
     Long countByStatus(EscalationStatus status);
@@ -26,43 +27,17 @@ public interface TreatmentEscalationRepository extends JpaRepository<Escalation,
     List<Escalation> findByPriority(EscalationPriority priority);
     Long countByPriority(EscalationPriority priority);
     // ========== КОМБИНИРОВАННЫЙ ПОИСК ========== //
-    List<Escalation>findByPriorityAndStatus(EscalationPriority priority, EscalationStatus status);
-    // ========== ПОИСК ПО ВРАЧУ ========== //
-    List<Escalation>findByEscalatedBy(String escalatedBy);
-    // ========== ПОИСК ПО АНЕСТЕЗИОЛОГУ ========== //
-    //Найти все эскалации, разрешенные конкретным анестезиологом
-    List<Escalation> findByResolvedBy(String resolvedBy);
-    // ========== ПОИСК ПО РЕКОМЕНДАЦИИ ========== //
-    //Найти эскалацию по ID рекомендации
-    @Query("SELECT e FROM Escalation e WHERE e.recommendation.id = :recommendationId")
-    Optional<Escalation>findByRecommendationId(@Param("recommendationId") Long recommendationId);
+    @Query("SELECT e FROM Escalation e WHERE e.recommendation.patient.mrn = :mrn")
+    List<Escalation> findByRecommendationPatientMrn(@Param("mrn") String mrn);
 
+    @Query("SELECT e FROM Escalation e WHERE e.recommendation.patient.mrn = :mrn ORDER BY e.createdAt DESC")
+    Optional<Escalation> findTopByRecommendationPatientMrnOrderByCreatedAtDesc(@Param("mrn") String mrn);
 
-    // ========== СЛОЖНЫЕ ЗАПРОСЫ ========== //
-    /*
-     * Найти все активные (PENDING, IN_PROGRESS) эскалации, отсортированные по приоритету и дате
-     * Сначала HIGH, потом MEDIUM, потом LOW
-     * Внутри каждого приоритета - сначала старые
-     */
-    @Query("SELECT e FROM Escalation e WHERE e.status IN ('PENDING', 'IN_PROGRESS') " +
-            "ORDER BY CASE e.priority " +
-            "WHEN 'HIGH' THEN 1 " +
-            "WHEN 'MEDIUM' THEN 2 " +
-            "WHEN 'LOW' THEN 3 END, " +
-            "e.createdAt ASC")
+    @Query("SELECT e FROM Escalation e WHERE e.status IN ('PENDING', 'IN_REVIEW') ORDER BY " +
+            "CASE WHEN e.priority = 'CRITICAL' THEN 1 " +
+            "WHEN e.priority = 'HIGH' THEN 2 " +
+            "WHEN e.priority = 'MEDIUM' THEN 3 " +
+            "WHEN e.priority = 'LOW' THEN 4 END, e.createdAt DESC")
     List<Escalation> findActiveEscalationsOrderedByPriorityAndDate();
 
-    /*
-     * Найти критические (HIGH priority) активные эскалации
-     * @return список критических эскалаций
-     */
-    @Query("SELECT e FROM Escalation e WHERE e.priority = 'HIGH' AND e.status IN ('PENDING', 'IN_PROGRESS')")
-    List<Escalation> findCriticalActiveEscalations();
-
-    /*
-     * Подсчет всех эскалаций
-     * @return общее количество
-     */
-    @Query("SELECT COUNT(e) FROM Escalation e")
-    Long countAll();
 }

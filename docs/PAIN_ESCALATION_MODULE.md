@@ -1,9 +1,9 @@
 # 🚨 Pain Escalation Tracking Module
 
 **Дата создания:** 21.10.2025  
-**Последнее обновление:** 22.10.2025  
+**Последнее обновление:** 23.10.2025  
 **Статус:** ✅ Полностью реализовано  
-**Версия:** 2.0.0
+**Версия:** 3.0.0
 
 ---
 
@@ -11,12 +11,14 @@
 
 Модуль **Pain Escalation Tracking** обеспечивает автоматическое отслеживание роста боли у пациентов и создание эскалаций при критических ситуациях. Система анализирует историю VAS (Visual Analog Scale) и введенных доз препаратов для принятия решений о необходимости вмешательства врача или анестезиолога.
 
-**НОВОЕ В ВЕРСИИ 2.0:**
+**НОВОЕ В ВЕРСИИ 3.0:**
+- ✅ **REST API для управления дозами** - полный CRUD для регистрации и отслеживания доз
+- ✅ **Расширенные DTO** - валидация, история доз, статистика эскалаций
+- ✅ **Интеграция с аналитикой** - событие `DoseAdministeredEvent` для MongoDB
 - ✅ WebSocket real-time уведомления врачам и анестезиологам
 - ✅ Автоматический мониторинг пациентов каждые 15 минут
 - ✅ Проверка просроченных доз каждый час
 - ✅ Ежедневная сводка по эскалациям в 08:00
-- ✅ Интеграция с аналитикой через события
 
 ---
 
@@ -55,19 +57,30 @@ pain_escalation_tracking/
 ├── repository/
 │   └── DoseAdministrationRepository.java            # Репозиторий доз
 ├── dto/
-│   ├── PainEscalationCheckResult.java               # Результат проверки эскалации
-│   ├── PainTrendAnalysis.java                       # Анализ тренда боли
+│   ├── PainEscalationCheckResultDTO.java            # Результат проверки эскалации
+│   ├── PainTrendAnalysisDTO.java                    # Анализ тренда боли
 │   ├── PainEscalationNotificationDTO.java           # DTO для WebSocket уведомлений
-│   ├── DoseAdministrationRequestDTO.java            # Запрос на регистрацию дозы
-│   └── DoseAdministrationResponseDTO.java           # Ответ после регистрации дозы
+│   ├── DoseAdministrationRequestDTO.java            # 🆕 Запрос на регистрацию дозы
+│   ├── DoseAdministrationResponseDTO.java           # 🆕 Ответ после регистрации дозы
+│   ├── DoseHistoryDTO.java                          # 🆕 История доз пациента
+│   ├── CanAdministerDoseResponseDTO.java            # 🆕 Проверка возможности дозы
+│   ├── EscalationInfoDTO.java                       # 🆕 Информация об эскалации
+│   └── PainEscalationStatisticsDTO.java             # 🆕 Статистика эскалаций
 ├── service/
 │   ├── PainEscalationService.java                   # Interface
 │   ├── PainEscalationServiceImpl.java               # Реализация логики
 │   └── PainEscalationNotificationService.java       # WebSocket уведомления
 ├── controller/
-│   └── PainEscalationController.java                # REST API endpoints
+│   └── DoseAdministrationController.java            # 🆕 REST API для доз и эскалаций
 └── scheduler/
     └── PainMonitoringScheduler.java                 # Автоматический мониторинг
+
+analytics/
+├── event/
+│   ├── DoseAdministeredEvent.java                   # 🆕 Событие введения дозы
+│   └── EscalationCreatedEvent.java                  # Событие создания эскалации
+└── listener/
+    └── AnalyticsEventListener.java                  # 🆕 Обработчик DoseAdministeredEvent
 ```
 
 ---
@@ -96,14 +109,16 @@ public class DoseAdministration {
     private Long id;
     private Patient patient;
     private Recommendation recommendation;
-    private String drugName;              // Название препарата
-    private String dosage;                // Дозировка
-    private String route;                 // Путь введения
-    private LocalDateTime administeredAt; // Время введения
-    private String administeredBy;        // Кто ввел
-    private Integer vasBefore;            // VAS до введения
-    private Integer vasAfter;             // VAS после введения
-    private String notes;                 // Примечания
+    private String drugName;                    // Название препарата
+    private Double dosage;                      // Дозировка (числовое значение)
+    private String unit;                        // Единица измерения (mg, ml, etc.)
+    private String route;                       // Путь введения (IV, PO, IM, etc.)
+    private LocalDateTime administeredAt;       // Время введения
+    private String administeredBy;              // Кто ввел (ID медсестры)
+    private Integer vasBefore;                  // VAS до введения
+    private Integer vasAfter;                   // VAS после введения
+    private LocalDateTime nextDoseAllowedAt;    // Время следующей допустимой дозы
+    private String notes;                       // Примечания
 }
 ```
 
@@ -235,6 +250,7 @@ public Long processExternalVasRecord(ExternalVasRecordRequest externalVas) {
 
 ## 📊 СОБЫТИЯ АНАЛИТИКИ
 
+### 1. EscalationCreatedEvent
 При создании эскалации публикуется событие:
 
 ```java
@@ -250,7 +266,46 @@ EscalationCreatedEvent(
 )
 ```
 
-Событие сохраняется в MongoDB для аналитики.
+### 2. DoseAdministeredEvent 🆕
+При регистрации введенной дозы публикуется событие:
+
+```java
+DoseAdministeredEvent(
+    source = PainEscalationServiceImpl,
+    patientMrn = "EMR-A1B2C3D4",
+    drugName = "Morphine",
+    dosage = 10.0,
+    unit = "mg",
+    administeredBy = "nurse_123",
+    timestamp = LocalDateTime.now()
+)
+```
+
+### Обработка событий
+Оба события обрабатываются в `AnalyticsEventListener` и сохраняются в MongoDB:
+
+```java
+@EventListener
+@Async("analyticsTaskExecutor")
+public void handleDoseAdministered(DoseAdministeredEvent event) {
+    AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
+        .timestamp(LocalDateTime.now())
+        .eventType("DOSE_ADMINISTERED")
+        .patientMrn(event.getPatientMrn())
+        .userId(event.getAdministeredBy())
+        .userRole("NURSE")
+        .metadata(Map.of(
+            "drugName", event.getDrugName(),
+            "dosage", event.getDosage(),
+            "unit", event.getUnit()
+        ))
+        .build();
+    
+    analyticsEventRepository.save(analyticsEvent);
+}
+```
+
+События сохраняются асинхронно в MongoDB для последующей аналитики.
 
 ---
 
@@ -498,14 +553,19 @@ INFO  - ================================
 
 ## 🎯 REST API ENDPOINTS
 
-### Регистрация дозы
+### DoseAdministrationController 🆕
+
+Полный REST API для управления дозами и эскалациями.
+
+#### 1. Регистрация дозы
 ```http
 POST /api/pain-escalation/patients/{mrn}/doses
 Content-Type: application/json
 
 {
   "drugName": "Morphine",
-  "dosage": "10mg",
+  "dosage": 10.0,
+  "unit": "mg",
   "route": "IV",
   "administeredBy": "nurse_123",
   "vasBefore": 8,
@@ -513,72 +573,257 @@ Content-Type: application/json
   "recommendationId": 456,
   "notes": "Patient responded well"
 }
-```
-
-### Проверка доступности дозы
-```http
-GET /api/pain-escalation/patients/{mrn}/can-administer-next-dose
 
 Response:
 {
-  "patientMrn": "EMR-A1B2C3D4",
+  "success": true,
+  "message": "Dose registered successfully",
+  "doseId": 789,
+  "administeredAt": "2025-10-23T12:30:00",
+  "nextDoseAllowedAt": "2025-10-23T16:30:00"
+}
+```
+
+**Валидация:**
+- `drugName`: @NotBlank, @Size(max=200)
+- `dosage`: @NotNull, @Positive
+- `unit`: @NotBlank, @Size(max=20)
+- `route`: @NotBlank, @Size(max=50)
+- `administeredBy`: @NotBlank, @Size(max=100)
+- `notes`: @Size(max=500)
+
+#### 2. Проверка возможности введения дозы
+```http
+GET /api/pain-escalation/patients/{mrn}/can-administer-dose
+
+Response:
+{
   "canAdminister": true,
-  "hoursSinceLastDose": 5,
-  "requiredInterval": 4,
-  "message": "Can administer next dose. 5 hours passed since last dose."
+  "patientMrn": "EMR-A1B2C3D4",
+  "message": "Next dose can be administered",
+  "lastDoseAt": "2025-10-23T08:30:00",
+  "nextDoseAllowedAt": "2025-10-23T12:30:00",
+  "hoursUntilNextDose": 0
 }
 ```
 
-### Анализ тренда боли
+#### 3. История доз пациента 🆕
 ```http
-GET /api/pain-escalation/patients/{mrn}/trend
+GET /api/pain-escalation/patients/{mrn}/doses
+
+Response:
+[
+  {
+    "id": 789,
+    "drugName": "Morphine",
+    "dosage": 10.0,
+    "unit": "mg",
+    "route": "IV",
+    "administeredAt": "2025-10-23T12:30:00",
+    "administeredBy": "nurse_123",
+    "notes": "Patient responded well",
+    "nextDoseAllowedAt": "2025-10-23T16:30:00"
+  },
+  {
+    "id": 788,
+    "drugName": "Tramadol",
+    "dosage": 50.0,
+    "unit": "mg",
+    "route": "PO",
+    "administeredAt": "2025-10-23T08:00:00",
+    "administeredBy": "nurse_456",
+    "notes": null,
+    "nextDoseAllowedAt": "2025-10-23T12:00:00"
+  }
+]
+```
+
+#### 4. Проверка эскалации боли
+```http
+POST /api/pain-escalation/patients/{mrn}/check-escalation
 
 Response:
 {
   "patientMrn": "EMR-A1B2C3D4",
-  "currentVas": 7,
-  "previousVas": 5,
-  "vasChange": 2,
-  "painTrend": "INCREASING",
-  "averageVas": 6.2,
-  "maxVas": 8,
-  "minVas": 4,
-  "vasRecordCount": 5,
-  "vasHistory": [7, 6, 8, 5, 4]
+  "escalationRequired": true,
+  "escalationReason": "Critical pain level: VAS 9",
+  "escalationPriority": "CRITICAL",
+  "currentVas": 9,
+  "previousVas": 6,
+  "vasChange": 3,
+  "canAdministerNextDose": false,
+  "lastDoseTime": "2025-10-23T10:00:00",
+  "hoursSinceLastDose": 2,
+  "requiredIntervalHours": 4,
+  "recommendations": "URGENT: Immediate intervention required",
+  "painTrendAnalysisDTO": {
+    "painTrend": "INCREASING",
+    "averageVas": 7.5,
+    "maxVas": 9,
+    "minVas": 5
+  }
 }
 ```
 
-### Принудительная проверка эскалации
+#### 5. Получить последнюю эскалацию пациента 🆕
 ```http
-POST /api/pain-escalation/patients/{mrn}/check
-Content-Type: application/json
+GET /api/pain-escalation/patients/{mrn}/latest-escalation
 
+Response:
 {
-  "vasLevelOverride": 8
+  "escalationId": 123,
+  "patientMrn": "EMR-A1B2C3D4",
+  "priority": "CRITICAL",
+  "status": "PENDING",
+  "reason": "Critical pain level: VAS 9",
+  "createdAt": "2025-10-23T12:30:00",
+  "resolvedAt": null,
+  "resolvedBy": null
 }
 ```
 
-### Получить последние эскалации
+#### 6. Статистика эскалаций 🆕
 ```http
-GET /api/pain-escalation/escalations/recent?limit=20
+GET /api/pain-escalation/statistics
+
+Response:
+{
+  "totalEscalations": 150,
+  "pendingEscalations": 12,
+  "resolvedEscalations": 138,
+  "criticalEscalations": 25,
+  "highEscalations": 45,
+  "mediumEscalations": 80,
+  "averageResolutionTimeHours": 4.5,
+  "escalationsLast24Hours": 8,
+  "escalationsLast7Days": 42
+}
 ```
 
-### Получить эскалацию по ID
-```http
-GET /api/pain-escalation/escalations/{id}
+---
+
+---
+
+## 📋 DTO СТРУКТУРЫ
+
+### DoseAdministrationRequestDTO 🆕
+```java
+@Getter
+@Builder
+public class DoseAdministrationRequestDTO {
+    @NotBlank @Size(max = 200)
+    private String drugName;
+    
+    @NotNull @Positive
+    private Double dosage;
+    
+    @NotBlank @Size(max = 20)
+    private String unit;
+    
+    @NotBlank @Size(max = 50)
+    private String route;
+    
+    @NotBlank @Size(max = 100)
+    private String administeredBy;
+    
+    private Integer vasBefore;
+    private Integer vasAfter;
+    private Long recommendationId;
+    
+    @Size(max = 500)
+    private String notes;
+}
+```
+
+### DoseAdministrationResponseDTO 🆕
+```java
+@Getter
+@Builder
+public class DoseAdministrationResponseDTO {
+    private Boolean success;
+    private String message;
+    private Long doseId;
+    private LocalDateTime administeredAt;
+    private LocalDateTime nextDoseAllowedAt;
+}
+```
+
+### DoseHistoryDTO 🆕
+```java
+@Getter
+@Builder
+public class DoseHistoryDTO {
+    private Long id;
+    private String drugName;
+    private Double dosage;
+    private String unit;
+    private String route;
+    private LocalDateTime administeredAt;
+    private String administeredBy;
+    private String notes;
+    private LocalDateTime nextDoseAllowedAt;
+}
+```
+
+### CanAdministerDoseResponseDTO 🆕
+```java
+@Getter
+@Builder
+public class CanAdministerDoseResponseDTO {
+    private Boolean canAdminister;
+    private String patientMrn;
+    private String message;
+    private LocalDateTime lastDoseAt;
+    private LocalDateTime nextDoseAllowedAt;
+    private Integer hoursUntilNextDose;
+}
+```
+
+### EscalationInfoDTO 🆕
+```java
+@Getter
+@Builder
+public class EscalationInfoDTO {
+    private Long escalationId;
+    private String patientMrn;
+    private EscalationPriority priority;
+    private EscalationStatus status;
+    private String reason;
+    private LocalDateTime createdAt;
+    private LocalDateTime resolvedAt;
+    private String resolvedBy;
+}
+```
+
+### PainEscalationStatisticsDTO 🆕
+```java
+@Getter
+@Builder
+public class PainEscalationStatisticsDTO {
+    private Long totalEscalations;
+    private Long pendingEscalations;
+    private Long resolvedEscalations;
+    private Long criticalEscalations;
+    private Long highEscalations;
+    private Long mediumEscalations;
+    private Double averageResolutionTimeHours;
+    private Long escalationsLast24Hours;
+    private Long escalationsLast7Days;
+}
 ```
 
 ---
 
 ## 🚀 БУДУЩИЕ УЛУЧШЕНИЯ
 
-1. ~~**REST API контроллер** для ручного управления дозами~~ ✅ Реализовано
-2. ~~**WebSocket уведомления** врачам о критических эскалациях~~ ✅ Реализовано
-3. ~~**Автоматический мониторинг** пациентов~~ ✅ Реализовано
-4. **Machine Learning** для предсказания роста боли
-5. **Интеграция с системой назначений** для автоматического учета доз
-6. **Dashboard** для визуализации трендов боли
-7. **Email уведомления** при критических эскалациях
+1. ~~**REST API контроллер** для ручного управления дозами~~ ✅ Реализовано (v3.0)
+2. ~~**WebSocket уведомления** врачам о критических эскалациях~~ ✅ Реализовано (v2.0)
+3. ~~**Автоматический мониторинг** пациентов~~ ✅ Реализовано (v2.0)
+4. ~~**Интеграция с аналитикой** через события~~ ✅ Реализовано (v3.0)
+5. **Machine Learning** для предсказания роста боли
+6. **Интеграция с системой назначений** для автоматического учета доз
+7. **Dashboard** для визуализации трендов боли
+8. **Email уведомления** при критических эскалациях
 
 ---
 
@@ -611,5 +856,28 @@ spring.task.scheduling.thread-name-prefix=pain-scheduler-
 
 ---
 
+## 📝 CHANGELOG
+
+### Version 3.0.0 (23.10.2025)
+- ✅ Добавлен полный REST API для управления дозами (`DoseAdministrationController`)
+- ✅ Реализованы 6 новых DTO с валидацией (Request/Response/History/Statistics)
+- ✅ Интеграция с аналитикой через `DoseAdministeredEvent`
+- ✅ Обработчик событий в `AnalyticsEventListener`
+- ✅ Статистика эскалаций с детальными метриками
+- ✅ История доз пациента с полной информацией
+
+### Version 2.0.0 (22.10.2025)
+- ✅ WebSocket real-time уведомления
+- ✅ Автоматический мониторинг (PainMonitoringScheduler)
+- ✅ Ежедневная сводка эскалаций
+
+### Version 1.0.0 (21.10.2025)
+- ✅ Базовая логика эскалации боли
+- ✅ Анализ тренда VAS
+- ✅ Проверка интервалов доз
+
+---
+
 **Автор:** Pain Management Team  
-**Дата последнего обновления:** 22.10.2025
+**Дата последнего обновления:** 23.10.2025  
+**Версия:** 3.0.0

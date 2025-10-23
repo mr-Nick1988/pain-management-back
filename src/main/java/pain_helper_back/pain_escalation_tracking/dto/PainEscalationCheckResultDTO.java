@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PainEscalationCheckResult {
+public class PainEscalationCheckResultDTO {
     private String patientMrn;
 
     /**
@@ -76,5 +76,5 @@ public class PainEscalationCheckResult {
     /**
      * Анализ тренда боли
      */
-    private PainTrendAnalysis painTrendAnalysis;
+    private PainTrendAnalysisDTO painTrendAnalysisDTO;
 }
