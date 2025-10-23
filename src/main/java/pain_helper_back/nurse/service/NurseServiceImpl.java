@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pain_helper_back.analytics.event.EmrCreatedEvent;
 import pain_helper_back.analytics.event.PatientRegisteredEvent;
+import pain_helper_back.analytics.event.RecommendationCreatedEvent;
 import pain_helper_back.analytics.event.VasRecordedEvent;
 import pain_helper_back.common.patients.dto.*;
 import pain_helper_back.common.patients.dto.exceptions.EntityExistsException;
@@ -236,7 +237,7 @@ public class NurseServiceImpl implements NurseService {
         vas.setPatient(patient);
         patient.getVas().add(vas);
 
-        // Публикация события
+        // Публикация события VAS (INTERNAL источник - медсестра)
         eventPublisher.publishEvent(new VasRecordedEvent(
                 this,
                 vas.getId(),
@@ -245,8 +246,11 @@ public class NurseServiceImpl implements NurseService {
                 LocalDateTime.now(),
                 vas.getPainLevel(),
                 vas.getPainPlace(),
-                vas.getPainLevel() >= 8  // isCritical если боль >= 8
+                vas.getPainLevel() >= 8,  // isCritical если боль >= 8
+                "INTERNAL",  // vasSource - внутренний ввод медсестрой
+                null  // deviceId - не применимо для внутреннего ввода
         ));
+
         return modelMapper.map(vas, VasDTO.class);
     }
 
@@ -301,14 +305,57 @@ public class NurseServiceImpl implements NurseService {
     @Override
     @Transactional
     public RecommendationDTO createRecommendation(String mrn) {
+        long startTime = System.currentTimeMillis();
+        
         Patient patient = findPatientOrThrow(mrn);
         Emr emr = patient.getEmr().getLast();
         Vas vas = patient.getVas().getLast();
+
         Recommendation recommendation = treatmentProtocolService.generateRecommendation( vas, patient);
         vas.setResolved(true);
+
+
+        // 🔹 Алгоритм генерации рекомендации
+        // Проверка на существование рекомендации со статусом PENDING
+//        if (patient.getRecommendations().stream().anyMatch(r -> r.getStatus().equals("PENDING"))) {
+//            throw new EntityExistsException("Recommendation with this status already exists");
+//        }
+
+
         recommendation.setPatient(patient);
         patient.getRecommendations().add(recommendation);
         patientRepository.save(patient);
+        
+        long processingTime = System.currentTimeMillis() - startTime;
+        
+        // Извлекаем диагнозы для аналитики
+        List<String> diagnosisCodes = emr.getDiagnoses() != null ?
+                emr.getDiagnoses().stream().map(Diagnosis::getIcdCode).toList() : new ArrayList<>();
+        
+        // Извлекаем названия препаратов и дозировки из списка drugs
+        List<String> drugNames = recommendation.getDrugs() != null ?
+                recommendation.getDrugs().stream().map(DrugRecommendation::getDrugName).toList() : new ArrayList<>();
+        List<String> dosages = recommendation.getDrugs() != null ?
+                recommendation.getDrugs().stream().map(DrugRecommendation::getDosing).toList() : new ArrayList<>();
+        String route = recommendation.getDrugs() != null && !recommendation.getDrugs().isEmpty() && 
+                       recommendation.getDrugs().get(0).getRoute() != null ?
+                recommendation.getDrugs().get(0).getRoute().name() : "UNKNOWN";
+        
+        // Публикация события создания рекомендации
+        eventPublisher.publishEvent(new RecommendationCreatedEvent(
+                this,
+                recommendation.getId(),
+                patient.getMrn(),
+                drugNames,
+                dosages,
+                route,
+                vas.getPainLevel(),
+                "nurse_id", // TODO: заменить на реальный ID из Security Context
+                LocalDateTime.now(),
+                processingTime,
+                diagnosisCodes
+        ));
+        
         return modelMapper.map(recommendation, RecommendationDTO.class);
     }
 

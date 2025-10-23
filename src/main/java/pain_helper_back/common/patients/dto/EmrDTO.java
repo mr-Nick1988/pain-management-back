@@ -30,6 +30,7 @@ public class EmrDTO {
     private String gfr; //(функция почек)
 
 
+
     @Pattern(regexp = "^$|^[A-C]$", message = "Child Pugh score must be either A, B, or C") // допускает пустую строку
     @Nullable
     private String childPughScore;//(печень)
