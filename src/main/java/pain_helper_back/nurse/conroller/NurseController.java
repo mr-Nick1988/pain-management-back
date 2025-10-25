@@ -7,11 +7,11 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import pain_helper_back.common.patients.dto.*;
-import pain_helper_back.doctor.dto.RecommendationWithVasDTO;
 import pain_helper_back.nurse.service.NurseService;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/nurse")
@@ -95,6 +95,11 @@ public class NurseController {
         nurseService.deleteVAS(mrn);
     }
 
+    @GetMapping("patients/{mrn}/vas")
+    public Optional<VasDTO> getLastVAS(@PathVariable String mrn) {
+        return nurseService.getLastVAS(mrn);
+    }
+
 
     @GetMapping("/recommendations/approved")
     public List<RecommendationDTO> getAllPendingRecommendations() {
@@ -106,8 +111,13 @@ public class NurseController {
         return nurseService.createRecommendation(mrn);
     }
 
+    @PostMapping("/patients/{mrn}/recommendation/execute")
+    public RecommendationDTO executeRecommendation(@PathVariable String mrn) {
+        return nurseService.executeRecommendation(mrn);
+    }
+
     @GetMapping("/patients/{mrn}/recommendation")
-    public RecommendationDTO getLastRecommendation(@PathVariable String mrn) {
+    public Optional<RecommendationDTO> getLastRecommendation(@PathVariable String mrn) {
         return nurseService.getLastRecommendation(mrn);
     }
 }

@@ -16,7 +16,7 @@ public class VasDTO {
     @Min(value = 0, message = "Pain level must be at least 0")
     @Max(value = 10, message = "Pain level must be at most 10")
     private Integer painLevel;
-
+    private boolean resolved;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String updatedBy;

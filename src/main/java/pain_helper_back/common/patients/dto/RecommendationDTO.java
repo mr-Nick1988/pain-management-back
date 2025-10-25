@@ -5,6 +5,7 @@ import lombok.Data;
 import pain_helper_back.enums.RecommendationStatus;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -23,6 +24,9 @@ public class RecommendationDTO {
 
     private List<String> comments;      // свободные комментарии
 
+    private Boolean generationFailed;   // если ни одна рекомендация не подошла
+    List<String> rejectionReasonsSummary;     // список всех причин отказа (system)
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String updatedBy;
@@ -30,6 +34,8 @@ public class RecommendationDTO {
 
     // пока опциональное поле, не используется на фронте
     private String patientMrn; // пригодится для поисковых запросов без обёртки Patient,чтоб понять к кому относится
+
+
     // создать нужный метод в сервисе и не забыть присвоить это поле (поиск всех активных рекомендаций)
     // emrDto.setPatientMrn(emr.getPatient().getMrn());
 
