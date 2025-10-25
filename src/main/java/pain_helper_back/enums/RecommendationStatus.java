@@ -5,5 +5,6 @@ public enum RecommendationStatus {
     APPROVED,      // Одобрена (любым врачом — доктором или анестезиологом)
     REJECTED,      // Отклонена (любым врачом)
     ESCALATED,      // Передана выше по цепочке (к анестезиологу, pain team и т.д.)
-    EXECUTED       // выполнена: лекарство выдано/введено
+    EXECUTED,       // выполнена: лекарство выдано/введено
+    REQUIRES_REVIEW
 }
