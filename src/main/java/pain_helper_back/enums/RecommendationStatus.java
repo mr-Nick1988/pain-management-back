@@ -1,7 +1,8 @@
 package pain_helper_back.enums;
 
 public enum RecommendationStatus {
-    PENDING,                          // Ожидает одобрения врача
+
+    PENDING,                         // Ожидает одобрения врача
     APPROVED_BY_DOCTOR,              // Одобрено врачом
     REJECTED_BY_DOCTOR,              // Отклонено врачом
     ESCALATED_TO_ANESTHESIOLOGIST,   // Эскалировано анестезиологу
