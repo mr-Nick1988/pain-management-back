@@ -111,6 +111,11 @@ public class NurseController {
         return nurseService.createRecommendation(mrn);
     }
 
+    @PostMapping("/patients/{mrn}/recommendation/execute")
+    public RecommendationDTO executeRecommendation(@PathVariable String mrn) {
+        return nurseService.executeRecommendation(mrn);
+    }
+
     @GetMapping("/patients/{mrn}/recommendation")
     public Optional<RecommendationDTO> getLastRecommendation(@PathVariable String mrn) {
         return nurseService.getLastRecommendation(mrn);

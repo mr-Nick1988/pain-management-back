@@ -59,6 +59,8 @@ public class AnesthesiologistController {
             @Valid @RequestBody EscalationResolutionDTO resolutionDTO) {
         return anesthesiologistService.rejectEscalation(id, resolutionDTO);
     }
+
+
     // ================= PROTOCOL ENDPOINTS ================= //
     @PostMapping("/protocols")
     public ProtocolResponseDTO createProtocol(@Valid @RequestBody ProtocolRequestDTO protocolRequest) {

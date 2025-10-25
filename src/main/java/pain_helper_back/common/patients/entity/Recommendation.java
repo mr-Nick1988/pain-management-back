@@ -11,10 +11,8 @@ import java.util.List;
 
 /**
  * Represents a medical recommendation record.
- *
  * Note: this entity currently contains both core medical data (drugs, contraindications)
  * and workflow-related fields (doctor/anesthesiologist actions).
- *
  * TODO (v2): separate workflow actions into a new entity RecommendationWorkflow
  * to simplify auditing and reporting.
  */
@@ -30,8 +28,7 @@ public class Recommendation {
     @Column(name = "regimen_hierarchy")
     private int regimenHierarchy;
     @Column(name = "status")
-    @Enumerated(EnumType.STRING)
-    // По умолчанию, если не поставить аннотацию @Enumerated, то JPA сохранит числовой индекс enum-а (ORDINAL).
+    @Enumerated(EnumType.STRING)   // По умолчанию, если не поставить аннотацию @Enumerated, то JPA сохранит числовой индекс enum-а (ORDINAL).
     private RecommendationStatus status;
     @Column(name = "rejected_reason")
     private String rejectedReason;

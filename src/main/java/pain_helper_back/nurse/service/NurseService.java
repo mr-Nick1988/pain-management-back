@@ -39,11 +39,13 @@ public interface NurseService {
 
     void deleteVAS(String mrn);
 
-    public Optional<VasDTO> getLastVAS(String mrn);
+    Optional<VasDTO> getLastVAS(String mrn);
 
-    public List<RecommendationDTO> getAllApprovedRecommendations();
+    List<RecommendationDTO> getAllApprovedRecommendations();
 
     RecommendationDTO createRecommendation(String mrn);
+
+    RecommendationDTO executeRecommendation (String mrn);
 
 
     Optional<RecommendationDTO> getLastRecommendation(String mrn);

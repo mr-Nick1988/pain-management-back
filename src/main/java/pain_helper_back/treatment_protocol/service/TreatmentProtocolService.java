@@ -10,6 +10,7 @@ import pain_helper_back.enums.DrugRoute;
 import pain_helper_back.enums.RecommendationStatus;
 import pain_helper_back.treatment_protocol.entity.TreatmentProtocol;
 import pain_helper_back.treatment_protocol.repository.TreatmentProtocolRepository;
+import pain_helper_back.treatment_protocol.service.exception.StopRecommendationGenerationException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -59,7 +60,7 @@ public class TreatmentProtocolService {
 
 
         List<Recommendation> recommendations = new ArrayList<>();
-        Recommendation recommendationFailed = new Recommendation(); // на случай есл все рекомендации отвергнуться
+        Recommendation recommendationFailed = new Recommendation(); // на случай есл все рекомендации отвергнуты
         List<String> rejectionReasons = new ArrayList<>();  // причины отказов этих рекомендаций
 
         for (TreatmentProtocol tp : painRageFilter) {
@@ -90,11 +91,17 @@ public class TreatmentProtocolService {
                 // Применяем печёночную корректировку (ChildPugh)
                 // Применяем почечную корректировку (GFR)
                 // Применяем весовые правила (только если вес < 50 — по протоколу)
+                try {
+                    ruleApplier.apply(mainDrug, recommendation, tp, patient, rejectionReasons);
+                    ruleApplier.apply(altDrug, recommendation, tp, patient, rejectionReasons);
+                } catch (StopRecommendationGenerationException e) {
+                    log.warn("Recommendation generation stopped by {}: {}",
+                            ruleApplier.getClass().getSimpleName(), e.getMessage());
+                    break;   // прерываем дальнейшие фильтры
+                }
 
-                ruleApplier.apply(mainDrug, recommendation, tp, patient, rejectionReasons);
-                ruleApplier.apply(altDrug, recommendation, tp, patient, rejectionReasons);
             }
-            //  применяем финальные корректировки к каждому препарату
+            //  применяем финальные корректировки по дозам и интервалам к каждому препарату, если таких накопилось несколько
             for (DrugRecommendation drug : recommendation.getDrugs()) {
                 correctionAggregator.applyFinalAdjustments(drug);
             }
@@ -110,6 +117,7 @@ public class TreatmentProtocolService {
             if (allCleared) {
                 // все препараты очищены — отклоняем рекомендацию
                 recommendationFailed.setGenerationFailed(true);
+                recommendationFailed.setStatus(RecommendationStatus.ESCALATED);
                 recommendationFailed.getRejectionReasonsSummary().addAll(rejectionReasons);
                 log.warn(" All drugs cleared for protocol id={}, reasons={}", tp.getId(), rejectionReasons);
             } else {
@@ -125,6 +133,8 @@ public class TreatmentProtocolService {
                     [SUMMARY] Patient {} — all recommendations rejected.
                     Reasons: {}
                     """, patient.getMrn(), rejectionReasons);
+            // Удаляем дубликаты, т.к. PainTrendRuleApplier добавляет одну и ту же причину для всех протоколов
+            recommendationFailed.setRejectionReasonsSummary(recommendationFailed.getRejectionReasonsSummary().stream().distinct().toList());
             return recommendationFailed;
         } else {
             log.info("Generated {} valid recommendations for patient {}", recommendations.size(), patient.getMrn());

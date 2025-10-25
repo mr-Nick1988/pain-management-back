@@ -8,5 +8,6 @@ import pain_helper_back.treatment_protocol.entity.TreatmentProtocol;
 import java.util.List;
 
 public interface TreatmentRuleApplier {
+
     void apply(DrugRecommendation drug, Recommendation recommendation, TreatmentProtocol tp, Patient patient, List<String> rejectionReasons);
 }
