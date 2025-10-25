@@ -60,7 +60,7 @@ public class DoctorServiceImpl implements DoctorService {
         if (patientDto.getEmail() != null && patientRepository.existsByEmail(patientDto.getEmail())) {
             throw new EntityExistsException("Patient with this email already exists");
         }
-        // Проверка уникальности телефона
+        // Проверка уникальности телефонаК
         if (patientRepository.existsByPhoneNumber(patientDto.getPhoneNumber())) {
             throw new EntityExistsException("Patient with this phone number already exists");
         }
@@ -276,6 +276,7 @@ public class DoctorServiceImpl implements DoctorService {
                         return d;
                     })
                     .collect(Collectors.toSet());
+            emr.setDiagnoses(updatedDiagnoses);
         }
         return modelMapper.map(emr, EmrDTO.class);
     }
@@ -356,7 +357,7 @@ public class DoctorServiceImpl implements DoctorService {
         }
 
         // 1. Обновляем статус на APPROVED_BY_DOCTOR
-        recommendation.setStatus(RecommendationStatus.APPROVED_BY_DOCTOR);
+        recommendation.setStatus(RecommendationStatus.APPROVED);
 
         // 2. Сохраняем информацию о враче (TODO: получить из Security Context)
         recommendation.setDoctorId("doctor_id"); // TODO: заменить на реальный ID из Security Context
@@ -364,7 +365,7 @@ public class DoctorServiceImpl implements DoctorService {
         recommendation.setDoctorComment(dto.getComment());
 
         // 3. Финальное одобрение (т.к. нет эскалации)
-        recommendation.setStatus(RecommendationStatus.FINAL_APPROVED);
+        recommendation.setStatus(RecommendationStatus.APPROVED);
         recommendation.setFinalApprovedBy(recommendation.getDoctorId());
         recommendation.setFinalApprovalAt(LocalDateTime.now());
 
@@ -409,8 +410,8 @@ public class DoctorServiceImpl implements DoctorService {
             throw new IllegalArgumentException("Rejected reason must be provided");
         }
 
-        // 1. Обновляем статус на REJECTED_BY_DOCTOR
-        recommendation.setStatus(RecommendationStatus.REJECTED_BY_DOCTOR);
+        // 1. Обновляем статус на ESCALATED
+        recommendation.setStatus(RecommendationStatus.ESCALATED);
 
         // 2. Сохраняем информацию о враче (TODO: получить из Security Context)
         recommendation.setDoctorId("doctor_id"); // TODO: заменить на реальный ID из Security Context
@@ -450,7 +451,7 @@ public class DoctorServiceImpl implements DoctorService {
         recommendation.setEscalation(escalation);
 
         // 6. Меняем статус рекомендации на ESCALATED_TO_ANESTHESIOLOGIST
-        recommendation.setStatus(RecommendationStatus.ESCALATED_TO_ANESTHESIOLOGIST);
+        recommendation.setStatus(RecommendationStatus.ESCALATED);
 
         // 7. Дополнительно: если есть комментарий — добавляем
         if (dto.getComment() != null && !dto.getComment().isBlank()) {

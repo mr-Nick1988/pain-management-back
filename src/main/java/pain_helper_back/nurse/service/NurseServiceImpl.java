@@ -2,6 +2,7 @@ package pain_helper_back.nurse.service;
 
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -23,11 +24,15 @@ import pain_helper_back.treatment_protocol.service.TreatmentProtocolService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
+
+import static java.util.stream.Collectors.toList;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NurseServiceImpl implements NurseService {
@@ -38,6 +43,7 @@ public class NurseServiceImpl implements NurseService {
     private final ApplicationEventPublisher eventPublisher;
     private final RecommendationRepository recommendationRepository;
     private final PainEscalationService painEscalationService;
+
 
 
     private Patient findPatientOrThrow(String mrn) {
@@ -85,20 +91,20 @@ public class NurseServiceImpl implements NurseService {
     public List<PatientDTO> searchPatients(String firstName, String lastName, Boolean isActive, LocalDate birthDate) {
         if (firstName != null && lastName != null) {
             List<Patient> patients = patientRepository.getPatientsByFirstNameAndLastName(firstName, lastName);
-            return patients.stream().map(patient -> modelMapper.map(patient, PatientDTO.class)).collect(Collectors.toList());
+            return patients.stream().map(patient -> modelMapper.map(patient, PatientDTO.class)).collect(toList());
         }
         if (isActive != null) {
             List<Patient> patients = patientRepository.findByIsActive(isActive);
-            return patients.stream().map(p -> modelMapper.map(p, PatientDTO.class)).collect(Collectors.toList());
+            return patients.stream().map(p -> modelMapper.map(p, PatientDTO.class)).collect(toList());
         }
         if (birthDate != null) {
             List<Patient> patients = patientRepository.findByDateOfBirth(birthDate);
-            return patients.stream().map(p -> modelMapper.map(p, PatientDTO.class)).collect(Collectors.toList());
+            return patients.stream().map(p -> modelMapper.map(p, PatientDTO.class)).collect(toList());
         } else {
             List<Patient> patients = patientRepository.findAll();
             return patients.stream()
                     .map(patient -> modelMapper.map(patient, PatientDTO.class))
-                    .collect(Collectors.toList());
+                    .collect(toList());
         }
     }
 
@@ -148,6 +154,7 @@ public class NurseServiceImpl implements NurseService {
         return modelMapper.map(patient, PatientDTO.class);
     }
 
+
     @Override
     @Transactional
     public EmrDTO createEmr(String mrn, EmrDTO emrDto) {
@@ -162,7 +169,6 @@ public class NurseServiceImpl implements NurseService {
         }
         // 4 Добавляем EMR в коллекцию пациента
         patient.getEmr().add(emr);
-
         emrRepository.save(emr);
         // Извлекаем диагнозы для аналитики
         List<String> diagnosisCodes = emr.getDiagnoses() != null ?
@@ -211,17 +217,16 @@ public class NurseServiceImpl implements NurseService {
         if (emrUpdateDto.getSensitivities() != null)
             emr.setSensitivities(emrUpdateDto.getSensitivities());  // new filed that we missed
         if (emrUpdateDto.getSodium() != null) emr.setSodium(emrUpdateDto.getSodium());
-        if(emrUpdateDto.getDiagnoses() != null){
+        if (emrUpdateDto.getDiagnoses() != null) {
+            // полностью чистим старые диагнозы
             emr.getDiagnoses().clear();
-            // Переносим новые диагнозы из DTO → Entity
-            Set<Diagnosis> updatedDiagnoses = emrUpdateDto.getDiagnoses().stream()
-                    .map(dto -> {
-                        Diagnosis d = modelMapper.map(dto, Diagnosis.class);
-                        d.setEmr(emr); // ВАЖНО: обратная связь
-                        return d;
-                    })
-                    .collect(Collectors.toSet());
-            emr.setDiagnoses(updatedDiagnoses);
+
+            // добавляем новые в ту же коллекцию (не создаём новый Set!)
+            emrUpdateDto.getDiagnoses().forEach(dto -> {
+                Diagnosis d = modelMapper.map(dto, Diagnosis.class);
+                d.setEmr(emr); // обратная связь
+                emr.getDiagnoses().add(d); // добавляем прямо в старый Set
+            });
         }
         return modelMapper.map(emr, EmrDTO.class);
     }
@@ -270,12 +275,25 @@ public class NurseServiceImpl implements NurseService {
         patient.getVas().removeLast();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<VasDTO> getLastVAS(String mrn) {
+        Patient patient = findPatientOrThrow(mrn);
+        if (patient.getVas().isEmpty()) {
+            log.warn("No VAS found for patient with MRN={}", mrn);
+            return Optional.empty();
+        }
+        Vas vas = patient.getVas().getLast();
+        VasDTO dto = modelMapper.map(vas, VasDTO.class);
+        return Optional.of(dto);
+    }
+
 
     @Override
     @Transactional(readOnly = true)
     public List<RecommendationDTO> getAllApprovedRecommendations() {
         // 1. Достаём из базы все рекомендации, у которых статус = PENDING
-        List<Recommendation> recommendations = recommendationRepository.findByStatus(RecommendationStatus.FINAL_APPROVED);
+        List<Recommendation> recommendations = recommendationRepository.findByStatus(RecommendationStatus.APPROVED);
         // 2. Пробегаемся по каждой найденной рекомендации и формируем комбинированный DTO
         return recommendations.stream().map(recommendation -> {
             // 2.1. Получаем MRN пациента, которому принадлежит эта рекомендация
@@ -293,36 +311,38 @@ public class NurseServiceImpl implements NurseService {
     @Transactional
     public RecommendationDTO createRecommendation(String mrn) {
         long startTime = System.currentTimeMillis();
-        
+
         Patient patient = findPatientOrThrow(mrn);
         Emr emr = patient.getEmr().getLast();
         Vas vas = patient.getVas().getLast();
 
-        // 🔹 Алгоритм генерации рекомендации
-        // Проверка на существование рекомендации со статусом PENDING
-//        if (patient.getRecommendations().stream().anyMatch(r -> r.getStatus().equals("PENDING"))) {
-//            throw new EntityExistsException("Recommendation with this status already exists");
-//        }
         Recommendation recommendation = treatmentProtocolService.generateRecommendation(vas, patient);
+        vas.setResolved(true);
+
+        // Проверка на существование рекомендации со статусом PENDING
+        if (patient.getRecommendations().getLast().getStatus() != RecommendationStatus.EXECUTED) {
+            throw new EntityExistsException("Previous recommendation is still unresolved");
+        }
+
         recommendation.setPatient(patient);
         patient.getRecommendations().add(recommendation);
         patientRepository.save(patient);
-        
+
         long processingTime = System.currentTimeMillis() - startTime;
-        
+
         // Извлекаем диагнозы для аналитики
         List<String> diagnosisCodes = emr.getDiagnoses() != null ?
                 emr.getDiagnoses().stream().map(Diagnosis::getIcdCode).toList() : new ArrayList<>();
-        
+
         // Извлекаем названия препаратов и дозировки из списка drugs
         List<String> drugNames = recommendation.getDrugs() != null ?
                 recommendation.getDrugs().stream().map(DrugRecommendation::getDrugName).toList() : new ArrayList<>();
         List<String> dosages = recommendation.getDrugs() != null ?
                 recommendation.getDrugs().stream().map(DrugRecommendation::getDosing).toList() : new ArrayList<>();
-        String route = recommendation.getDrugs() != null && !recommendation.getDrugs().isEmpty() && 
-                       recommendation.getDrugs().get(0).getRoute() != null ?
-                recommendation.getDrugs().get(0).getRoute().name() : "UNKNOWN";
-        
+        String route = recommendation.getDrugs() != null && !recommendation.getDrugs().isEmpty() &&
+                recommendation.getDrugs().getFirst().getRoute() != null ?
+                recommendation.getDrugs().getFirst().getRoute().name() : "UNKNOWN";
+
         // Публикация события создания рекомендации
         eventPublisher.publishEvent(new RecommendationCreatedEvent(
                 this,
@@ -337,18 +357,65 @@ public class NurseServiceImpl implements NurseService {
                 processingTime,
                 diagnosisCodes
         ));
-        
+
         return modelMapper.map(recommendation, RecommendationDTO.class);
     }
 
     @Override
+    @Transactional
+    public RecommendationDTO executeRecommendation(String mrn) {
+        //  Находим пациента и его последнюю рекомендацию
+        Patient patient = findPatientOrThrow(mrn);
+        Recommendation recommendation = patient.getRecommendations().getLast();
+        //  Проверяем, что её можно исполнить
+        if (recommendation.getStatus() != RecommendationStatus.APPROVED) {
+            throw new IllegalStateException("Only approved recommendations can be executed.");
+        }
+        //  Получаем список препаратов для комментария
+        List<String> drugNames = recommendation.getDrugs()
+                .stream()
+                .map(drugRecommendation -> drugRecommendation.getDrugName() != null && drugRecommendation.getDrugName().isBlank()
+                        ? drugRecommendation.getDrugName()
+                        : drugRecommendation.getActiveMoiety()
+                )
+                .toList();
+        //  Идентификатор текущей медсестры (временно — заглушка)
+        String nurseId = "NurseId"; // TODO: заменить на SecurityContextHolder.getContext().getAuthentication().getName()
+        //  Формируем красивое системное сообщение
+        String comment = String.format("""
+                        [SYSTEM]  Recommendation executed by Nurse: %s
+                        Patient MRN: %s
+                        Executed at: %s
+                        Drugs administered: %s
+                        """,
+                nurseId,
+                patient.getMrn(),
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
+                String.join(", ", drugNames)
+        );
+        // Добавляем комментарий и обновляем статус
+        recommendation.getComments().add(comment);
+        recommendation.setStatus(RecommendationStatus.EXECUTED);
+        recommendation.setUpdatedBy(nurseId);
+        recommendation.setUpdatedAt(LocalDateTime.now());
+        // Сохраняем (каскадное сохранение драг-ов произойдёт автоматически)
+        recommendationRepository.save(recommendation);
+        // (в будущем) публикуем Event для аналитики
+        //TODO eventPublisher.publishEvent(new RecommendationExecutedEvent(...));
+        return modelMapper.map(recommendation, RecommendationDTO.class);
+    }
+
+
+    @Override
     @Transactional(readOnly = true)
-    public RecommendationDTO getLastRecommendation(String mrn) {
+    public Optional<RecommendationDTO> getLastRecommendation(String mrn) {
         Patient patient = findPatientOrThrow(mrn);
         if (patient.getRecommendations().isEmpty()) {
-            throw new NotFoundException("No recommendation found for this patient");
+            log.warn("No recommendation found for patient with MRN={}", mrn);
+            return Optional.empty();
         }
         Recommendation recommendation = patient.getRecommendations().getLast();
-        return modelMapper.map(recommendation, RecommendationDTO.class);
+        RecommendationDTO dto = modelMapper.map(recommendation, RecommendationDTO.class);
+        return Optional.of(dto);
     }
 }

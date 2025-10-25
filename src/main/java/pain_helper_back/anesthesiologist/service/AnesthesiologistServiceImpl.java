@@ -109,12 +109,12 @@ public class AnesthesiologistServiceImpl implements AnesthesiologistServiceInter
         // 4. Обновить связанную рекомендацию
         Recommendation recommendation = escalation.getRecommendation();
         // 4.1. Статус → APPROVED_BY_ANESTHESIOLOGIST
-        recommendation.setStatus(RecommendationStatus.APPROVED_BY_ANESTHESIOLOGIST);
+        recommendation.setStatus(RecommendationStatus.APPROVED);
         recommendation.setAnesthesiologistId(resolutionDTO.getResolvedBy());
         recommendation.setAnesthesiologistActionAt(LocalDateTime.now());
         recommendation.setAnesthesiologistComment(resolutionDTO.getComment());
         // 4.2. Финальное одобрение
-        recommendation.setStatus(RecommendationStatus.FINAL_APPROVED);
+        recommendation.setStatus(RecommendationStatus.APPROVED);
         recommendation.setFinalApprovedBy(resolutionDTO.getResolvedBy());
         recommendation.setFinalApprovalAt(LocalDateTime.now());
         // 4.3. Добавить комментарий в список
@@ -165,7 +165,7 @@ public class AnesthesiologistServiceImpl implements AnesthesiologistServiceInter
         escalation.setResolution(resolutionDTO.getResolution());
         // 4. Обновить связанную рекомендацию
         Recommendation recommendation = escalation.getRecommendation();
-        recommendation.setStatus(RecommendationStatus.REJECTED_BY_ANESTHESIOLOGIST);
+        recommendation.setStatus(RecommendationStatus.REJECTED);
         recommendation.setAnesthesiologistId(resolutionDTO.getResolvedBy());
         recommendation.setAnesthesiologistActionAt(LocalDateTime.now());
         recommendation.setAnesthesiologistComment(resolutionDTO.getComment());

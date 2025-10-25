@@ -6,8 +6,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import pain_helper_back.common.patients.dto.DiagnosisDTO;
 import pain_helper_back.common.patients.dto.PatientDTO;
+import pain_helper_back.common.patients.dto.RecommendationDTO;
 import pain_helper_back.common.patients.entity.Diagnosis;
 import pain_helper_back.common.patients.entity.Patient;
+import pain_helper_back.common.patients.entity.Recommendation;
 
 @Configuration
 public class ModelMapperConfig {
@@ -17,7 +19,7 @@ public class ModelMapperConfig {
         // 🔧 Создаём новый экземпляр ModelMapper
         ModelMapper mapper = new ModelMapper();
 
-        // ⚙️ Базовые настройки маппера
+        // ⚙ Базовые настройки маппера
         mapper.getConfiguration()
                 // Позволяет ModelMapper работать напрямую с полями класса (а не только с геттерами/сеттерами)
                 .setFieldMatchingEnabled(true)
@@ -27,13 +29,13 @@ public class ModelMapperConfig {
                 // поля должны полностью совпадать по имени и типу, иначе будут проигнорированы
                 .setMatchingStrategy(MatchingStrategies.STRICT);
 
-        // 🧩 Кастомная карта для Patient → PatientDTO
+        //  Кастомная карта для Patient → PatientDTO
         // Используется при возврате DTO наружу, чтобы скопировать нужные поля вручную
         mapper.createTypeMap(Patient.class, PatientDTO.class)
                 // Пример явного маппинга (если имена не совпадают, ModelMapper без этого их бы не увидел)
                 .addMappings(m -> m.map(Patient::getCreatedBy, PatientDTO::setCreatedBy));
 
-        // 🧠 Кастомная карта для DiagnosisDTO → Diagnosis
+        //  Кастомная карта для DiagnosisDTO → Diagnosis
         // Это ключевой маппинг, без него ModelMapper не мапил бы коллекцию диагнозов внутри EMR
         mapper.createTypeMap(DiagnosisDTO.class, Diagnosis.class)
                 .addMappings(m -> {
@@ -42,12 +44,18 @@ public class ModelMapperConfig {
                     // Маппинг описания болезни
                     m.map(DiagnosisDTO::getDescription, Diagnosis::setDescription);
                 });
+        //  Кастомная карта для Recommendation → RecommendationDTO
+        mapper.createTypeMap(Recommendation.class, RecommendationDTO.class)
+                .addMappings(m -> {
+                    m.map(Recommendation::getGenerationFailed, RecommendationDTO::setGenerationFailed);
+                    m.map(Recommendation::getRejectionReasonsSummary, RecommendationDTO::setRejectionReasonsSummary);
+                });
 
-        // ⚠️ TODO (будущее улучшение):
+        // TODO (будущее улучшение):
         // После подключения Spring Security можно добавить маппинг для аудита:
         // например, брать логин текущего пользователя и писать его в createdBy.
 
-        // ✅ Возвращаем готовый, полностью настроенный экземпляр
+        // Возвращаем готовый, полностью настроенный экземпляр
         return mapper;
     }
 }

@@ -6,6 +6,7 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 import org.hibernate.validator.constraints.Range;
+import org.springframework.lang.Nullable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,7 +23,8 @@ public class EmrUpdateDTO {
             message = "GFR must be either a letter (A-F) or an integer between 0(ml/min) and 120(ml/min)"
     )
     private String gfr;
-    @Pattern(regexp = "^[A-C]$", message = "Child pugh score must be either A, B, or C")
+    @Pattern(regexp = "^$|^[A-C]$", message = "Child Pugh score must be either A, B, or C")
+    @Nullable
     private String childPughScore;
     @Range(min = 0, max = 1000, message = "PLT must be between 0(K/µL) and 1000(K/µL)")
     private Double plt;

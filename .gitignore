@@ -3,7 +3,7 @@ target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
-
+/data/*.mv.db
 ### STS ###
 .apt_generated
 .classpath
@@ -31,3 +31,13 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Local MongoDB data
+/data/db/
+*.bson
+*.lock
+*.mongod
+
+# Logs
+*.log
+/logs/

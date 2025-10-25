@@ -29,7 +29,11 @@ public class Vas {
     private String painPlace;
 
     @Column(name = "pain_level")
-    private Integer painLevel; // 0-10 scale (старое поле, оставляем для совместимости)
+    private Integer painLevel; // 0-10 scale
+    @Column(name = "is_resolved")
+    private boolean resolved = false;
+
+
 
     // ============================================
     // НОВЫЕ ПОЛЯ ДЛЯ ВНЕШНЕЙ ИНТЕГРАЦИИ
@@ -71,6 +75,7 @@ public class Vas {
     // ============================================
     // AUDIT ПОЛЯ
     // ============================================
+
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

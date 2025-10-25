@@ -11,10 +11,8 @@ import java.util.List;
 
 /**
  * Represents a medical recommendation record.
- *
  * Note: this entity currently contains both core medical data (drugs, contraindications)
  * and workflow-related fields (doctor/anesthesiologist actions).
- *
  * TODO (v2): separate workflow actions into a new entity RecommendationWorkflow
  * to simplify auditing and reporting.
  */
@@ -30,8 +28,7 @@ public class Recommendation {
     @Column(name = "regimen_hierarchy")
     private int regimenHierarchy;
     @Column(name = "status")
-    @Enumerated(EnumType.STRING)
-    // По умолчанию, если не поставить аннотацию @Enumerated, то JPA сохранит числовой индекс enum-а (ORDINAL).
+    @Enumerated(EnumType.STRING)   // По умолчанию, если не поставить аннотацию @Enumerated, то JPA сохранит числовой индекс enum-а (ORDINAL).
     private RecommendationStatus status;
     @Column(name = "rejected_reason")
     private String rejectedReason;
@@ -51,6 +48,17 @@ public class Recommendation {
     @CollectionTable(name = "recommendation_comments", joinColumns = @JoinColumn(name = "recommendation_id"))
     @Column(name = "element")
     private List<String> comments = new ArrayList<>();      // свободные комментарии
+
+    // ========== NON-PERSISTENT (transient) FIELDS ========== //
+    @Column(name = "generation_failed")
+    private Boolean generationFailed; // не сохраняется в БД, используется только на уровне логики
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+            name = "recommendation_rejection_reasons",
+            joinColumns = @JoinColumn(name = "recommendation_id")
+    )
+    @Column(name = "reason", length = 2000)
+    private List<String> rejectionReasonsSummary = new ArrayList<>(); // копим системные причины отказа
 
     // ========== WORKFLOW: DOCTOR LEVEL ========== //
     @Column(name = "doctor_id", length = 50)
