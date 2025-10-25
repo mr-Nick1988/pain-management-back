@@ -1,5 +1,6 @@
 package pain_helper_back.common.patients.repository;
 
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import pain_helper_back.common.patients.entity.Patient;
@@ -16,18 +17,26 @@ public interface PatientRepository extends JpaRepository<Patient, Long>, JpaSpec
 
 
     Optional<Patient> findByEmail(String email);
+
     Optional<Patient> findByPhoneNumber(String phoneNumber);
+
     Optional<Patient> findByMrn(String mrn);
 
     void deleteByMrn(String mrn);
+
     boolean existsByPhoneNumber(String phoneNumber);
+
     boolean existsByEmail(String email);
 
 
-
     List<Patient> getPatientsByFirstNameAndLastName(String firstName, String lastName);
+
     List<Patient> findByIsActive(Boolean isActive);
+
     List<Patient> findByDateOfBirth(LocalDate dateOfBirth);
 
-
+    @Override
+    @EntityGraph(attributePaths = "vas")
+    List<Patient> findAll();
 }
+

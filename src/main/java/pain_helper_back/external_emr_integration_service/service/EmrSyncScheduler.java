@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pain_helper_back.common.patients.entity.Emr;
 import pain_helper_back.common.patients.repository.EmrRepository;
+import pain_helper_back.emr_recalculation.service.EmrRecalculationService;
 import pain_helper_back.enums.EmrSourceType;
 import pain_helper_back.external_emr_integration_service.client.HapiFhirClient;
 import pain_helper_back.external_emr_integration_service.dto.EmrSyncResultDTO;
@@ -44,6 +45,7 @@ public class EmrSyncScheduler {
     private final HapiFhirClient hapiFhirClient;
     private final EmrChangeDetectionService emrChangeDetectionService;
     private final WebSocketNotificationService webSocketNotificationService;
+    private final EmrRecalculationService emrRecalculationService;
 
     @Scheduled(cron = "0 0 */6 * * *")
     public EmrSyncResultDTO syncAllFhirPatients() {
@@ -184,6 +186,19 @@ public class EmrSyncScheduler {
 
         // 6. Проверяем критические изменения и создаем алерты
         emrChangeDetectionService.checkCriticalChanges(currentEmr, updatedEmr, internalEmrNumber);
+
+        // 7. НОВОЕ: Автоматический пересчет рекомендаций при критических изменениях EMR
+        try {
+            emrRecalculationService.handleEmrChange(
+                    currentEmr.getPatient(), 
+                    currentEmr, 
+                    updatedEmr
+            );
+            log.info("EMR recalculation completed for patient: {}", internalEmrNumber);
+        } catch (Exception e) {
+            log.error("Failed to recalculate recommendations for patient {}: {}", 
+                    internalEmrNumber, e.getMessage(), e);
+        }
 
         return true;
     }

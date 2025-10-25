@@ -1,6 +1,5 @@
 package pain_helper_back.analytics.event;
 
-
 import lombok.Getter;
 import org.springframework.context.ApplicationEvent;
 

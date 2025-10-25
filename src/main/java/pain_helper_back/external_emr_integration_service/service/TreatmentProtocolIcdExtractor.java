@@ -130,7 +130,7 @@ public class TreatmentProtocolIcdExtractor {
             }
             
             // Разделяем по "OR" и очищаем
-            String[] drugs = avoidIfSensitivity.split("OR");
+            String[] drugs = avoidIfSensitivity.split("(?i)(?:\\s+(?:OR|AND)\\s+|[,;/|\\\\]+)");
             for (String drug : drugs) {
                 String cleaned = drug.trim().toUpperCase();
                 if (!cleaned.isEmpty() && !cleaned.equals("NA")) {

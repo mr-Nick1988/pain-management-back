@@ -85,7 +85,6 @@ public class Escalation {
             this.escalatedAt = LocalDateTime.now();
         }
     }
-
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
