@@ -15,8 +15,10 @@ import pain_helper_back.performance_SLA_monitoring.repository.PerformanceMetricR
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 
 /*
@@ -209,6 +211,105 @@ public class PerformanceMonitoringServiceImpl implements PerformanceMonitoringSe
         }
 
     }
+// ========== HELPER METHODS ==========
 
+    private PerformanceMetricDTO toDTO(PerformanceMetric metric) {
+        return PerformanceMetricDTO.builder()
+                .id(metric.getId())
+                .operationName(metric.getOperationName())
+                .executionTimeMs(metric.getExecutionTimeMs())
+                .slaThresholdMs(metric.getSlaThresholdMs())
+                .slaViolated(metric.getSlaViolated())
+                .slaPercentage(metric.getSlaPercentage())
+                .methodName(metric.getMethodName())
+                .userId(metric.getUserId())
+                .userRole(metric.getUserRole())
+                .patientMrn(metric.getPatientMrn())
+                .status(metric.getStatus())
+                .errorMessage(metric.getErrorMessage())
+                .timestamp(metric.getTimestamp())
+                .build();
+    }
+
+    private SlaViolationDTO toViolationDTO(PerformanceMetric metric) {
+        long excessTime = metric.getExecutionTimeMs() - metric.getSlaThresholdMs();
+
+        return SlaViolationDTO.builder()
+                .operationName(metric.getOperationName())
+                .executionTimeMs(metric.getExecutionTimeMs())
+                .slaThresholdMs(metric.getSlaThresholdMs())
+                .excessTimeMs(excessTime)
+                .slaPercentage(metric.getSlaPercentage())
+                .methodName(metric.getMethodName())
+                .userId(metric.getUserId())
+                .patientMrn(metric.getPatientMrn())
+                .timestamp(metric.getTimestamp())
+                .errorMessage(metric.getErrorMessage())
+                .build();
+    }
+
+    private Map<String, PerformanceStatisticDTO.OperationStatistics> calculateOperationStatistics(
+            List<PerformanceMetric> metrics) {
+
+        Map<String, List<PerformanceMetric>> byOperation = metrics.stream()
+                .collect(Collectors.groupingBy(PerformanceMetric::getOperationName));
+
+        Map<String, PerformanceStatisticDTO.OperationStatistics> stats = new HashMap<>();
+
+        byOperation.forEach((opName, opMetrics) -> {
+            long count = opMetrics.size();
+            double avgTime = opMetrics.stream()
+                    .mapToLong(PerformanceMetric::getExecutionTimeMs)
+                    .average()
+                    .orElse(0.0);
+
+            long violations = opMetrics.stream()
+                    .filter(PerformanceMetric::getSlaViolated)
+                    .count();
+
+            double violationRate = (violations * 100.0) / count;
+
+            long minTime = opMetrics.stream()
+                    .mapToLong(PerformanceMetric::getExecutionTimeMs)
+                    .min()
+                    .orElse(0L);
+
+            long maxTime = opMetrics.stream()
+                    .mapToLong(PerformanceMetric::getExecutionTimeMs)
+                    .max()
+                    .orElse(0L);
+
+            Long slaThreshold = slaConfig.getThreshold(opName);
+
+            stats.put(opName, PerformanceStatisticDTO.OperationStatistics.builder()
+                    .operationName(opName)
+                    .count(count)
+                    .averageTimeMs(avgTime)
+                    .slaThresholdMs(slaThreshold)
+                    .violations(violations)
+                    .violationRate(violationRate)
+                    .minTimeMs(minTime)
+                    .maxTimeMs(maxTime)
+                    .build());
+        });
+
+        return stats;
+    }
+
+    private Map<String, Long> calculateHourlyOperationCount(List<PerformanceMetric> metrics) {
+        return metrics.stream()
+                .collect(Collectors.groupingBy(
+                        m -> m.getTimestamp().getHour() + ":00",
+                        Collectors.counting()
+                ));
+    }
+
+    private Map<String, Double> calculateHourlyAverageTime(List<PerformanceMetric> metrics) {
+        return metrics.stream()
+                .collect(Collectors.groupingBy(
+                        m -> m.getTimestamp().getHour() + ":00",
+                        Collectors.averagingLong(PerformanceMetric::getExecutionTimeMs)
+                ));
+    }
 }
 
