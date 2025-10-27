@@ -4,7 +4,7 @@ package pain_helper_back.VAS_external_integration.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordRequest;
+import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordRequestDTO;
 import pain_helper_back.VAS_external_integration.parser.VasFormatParser;
 
 import java.util.Comparator;
@@ -34,7 +34,7 @@ public class VasParserFactory {
      * @return Распарсенный VAS record
      * @throws VasFormatParser.ParseException если формат не поддерживается
      */
-    public ExternalVasRecordRequest parse(String contentType, String rawData)
+    public ExternalVasRecordRequestDTO parse(String contentType, String rawData)
             throws VasFormatParser.ParseException {
 
         log.debug("Parsing VAS data, contentType: {}, dataLength: {}", contentType, rawData.length());
@@ -54,7 +54,7 @@ public class VasParserFactory {
         log.info("Selected parser: {}", selectedParser.getClass().getSimpleName());
 
         // Парсим данные
-        ExternalVasRecordRequest result = selectedParser.parse(rawData);
+        ExternalVasRecordRequestDTO result = selectedParser.parse(rawData);
 
         log.info("Successfully parsed VAS data using {}: patientMrn={}, vasLevel={}, format={}",
                 selectedParser.getClass().getSimpleName(),

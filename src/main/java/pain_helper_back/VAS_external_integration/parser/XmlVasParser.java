@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordRequest;
+import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordRequestDTO;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -44,7 +44,7 @@ public class XmlVasParser implements VasFormatParser {
     }
 
     @Override
-    public ExternalVasRecordRequest parse(String rawData) throws ParseException {
+    public ExternalVasRecordRequestDTO parse(String rawData) throws ParseException {
         log.debug("Parsing XML VAS data");
 
         try {
@@ -54,7 +54,7 @@ public class XmlVasParser implements VasFormatParser {
 
             Element root = doc.getDocumentElement();
 
-            ExternalVasRecordRequest request = ExternalVasRecordRequest.builder()
+            ExternalVasRecordRequestDTO request = ExternalVasRecordRequestDTO.builder()
                     .patientMrn(getElementText(root, "PatientMRN"))
                     .vasLevel(getElementInt(root, "VASLevel"))
                     .deviceId(getElementText(root, "DeviceID"))
@@ -62,7 +62,7 @@ public class XmlVasParser implements VasFormatParser {
                     .timestamp(getElementDateTime(root, "Timestamp"))
                     .notes(getElementText(root, "Notes"))
                     .source("XML_IMPORT")
-                    .format(ExternalVasRecordRequest.DataFormat.XML)
+                    .format(ExternalVasRecordRequestDTO.DataFormat.XML)
                     .build();
 
             // Установка timestamp если отсутствует
@@ -120,7 +120,7 @@ public class XmlVasParser implements VasFormatParser {
         }
     }
 
-    private void validateRequest(ExternalVasRecordRequest request) throws ParseException {
+    private void validateRequest(ExternalVasRecordRequestDTO request) throws ParseException {
         if (request.getPatientMrn() == null || request.getPatientMrn().trim().isEmpty()) {
             throw new ParseException("PatientMRN is required");
         }

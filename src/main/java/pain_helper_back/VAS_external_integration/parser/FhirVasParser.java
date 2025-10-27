@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordRequest;
+import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordRequestDTO;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -73,7 +73,7 @@ public class FhirVasParser implements VasFormatParser {
     }
 
     @Override
-    public ExternalVasRecordRequest parse(String rawData) throws ParseException {
+    public ExternalVasRecordRequestDTO parse(String rawData) throws ParseException {
         log.debug("Parsing FHIR VAS data");
 
         try {
@@ -96,13 +96,13 @@ public class FhirVasParser implements VasFormatParser {
             LocalDateTime timestamp = extractTimestamp(root);
             String deviceId = extractDeviceId(root);
 
-            ExternalVasRecordRequest request = ExternalVasRecordRequest.builder()
+            ExternalVasRecordRequestDTO request = ExternalVasRecordRequestDTO.builder()
                     .patientMrn(patientMrn)
                     .vasLevel(vasLevel)
                     .deviceId(deviceId)
                     .timestamp(timestamp != null ? timestamp : LocalDateTime.now())
                     .source("FHIR_R4_IMPORT")
-                    .format(ExternalVasRecordRequest.DataFormat.FHIR)
+                    .format(ExternalVasRecordRequestDTO.DataFormat.FHIR)
                     .build();
 
             // Валидация
@@ -212,7 +212,7 @@ public class FhirVasParser implements VasFormatParser {
         return root.path("device").path("display").asText(null);
     }
 
-    private void validateRequest(ExternalVasRecordRequest request) throws ParseException {
+    private void validateRequest(ExternalVasRecordRequestDTO request) throws ParseException {
         if (request.getPatientMrn() == null || request.getPatientMrn().trim().isEmpty()) {
             throw new ParseException("Patient MRN not found in FHIR Observation");
         }

@@ -3,14 +3,12 @@ package pain_helper_back.VAS_external_integration.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordRequest;
-import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordResponse;
-import pain_helper_back.VAS_external_integration.dto.VasMonitorStats;
+import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordRequestDTO;
+import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordResponseDTO;
+import pain_helper_back.VAS_external_integration.dto.VasMonitorStatsDTO;
 import pain_helper_back.VAS_external_integration.parser.CsvVasParser;
 import pain_helper_back.VAS_external_integration.parser.VasFormatParser;
 import pain_helper_back.analytics.event.VasRecordedEvent;
@@ -19,6 +17,7 @@ import pain_helper_back.common.patients.entity.Vas;
 import pain_helper_back.common.patients.repository.PatientRepository;
 import pain_helper_back.common.patients.repository.VasRepository;
 import pain_helper_back.nurse.service.NurseService;
+import pain_helper_back.pain_escalation_tracking.service.PainEscalationService;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -45,12 +44,8 @@ public class ExternalVasIntegrationService {
     private final NurseService nurseService;
     private final CsvVasParser csvParser;
     private final ApplicationEventPublisher eventPublisher;
-    private final pain_helper_back.pain_escalation_tracking.service.PainEscalationService painEscalationService;
+    private final PainEscalationService painEscalationService;
     
-    // Self-injection для вызова методов с @Transactional(propagation = REQUIRES_NEW)
-    @Autowired
-    @Lazy
-    private ExternalVasIntegrationService self;
 
     /*
      * Обработка одной VAS записи из внешней системы
@@ -58,7 +53,7 @@ public class ExternalVasIntegrationService {
      * @param externalVas Внешняя VAS запись
      * @return ID созданной VAS записи
      */
-    public Long processExternalVasRecord(ExternalVasRecordRequest externalVas) {
+    public Long processExternalVasRecord(ExternalVasRecordRequestDTO externalVas) {
         log.info("Processing external VAS record: patientMrn={}, vasLevel={}, source={}",
                 externalVas.getPatientMrn(), externalVas.getVasLevel(), externalVas.getSource());
 
@@ -72,6 +67,7 @@ public class ExternalVasIntegrationService {
         vas.setVasLevel(externalVas.getVasLevel());
         vas.setRecordedAt(externalVas.getTimestamp());
         vas.setLocation(externalVas.getLocation());
+        vas.setPainPlace(externalVas.getPainPlace());
         vas.setNotes(externalVas.getNotes());
         vas.setRecordedBy("EXTERNAL_" + externalVas.getSource()); // Помечаем как внешний источник
 
@@ -97,7 +93,7 @@ public class ExternalVasIntegrationService {
         log.info("VAS_RECORDED event published: source=EXTERNAL, device={}, vasLevel={}",
                 externalVas.getDeviceId(), externalVas.getVasLevel());
 
-        // 2.2. 🔥 АВТОМАТИЧЕСКАЯ ПРОВЕРКА ЭСКАЛАЦИИ БОЛИ
+        // 2.2. АВТОМАТИЧЕСКАЯ ПРОВЕРКА ЭСКАЛАЦИИ БОЛИ
         painEscalationService.handleNewVasRecord(patient.getMrn(), externalVas.getVasLevel());
 
         // 3. Автоматическая генерация рекомендации (если VAS >= 4)
@@ -112,8 +108,8 @@ public class ExternalVasIntegrationService {
                         patient.getMrn());
             } else {
                 try {
-                    // Вызываем через self-proxy для применения @Transactional(propagation = REQUIRES_NEW)
-                    self.createRecommendationInNewTransaction(patient.getMrn());
+                    nurseService.createRecommendation(patient.getMrn());
+                  //createRecommendationInNewTransaction(patient.getMrn());
                     log.info("Recommendation generated automatically for patient: {}", patient.getMrn());
                 } catch (Exception e) {
                     log.error("Failed to generate recommendation for patient {}: {}",
@@ -135,7 +131,7 @@ public class ExternalVasIntegrationService {
         log.info("Processing batch VAS import from CSV");
 
         // Парсинг CSV
-        List<ExternalVasRecordRequest> records = csvParser.parseMultiple(csvData);
+        List<ExternalVasRecordRequestDTO> records = csvParser.parseMultiple(csvData);
         int total = records.size();
         int success = 0;
         int failed = 0;
@@ -144,7 +140,7 @@ public class ExternalVasIntegrationService {
 
         // Обработка каждой записи
         for (int i = 0; i < records.size(); i++) {
-            ExternalVasRecordRequest record = records.get(i);
+            ExternalVasRecordRequestDTO record = records.get(i);
 
             try {
                 Long vasId = processExternalVasRecord(record);
@@ -184,7 +180,7 @@ public class ExternalVasIntegrationService {
      * @return Список VAS записей с данными пациентов
      */
     @Transactional(readOnly = true)
-    public List<ExternalVasRecordResponse> getVasRecords(
+    public List<ExternalVasRecordResponseDTO> getVasRecords(
             String deviceId,
             String location,
             String timeRange,
@@ -222,7 +218,7 @@ public class ExternalVasIntegrationService {
      * @return Статистика: total, average, high pain alerts, active devices
      */
     @Transactional(readOnly = true)
-    public VasMonitorStats getVasStatistics() {
+    public VasMonitorStatsDTO getVasStatistics() {
         log.info("Calculating VAS statistics for today");
 
         LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
@@ -256,7 +252,7 @@ public class ExternalVasIntegrationService {
         log.info("VAS Statistics: total={}, avg={}, highPain={}, devices={}",
                 totalRecords, averageVas, highPainAlerts, activeDevices);
 
-        return VasMonitorStats.builder()
+        return VasMonitorStatsDTO.builder()
                 .totalRecordsToday(totalRecords)
                 .averageVas(Math.round(averageVas * 10.0) / 10.0) // Округление до 1 знака
                 .highPainAlerts(highPainAlerts)
@@ -293,10 +289,10 @@ public class ExternalVasIntegrationService {
     /*
      * Вспомогательный метод: конвертация Vas entity в Response DTO.
      */
-    private ExternalVasRecordResponse convertToResponse(Vas vas) {
+    private ExternalVasRecordResponseDTO convertToResponse(Vas vas) {
         Patient patient = vas.getPatient();
 
-        return ExternalVasRecordResponse.builder()
+        return ExternalVasRecordResponseDTO.builder()
                 .id(vas.getId())
                 .patientMrn(patient.getMrn())
                 .patientFirstName(patient.getFirstName())
@@ -304,6 +300,7 @@ public class ExternalVasIntegrationService {
                 .vasLevel(vas.getVasLevel())
                 .deviceId(extractDeviceId(vas.getRecordedBy()))
                 .location(vas.getLocation())
+                .painPlace(vas.getPainPlace())
                 .timestamp(vas.getRecordedAt())
                 .notes(vas.getNotes())
                 .source(extractDeviceId(vas.getRecordedBy()))
@@ -323,8 +320,8 @@ public class ExternalVasIntegrationService {
      * 
      * @param mrn MRN пациента
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
-    public void createRecommendationInNewTransaction(String mrn) {
-        nurseService.createRecommendation(mrn);
-    }
+
+//    public void createRecommendationInNewTransaction(String mrn) {
+//        nurseService.createRecommendation(mrn);
+//    }
 }

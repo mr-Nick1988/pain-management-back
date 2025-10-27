@@ -8,9 +8,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordRequest;
-import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordResponse;
-import pain_helper_back.VAS_external_integration.dto.VasMonitorStats;
+import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordRequestDTO;
+import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordResponseDTO;
+import pain_helper_back.VAS_external_integration.dto.VasMonitorStatsDTO;
 import pain_helper_back.VAS_external_integration.parser.VasFormatParser;
 import pain_helper_back.VAS_external_integration.service.ApiKeyService;
 import pain_helper_back.VAS_external_integration.service.ExternalVasIntegrationService;
@@ -48,7 +48,7 @@ public class ExternalVasIntegrationController {
             }
 
             // Парсинг данных
-            ExternalVasRecordRequest vas = parserFactory.parse(contentType, rawData);
+            ExternalVasRecordRequestDTO vas = parserFactory.parse(contentType, rawData);
 
             // Обработка VAS
             Long vasId = integrationService.processExternalVasRecord(vas);
@@ -118,7 +118,7 @@ public class ExternalVasIntegrationController {
      * @return Список VAS записей с данными пациентов
      */
     @GetMapping("/records")
-    public ResponseEntity<List<ExternalVasRecordResponse>> getRecords(
+    public ResponseEntity<List<ExternalVasRecordResponseDTO>> getRecords(
             @RequestParam(required = false) String deviceId,
             @RequestParam(required = false) String location,
             @RequestParam(required = false) String timeRange,
@@ -128,7 +128,7 @@ public class ExternalVasIntegrationController {
         log.info("GET /api/external/vas/records - deviceId={}, location={}, timeRange={}, vasRange={}-{}",
                 deviceId, location, timeRange, vasLevelMin, vasLevelMax);
 
-        List<ExternalVasRecordResponse> records = integrationService.getVasRecords(
+        List<ExternalVasRecordResponseDTO> records = integrationService.getVasRecords(
                 deviceId, location, timeRange, vasLevelMin, vasLevelMax);
 
         log.info("Returning {} VAS records", records.size());
@@ -151,10 +151,10 @@ public class ExternalVasIntegrationController {
      * @return Статистика VAS записей
      */
     @GetMapping("/stats")
-    public ResponseEntity<VasMonitorStats> getStats() {
+    public ResponseEntity<VasMonitorStatsDTO> getStats() {
         log.info("GET /api/external/vas/stats");
 
-        VasMonitorStats stats = integrationService.getVasStatistics();
+        VasMonitorStatsDTO stats = integrationService.getVasStatistics();
 
         log.info("VAS Statistics: total={}, avg={}, highPain={}, devices={}",
                 stats.getTotalRecordsToday(), stats.getAverageVas(),

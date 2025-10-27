@@ -1,7 +1,7 @@
 package pain_helper_back.VAS_external_integration.parser;
 
 
-import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordRequest;
+import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordRequestDTO;
 
 /*
  * Интерфейс для парсеров различных форматов VAS данных.
@@ -24,7 +24,7 @@ public interface VasFormatParser {
      * @return Унифицированный VAS record
      * @throws ParseException если данные невалидны
      */
-    ExternalVasRecordRequest parse(String rawData)throws ParseException;
+    ExternalVasRecordRequestDTO parse(String rawData)throws ParseException;
     /*
      * Возвращает приоритет парсера (чем меньше, тем выше)
      * Используется когда несколько парсеров могут обработать формат

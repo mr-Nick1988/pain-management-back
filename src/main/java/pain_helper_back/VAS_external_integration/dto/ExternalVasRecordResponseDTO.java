@@ -23,7 +23,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ExternalVasRecordResponse {
+public class ExternalVasRecordResponseDTO {
     
     /**
      * ID VAS записи в БД
@@ -61,7 +61,12 @@ public class ExternalVasRecordResponse {
      * Примеры: "Ward A, Bed 12", "ICU-3"
      */
     private String location;
-    
+
+    /**
+     * Локация боли на теле пациента
+     * Примеры: "Shoulder", "Leg", "Abdomen"
+     */
+    private String painPlace;
     /**
      * Временная метка записи VAS
      */

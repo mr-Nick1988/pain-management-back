@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class VasMonitorStats {
+public class VasMonitorStatsDTO {
     
     /**
      * Общее количество VAS записей за сегодня

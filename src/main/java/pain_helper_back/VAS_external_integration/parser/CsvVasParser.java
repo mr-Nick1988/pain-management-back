@@ -3,7 +3,7 @@ package pain_helper_back.VAS_external_integration.parser;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordRequest;
+import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordRequestDTO;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -44,10 +44,10 @@ public class CsvVasParser implements VasFormatParser {
     }
 
     @Override
-    public ExternalVasRecordRequest parse(String rawData) throws ParseException {
+    public ExternalVasRecordRequestDTO parse(String rawData) throws ParseException {
         log.debug("Parsing CSV VAS data (single record)");
 
-        List<ExternalVasRecordRequest> records = parseMultiple(rawData);
+        List<ExternalVasRecordRequestDTO> records = parseMultiple(rawData);
 
         if (records.isEmpty()) {
             throw new ParseException("No valid VAS records found in CSV");
@@ -63,10 +63,10 @@ public class CsvVasParser implements VasFormatParser {
      * @param rawData CSV данные
      * @return Список VAS записей
      */
-    public List<ExternalVasRecordRequest> parseMultiple(String rawData) throws ParseException {
+    public List<ExternalVasRecordRequestDTO> parseMultiple(String rawData) throws ParseException {
         log.debug("Parsing CSV VAS data (multiple records)");
 
-        List<ExternalVasRecordRequest> records = new ArrayList<>();
+        List<ExternalVasRecordRequestDTO> records = new ArrayList<>();
 
         try {
             String[] lines = rawData.split("\n");
@@ -92,7 +92,7 @@ public class CsvVasParser implements VasFormatParser {
                 try {
                     String[] values = parseCsvLine(line);
 
-                    ExternalVasRecordRequest request = ExternalVasRecordRequest.builder()
+                    ExternalVasRecordRequestDTO request = ExternalVasRecordRequestDTO.builder()
                             .patientMrn(getValue(values, patientMrnIndex))
                             .vasLevel(getIntValue(values, vasLevelIndex))
                             .deviceId(getValue(values, deviceIdIndex))
@@ -100,7 +100,7 @@ public class CsvVasParser implements VasFormatParser {
                             .timestamp(getDateTimeValue(values, timestampIndex))
                             .notes(getValue(values, notesIndex))
                             .source("CSV_IMPORT")
-                            .format(ExternalVasRecordRequest.DataFormat.CSV)
+                            .format(ExternalVasRecordRequestDTO.DataFormat.CSV)
                             .build();
 
                     // Установка timestamp если отсутствует
@@ -197,7 +197,7 @@ public class CsvVasParser implements VasFormatParser {
         }
     }
 
-    private void validateRequest(ExternalVasRecordRequest request) throws ParseException {
+    private void validateRequest(ExternalVasRecordRequestDTO request) throws ParseException {
         if (request.getPatientMrn() == null || request.getPatientMrn().trim().isEmpty()) {
             throw new ParseException("PatientMRN is required");
         }
