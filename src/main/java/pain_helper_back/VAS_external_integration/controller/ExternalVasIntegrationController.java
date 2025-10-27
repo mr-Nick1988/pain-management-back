@@ -7,19 +7,23 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordRequest;
+import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordResponse;
+import pain_helper_back.VAS_external_integration.dto.VasMonitorStats;
 import pain_helper_back.VAS_external_integration.parser.VasFormatParser;
 import pain_helper_back.VAS_external_integration.service.ApiKeyService;
 import pain_helper_back.VAS_external_integration.service.ExternalVasIntegrationService;
 import pain_helper_back.VAS_external_integration.service.VasParserFactory;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/external/vas")
 @RequiredArgsConstructor
-@Slf4j
 @CrossOrigin(origins = "*")
+@Slf4j
 public class ExternalVasIntegrationController {
 
     private final ApiKeyService apiKeyService;
@@ -96,6 +100,67 @@ public class ExternalVasIntegrationController {
                 "module", "External VAS Integration",
                 "timestamp", java.time.LocalDateTime.now()
         ));
+    }
+
+    /**
+     * Получить список VAS записей с фильтрами (для External VAS Monitor).
+     * 
+     * ИСПОЛЬЗУЕТСЯ В:
+     * - External VAS Monitor (Frontend)
+     * - Real-time мониторинг VAS данных с внешних устройств
+     * 
+     * ФИЛЬТРЫ:
+     * - deviceId: фильтр по ID устройства (MONITOR-001, TABLET-WARD-A)
+     * - location: фильтр по локации (Ward A, ICU-1)
+     * - timeRange: временной диапазон (1h, 6h, 24h, 7d)
+     * - vasLevelMin/Max: диапазон уровня боли (0-10)
+     * 
+     * @return Список VAS записей с данными пациентов
+     */
+    @GetMapping("/records")
+    public ResponseEntity<List<ExternalVasRecordResponse>> getRecords(
+            @RequestParam(required = false) String deviceId,
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) String timeRange,
+            @RequestParam(required = false) Integer vasLevelMin,
+            @RequestParam(required = false) Integer vasLevelMax) {
+
+        log.info("GET /api/external/vas/records - deviceId={}, location={}, timeRange={}, vasRange={}-{}",
+                deviceId, location, timeRange, vasLevelMin, vasLevelMax);
+
+        List<ExternalVasRecordResponse> records = integrationService.getVasRecords(
+                deviceId, location, timeRange, vasLevelMin, vasLevelMax);
+
+        log.info("Returning {} VAS records", records.size());
+        return ResponseEntity.ok(records);
+    }
+
+    /**
+     * Получить статистику по VAS записям за сегодня.
+     * 
+     * ИСПОЛЬЗУЕТСЯ В:
+     * - External VAS Monitor Dashboard (Frontend)
+     * - Отображение карточек статистики
+     * 
+     * МЕТРИКИ:
+     * - totalRecordsToday: общее количество записей за сегодня
+     * - averageVas: средний уровень боли
+     * - highPainAlerts: количество записей с VAS >= 7
+     * - activeDevices: количество активных устройств (DISTINCT)
+     * 
+     * @return Статистика VAS записей
+     */
+    @GetMapping("/stats")
+    public ResponseEntity<VasMonitorStats> getStats() {
+        log.info("GET /api/external/vas/stats");
+
+        VasMonitorStats stats = integrationService.getVasStatistics();
+
+        log.info("VAS Statistics: total={}, avg={}, highPain={}, devices={}",
+                stats.getTotalRecordsToday(), stats.getAverageVas(),
+                stats.getHighPainAlerts(), stats.getActiveDevices());
+
+        return ResponseEntity.ok(stats);
     }
 
     private String getClientIp(HttpServletRequest request) {
