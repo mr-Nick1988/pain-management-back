@@ -166,7 +166,7 @@ public class AnalyticsEventListener {
                     .eventType("RECOMMENDATION_APPROVED")
                     .recommendationId(event.getRecommendationId())
                     .patientMrn(event.getPatientMrn())
-                    .userId(event.getDoctorId())
+                    .userId(event.getApprovedBy())
                     .userRole("DOCTOR")
                     .status("APPROVED")
                     .processingTimeMs(event.getProcessingTimeMs())
@@ -175,7 +175,7 @@ public class AnalyticsEventListener {
 
             analyticsEventRepository.save(analyticsEvent);
             log.info("Analytics event saved: RECOMMENDATION_APPROVED, recommendationId={}, doctorId={}",
-                    event.getRecommendationId(), event.getDoctorId());
+                    event.getRecommendationId(), event.getApprovedBy());
 
         } catch (Exception e) {
             log.error("Failed to save analytics event for recommendation approval: {}", e.getMessage());
@@ -198,7 +198,7 @@ public class AnalyticsEventListener {
                     .eventType("RECOMMENDATION_REJECTED")
                     .recommendationId(event.getRecommendationId())
                     .patientMrn(event.getPatientMrn())
-                    .userId(event.getDoctorId())
+                    .userId(event.getRejectedBy())
                     .userRole("DOCTOR")
                     .status("REJECTED")
                     .rejectionReason(event.getRejectionReason())
@@ -207,92 +207,13 @@ public class AnalyticsEventListener {
 
             analyticsEventRepository.save(analyticsEvent);
             log.info("Analytics event saved: RECOMMENDATION_REJECTED, recommendationId={}, doctorId={}, reason={}",
-                    event.getRecommendationId(), event.getDoctorId(), event.getRejectionReason());
+                    event.getRecommendationId(), event.getRejectedBy(), event.getRejectionReason());
 
         } catch (Exception e) {
             log.error("Failed to save analytics event for recommendation rejection: {}", e.getMessage());
         }
     }
-    /*
-     * Обработка события: Создана эскалация
-     */
-    @EventListener
-    @Async("analyticsTaskExecutor")
-    public void handleEscalationCreated(EscalationCreatedEvent event) {
-        try {
-            Map<String, Object> metadata = new HashMap<>();
-            metadata.put("escalationReason", event.getEscalationReason());
-            metadata.put("escalatedAt", event.getEscalatedAt().toString());
-            metadata.put("priority", event.getPriority().toString());
-            
-            // Добавляем диагнозы в metadata для дополнительной информации
-            if (event.getPatientDiagnosisCodes() != null && !event.getPatientDiagnosisCodes().isEmpty()) {
-                metadata.put("diagnosisCount", event.getPatientDiagnosisCodes().size());
-            }
 
-            AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
-                    .timestamp(LocalDateTime.now())
-                    .eventType("ESCALATION_CREATED")
-                    .escalationId(event.getEscalationId())
-                    .recommendationId(event.getRecommendationId())
-                    .patientMrn(event.getPatientMrn())
-                    .userId(event.getEscalatedBy())
-                    .userRole("DOCTOR")
-                    .priority(event.getPriority().toString())
-                    .vasLevel(event.getVasLevel())
-                    .diagnosisCodes(event.getPatientDiagnosisCodes()) // Сохраняем ICD коды
-                    .metadata(metadata)
-                    .build();
-
-            analyticsEventRepository.save(analyticsEvent);
-            log.info("Analytics event saved: ESCALATION_CREATED, escalationId={}, recommendationId={}, priority={}, diagnoses={}",
-                    event.getEscalationId(), event.getRecommendationId(), event.getPriority(), 
-                    event.getPatientDiagnosisCodes() != null ? event.getPatientDiagnosisCodes().size() : 0);
-
-        } catch (Exception e) {
-            log.error("Failed to save analytics event for escalation creation: {}", e.getMessage());
-        }
-    }
-    /*
-     * Обработка события: Эскалация разрешена
-     */
-    @EventListener
-    @Async("analyticsTaskExecutor")
-    public void handleEscalationResolved(EscalationResolvedEvent event) {
-        try {
-            Map<String, Object> metadata = new HashMap<>();
-            metadata.put("resolution", event.getResolution());
-            metadata.put("resolvedAt", event.getResolvedAt().toString());
-            metadata.put("approved", event.getApproved());
-
-            // Добавляем информацию о диагнозах
-            if (event.getPatientDiagnosisCodes() != null && !event.getPatientDiagnosisCodes().isEmpty()) {
-                metadata.put("diagnosisCount", event.getPatientDiagnosisCodes().size());
-            }
-
-            AnalyticsEvent analyticsEvent = AnalyticsEvent.builder()
-                    .timestamp(LocalDateTime.now())
-                    .eventType("ESCALATION_RESOLVED")
-                    .escalationId(event.getEscalationId())
-                    .recommendationId(event.getRecommendationId())
-                    .patientMrn(event.getPatientMrn())
-                    .userId(event.getResolvedBy())
-                    .userRole("ANESTHESIOLOGIST")
-                    .status(event.getApproved() ? "RESOLVED" : "REJECTED")
-                    .processingTimeMs(event.getResolutionTimeMs())
-                    .diagnosisCodes(event.getPatientDiagnosisCodes()) // Сохраняем ICD коды
-                    .metadata(metadata)
-                    .build();
-
-            analyticsEventRepository.save(analyticsEvent);
-            log.info("Analytics event saved: ESCALATION_RESOLVED, escalationId={}, approved={}, resolutionTime={}ms, diagnoses={}",
-                    event.getEscalationId(), event.getApproved(), event.getResolutionTimeMs(),
-                    event.getPatientDiagnosisCodes() != null ? event.getPatientDiagnosisCodes().size() : 0);
-
-        } catch (Exception e) {
-            log.error("Failed to save analytics event for escalation resolution: {}", e.getMessage());
-        }
-    }
     /*
      * Обработка события: Пациент зарегистрирован
      */

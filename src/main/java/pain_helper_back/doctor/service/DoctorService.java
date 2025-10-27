@@ -2,8 +2,8 @@ package pain_helper_back.doctor.service;
 
 
 import pain_helper_back.common.patients.dto.*;
-import pain_helper_back.doctor.dto.RecommendationApprovalRejectionDTO;
-import pain_helper_back.doctor.dto.RecommendationWithVasDTO;
+import pain_helper_back.common.patients.dto.RecommendationApprovalRejectionDTO;
+import pain_helper_back.common.patients.dto.RecommendationWithVasDTO;
 
 import java.time.LocalDate;
 import java.util.List;

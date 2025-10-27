@@ -5,14 +5,22 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import pain_helper_back.common.patients.entity.Patient;
+import pain_helper_back.common.patients.entity.Recommendation;
 import pain_helper_back.common.patients.entity.Vas;
 import pain_helper_back.common.patients.repository.PatientRepository;
-import pain_helper_back.enums.EscalationPriority;
-import pain_helper_back.enums.EscalationStatus;
+import pain_helper_back.common.patients.repository.RecommendationRepository;
+import pain_helper_back.enums.RecommendationStatus;
 import pain_helper_back.pain_escalation_tracking.service.PainEscalationService;
 
 import java.time.LocalDateTime;
 import java.util.List;
+//TODO Нет надобности по SRS аппликации в этом классе
+//В документе Pain Escalation Tracking Module сказано:
+//“The system shall detect pain escalation upon receiving new
+// VAS input and update Recommendation status to ESCALATED if required.”
+//триггер должен быть событием записи нового VAS (через Nurse UI или автоматическое устройство);
+//не по расписанию, а по факту получения данных.
+
 
 /*
  * Планировщик автоматического мониторинга боли пациентов
@@ -25,11 +33,18 @@ public class PainMonitoringScheduler {
 
     private final PatientRepository patientRepository;
     private final PainEscalationService painEscalationService;
+    private final RecommendationRepository recommendationRepository;
 
     /*
      * Автоматическая проверка пациентов с высоким уровнем боли
      * Выполняется каждые 15 минут
      */
+
+    //Ответ: в теории — чтобы система “сама” обнаруживала больных, у которых боль не спадает.
+    // На практике (в  проекте) — бесполезно, потому что:
+    //мы уже запускаем checkPainEscalation() в handleNewVasRecord() при каждом обновлении боли;
+    //у нас нет требования в SRS “автоматически переоценивать боль без новых данных”.
+    // Значит — этот метод можно смело удалить. Он дублирует и нагружает систему без смысла.
     @Scheduled(fixedRate = 900000) // 15 минут = 900000 мс
     public void monitorHighPainPatients() {
         log.info("Starting automatic pain monitoring check...");
@@ -83,6 +98,10 @@ public class PainMonitoringScheduler {
      * Проверка пациентов с просроченными дозами
      * Выполняется каждый час
      */
+
+    //Он вообще не имеет данных о дозах, потому что:
+    //в Patient и Vas нет истории введения доз;
+    //PainEscalationService не содержит метода canAdministerNextDose().
     @Scheduled(fixedRate = 3600000) // 1 час = 3600000 мс
     public void checkOverdueDoses() {
         log.info("Starting overdue dose check...");
@@ -133,37 +152,41 @@ public class PainMonitoringScheduler {
      * Ежедневная сводка по эскалациям
      * Выполняется каждый день в 08:00
      */
+
     @Scheduled(cron = "0 0 8 * * *")
     public void dailyEscalationSummary() {
-        log.info("Generating daily escalation summary...");
+        log.info("Generating daily recommendation summary...");
 
         try {
-            List<pain_helper_back.anesthesiologist.entity.Escalation> recentEscalations = 
-                    painEscalationService.findRecentEscalations(100);
+            LocalDateTime since = LocalDateTime.now().minusHours(24);
+            List<Recommendation> recentRecommendations =
+                    recommendationRepository.findAllByCreatedAtAfter(since);
 
-            // Фильтруем эскалации за последние 24 часа
-            LocalDateTime yesterday = LocalDateTime.now().minusHours(24);
-            long last24hCount = recentEscalations.stream()
-                    .filter(e -> e.getCreatedAt().isAfter(yesterday))
+            long total = recentRecommendations.size();
+            long escalated = recentRecommendations.stream()
+                    .filter(r -> r.getStatus() == RecommendationStatus.ESCALATED)
+                    .count();
+            long approved = recentRecommendations.stream()
+                    .filter(r -> r.getStatus() == RecommendationStatus.APPROVED)
+                    .count();
+            long rejected = recentRecommendations.stream()
+                    .filter(r -> r.getStatus() == RecommendationStatus.REJECTED)
+                    .count();
+            long pending = recentRecommendations.stream()
+                    .filter(r -> r.getStatus() == RecommendationStatus.PENDING)
                     .count();
 
-            long criticalCount = recentEscalations.stream()
-                    .filter(e -> e.getCreatedAt().isAfter(yesterday))
-                    .filter(e -> e.getPriority() == EscalationPriority.CRITICAL)
-                    .count();
-
-            long pendingCount = recentEscalations.stream()
-                    .filter(e -> e.getStatus() == EscalationStatus.PENDING)
-                    .count();
-
-            log.info("=== DAILY ESCALATION SUMMARY ===");
-            log.info("Escalations in last 24h: {}", last24hCount);
-            log.info("Critical escalations: {}", criticalCount);
-            log.info("Currently pending: {}", pendingCount);
-            log.info("================================");
+            log.info("=== DAILY RECOMMENDATION SUMMARY ===");
+            log.info("Total created in last 24h: {}", total);
+            log.info("Escalated: {}", escalated);
+            log.info("Approved: {}", approved);
+            log.info("Rejected: {}", rejected);
+            log.info("Pending: {}", pending);
+            log.info("====================================");
 
         } catch (Exception e) {
-            log.error("Error generating daily summary: {}", e.getMessage(), e);
+            log.error("Error generating daily recommendation summary: {}", e.getMessage(), e);
         }
     }
+
 }

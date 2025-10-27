@@ -5,8 +5,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import pain_helper_back.anesthesiologist.dto.*;
 import pain_helper_back.anesthesiologist.service.AnesthesiologistServiceInterface;
-import pain_helper_back.enums.EscalationPriority;
-import pain_helper_back.enums.EscalationStatus;
+import pain_helper_back.common.patients.dto.RecommendationDTO;
+import pain_helper_back.common.patients.dto.RecommendationWithVasDTO;
+import pain_helper_back.common.patients.dto.RecommendationApprovalRejectionDTO;
 
 import java.util.List;
 
@@ -19,92 +20,55 @@ public class AnesthesiologistController {
     private final AnesthesiologistServiceInterface anesthesiologistService;
 
     // Escalation endpoints
+
     @GetMapping("/escalations")
-    public List<EscalationResponseDTO> getAllEscalations() {
+    public List<RecommendationWithVasDTO> getAllEscalations() {
         return anesthesiologistService.getAllEscalations();
     }
 
-    @GetMapping("/escalations/status/{status}")
-    public List<EscalationResponseDTO> getEscalationsByStatus(@PathVariable EscalationStatus status) {
-        return anesthesiologistService.getEscalationsByStatus(status);
+
+    //  APPROVE/REJECT ЭСКАЛАЦИИ ========== //
+
+    @PostMapping("/recommendations/{recommendationId}/approve")
+    public RecommendationDTO approveRecommendation(
+            @PathVariable Long recommendationId,
+            @Valid @RequestBody RecommendationApprovalRejectionDTO dto) {
+        return anesthesiologistService.approveEscalation(recommendationId, dto);
     }
 
-    @GetMapping("/escalations/priority/{priority}")
-    public List<EscalationResponseDTO> getEscalationsByPriority(@PathVariable EscalationPriority priority) {
-        return anesthesiologistService.getEscalationsByPriority(priority);
+    @PostMapping("/recommendations/{recommendationId}/reject")
+    public RecommendationDTO rejectRecommendation(
+            @PathVariable Long recommendationId,
+            @Valid @RequestBody RecommendationApprovalRejectionDTO dto) {
+        return anesthesiologistService.rejectEscalation(recommendationId, dto);
     }
 
-    @GetMapping("/escalations/active")
-    public List<EscalationResponseDTO> getActiveEscalationsOrderedByPriority() {
-        return anesthesiologistService.getActiveEscalationsOrderedByPriority();
-    }
-
-    @GetMapping("/escalations/stats")
-    public EscalationStatsDTO getEscalationStats() {
-        return anesthesiologistService.getEscalationStats();
-    }
-
-
-    // ========== НОВЫЕ ENDPOINTS: APPROVE/REJECT ЭСКАЛАЦИИ ========== //
-
-    @PostMapping("/escalations/{id}/approve")
-    public EscalationResponseDTO approveEscalation(
-            @PathVariable Long id,
-            @Valid @RequestBody EscalationResolutionDTO resolutionDTO) {
-        return anesthesiologistService.approveEscalation(id, resolutionDTO);
-    }
-    @PostMapping("/escalations/{id}/reject")
-    public EscalationResponseDTO rejectEscalation(
-            @PathVariable Long id,
-            @Valid @RequestBody EscalationResolutionDTO resolutionDTO) {
-        return anesthesiologistService.rejectEscalation(id, resolutionDTO);
-    }
 
 
     // ================= PROTOCOL ENDPOINTS ================= //
-    @PostMapping("/protocols")
-    public ProtocolResponseDTO createProtocol(@Valid @RequestBody ProtocolRequestDTO protocolRequest) {
-        return anesthesiologistService.createProtocol(protocolRequest);
-    }
-    @PutMapping("/protocols/{id}/approve")
-    public ProtocolResponseDTO approveProtocol(
-            @PathVariable Long id,
-            @RequestParam(defaultValue = "system") String approvedBy) {
-        return anesthesiologistService.approveProtocol(id, approvedBy);
-    }
-    @PutMapping("/protocols/{id}/reject")
-    public ProtocolResponseDTO rejectProtocol(
-            @PathVariable Long id,
-            @RequestParam String rejectedReason,
-            @RequestParam(defaultValue = "system") String rejectedBy) {
-        return anesthesiologistService.rejectProtocol(id, rejectedReason, rejectedBy);
-    }
-    @GetMapping("/protocols/escalation/{escalationId}")
-    public List<ProtocolResponseDTO> getProtocolsByEscalation(@PathVariable Long escalationId) {
-        return anesthesiologistService.getProtocolsByEscalation(escalationId);
-    }
-    @GetMapping("/protocols/pending-approval")
-    public List<ProtocolResponseDTO> getPendingApprovalProtocols() {
-        return anesthesiologistService.getPendingApprovalProtocols();
-    }
-    // ================= COMMENT ENDPOINTS ================= //
-    @PostMapping("/protocols/{protocolId}/comments")
-    public CommentResponseDTO addComment(
-            @PathVariable Long protocolId,
-            @Valid @RequestBody CommentRequestDTO commentRequest) {
-        commentRequest.setProtocolId(protocolId);
-        return anesthesiologistService.addComment(commentRequest);
+    @PostMapping("/recommendations")
+    public RecommendationDTO createRecommendationAfterRejection(
+            @Valid @RequestBody AnesthesiologistRecommendationCreateDTO dto) {
+        return anesthesiologistService.createRecommendationAfterRejection(dto);
     }
 
-    @GetMapping("/protocols/{protocolId}/comments")
-    public List<CommentResponseDTO> getCommentsByProtocol(@PathVariable Long protocolId) {
-        return anesthesiologistService.getCommentsByProtocol(protocolId);
+    //// Позволяет анестезиологу откорректировать существующую рекомендацию (например, дозу или интервал)
+    //// без полного её отклонения. После апдейта рекомендация снова становится APPROVED.
+    @PutMapping("/recommendations/{id}/update")
+    public RecommendationDTO updateRecommendation(
+            @PathVariable Long id,
+            @Valid @RequestBody AnesthesiologistRecommendationUpdateDTO dto) {
+        return anesthesiologistService.updateRecommendation(id, dto);
     }
 
-    @DeleteMapping("/comments/{commentId}")
-    public void deleteComment(
-            @PathVariable Long commentId,
-            @RequestParam(defaultValue = "system") String userId) {
-        anesthesiologistService.deleteComment(commentId, userId);
-    }
+
+    //TODO (A) Fallback #1 — восстановление контекста рекомендации
+    //TODO Fallback #2 — проверка и напоминание о невыполненном Reject
+
+
+
+
+
+
+
 }

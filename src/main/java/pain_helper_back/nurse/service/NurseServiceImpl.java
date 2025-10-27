@@ -320,10 +320,13 @@ public class NurseServiceImpl implements NurseService {
         vas.setResolved(true);
 
         // Проверка на существование рекомендации со статусом PENDING
-        if (patient.getRecommendations().getLast().getStatus() != RecommendationStatus.EXECUTED) {
-            throw new EntityExistsException("Previous recommendation is still unresolved");
+        List<Recommendation> recommendations = patient.getRecommendations();
+        if (!recommendations.isEmpty()) {
+            Recommendation last = recommendations.getLast();
+            if (last.getStatus() != RecommendationStatus.EXECUTED) {
+                throw new EntityExistsException("Previous recommendation is still unresolved");
+            }
         }
-
         recommendation.setPatient(patient);
         patient.getRecommendations().add(recommendation);
         patientRepository.save(patient);

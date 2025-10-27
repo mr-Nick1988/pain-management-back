@@ -13,16 +13,18 @@ import java.time.LocalDateTime;
 public class RecommendationApprovedEvent extends ApplicationEvent {
 
     private final Long recommendationId;
-    private final String doctorId;
+    private final String approvedBy; //  может быть doctorId или anesthesiologistId
+    private final String role;       // "DOCTOR" или "ANESTHESIOLOGIST"
     private final String patientMrn;
     private final LocalDateTime approvedAt;
     private final String comment;
     private final Long processingTimeMs;// time from recommendation creation to approval
 
-    public RecommendationApprovedEvent(Object source, Long recommendationId, String doctorId, String patientMrn, LocalDateTime approvedAt, String comment, Long processingTimeMs) {
+    public RecommendationApprovedEvent(Object source, Long recommendationId, String doctorId, String role, String patientMrn, LocalDateTime approvedAt, String comment, Long processingTimeMs) {
         super(source);
         this.recommendationId = recommendationId;
-        this.doctorId = doctorId;
+        this.approvedBy = doctorId;
+        this.role = role;
         this.patientMrn = patientMrn;
         this.approvedAt = approvedAt;
         this.comment = comment;

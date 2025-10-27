@@ -6,15 +6,13 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pain_helper_back.analytics.event.DoseAdministeredEvent;
-import pain_helper_back.analytics.event.EscalationCreatedEvent;
-import pain_helper_back.anesthesiologist.entity.Escalation;
-import pain_helper_back.anesthesiologist.repository.TreatmentEscalationRepository;
 import pain_helper_back.common.patients.dto.exceptions.NotFoundException;
 import pain_helper_back.common.patients.entity.Patient;
+import pain_helper_back.common.patients.entity.Recommendation;
 import pain_helper_back.common.patients.entity.Vas;
 import pain_helper_back.common.patients.repository.PatientRepository;
-import pain_helper_back.enums.EscalationPriority;
-import pain_helper_back.enums.EscalationStatus;
+import pain_helper_back.common.patients.repository.RecommendationRepository;
+import pain_helper_back.enums.RecommendationStatus;
 import pain_helper_back.pain_escalation_tracking.config.PainEscalationConfig;
 import pain_helper_back.pain_escalation_tracking.controller.PainEscalationController;
 import pain_helper_back.pain_escalation_tracking.dto.*;
@@ -39,7 +37,7 @@ public class PainEscalationServiceImpl implements PainEscalationService {
 
     private final PatientRepository patientRepository;
     private final DoseAdministrationRepository doseAdministrationRepository;
-    private final TreatmentEscalationRepository escalationRepository;
+    private final RecommendationRepository recommendationRepository;
     private final PainEscalationConfig config;
     private final ApplicationEventPublisher eventPublisher;
     private final PainEscalationNotificationService notificationService;
@@ -285,70 +283,44 @@ public class PainEscalationServiceImpl implements PainEscalationService {
     public void handleNewVasRecord(String mrn, Integer newVasLevel) {
         log.info("Handling new VAS record: patient={}, VAS={}", mrn, newVasLevel);
 
-        // Проверяем необходимость эскалации
         PainEscalationCheckResultDTO checkResult = checkPainEscalation(mrn);
+        if (!checkResult.isEscalationRequired()) {
+            log.info("No escalation required for patient {}", mrn);
+            return;
+        }
 
-        if (checkResult.isEscalationRequired()) {
-            log.warn("Escalation required for patient {}: {}", mrn, checkResult.getEscalationReason());
+        Patient patient = patientRepository.findByMrn(mrn)
+                .orElseThrow(() -> new NotFoundException("Patient with MRN " + mrn + " not found"));
 
-            // Создаем эскалацию
-            Patient patient = patientRepository.findByMrn(mrn)
-                    .orElseThrow(() -> new NotFoundException("Patient with MRN " + mrn + " not found"));
+        if (patient.getRecommendations() == null || patient.getRecommendations().isEmpty()) {
+            log.warn("Cannot escalate: patient {} has no recommendations", mrn);
+            return;
+        }
 
-            // Получаем последнюю рекомендацию пациента для связи с эскалацией
-            if (patient.getRecommendations() == null || patient.getRecommendations().isEmpty()) {
-                log.warn("Cannot create escalation: patient {} has no recommendations", mrn);
-                return;
-            }
+        Recommendation lastRec = patient.getRecommendations().getLast();
 
-            Escalation escalation = new Escalation();
-            escalation.setRecommendation(patient.getRecommendations().getLast());
-            escalation.setEscalationReason(checkResult.getEscalationReason());
-            escalation.setStatus(EscalationStatus.PENDING);
-            escalation.setEscalatedBy("PAIN_ESCALATION_SERVICE");
+        // Если рекомендация уже выполнена, но боль растёт — помечаем её как Escalated
+        if (lastRec.getStatus() == RecommendationStatus.EXECUTED ||
+                lastRec.getStatus() == RecommendationStatus.APPROVED) {
 
-            // Устанавливаем приоритет на основе анализа
-            switch (checkResult.getEscalationPriority()) {
-                case "CRITICAL" -> escalation.setPriority(EscalationPriority.CRITICAL);
-                case "HIGH" -> escalation.setPriority(EscalationPriority.HIGH);
-                case "MEDIUM" -> escalation.setPriority(EscalationPriority.MEDIUM);
-                default -> escalation.setPriority(EscalationPriority.LOW);
-            }
+            lastRec.setStatus(RecommendationStatus.ESCALATED);
+            lastRec.getComments().add(("Pain escalation detected: " + checkResult.getEscalationReason()));
 
-            Escalation savedEscalation = escalationRepository.save(escalation);
+            recommendationRepository.save(lastRec);
 
-            log.info("Escalation created: id={}, priority={}, reason={}",
-                    savedEscalation.getId(), savedEscalation.getPriority(), savedEscalation.getEscalationReason());
+            log.warn("Recommendation {} escalated for patient {}: {}",
+                    lastRec.getId(), mrn, checkResult.getEscalationReason());
 
-            // Публикуем событие для аналитики
-            eventPublisher.publishEvent(new EscalationCreatedEvent(
-                    this,
-                    savedEscalation.getId(),
-                    savedEscalation.getRecommendation().getId(),
-                    "PAIN_ESCALATION_SERVICE",
-                    mrn,
-                    LocalDateTime.now(),
-                    savedEscalation.getPriority(),
-                    savedEscalation.getEscalationReason(),
-                    newVasLevel,
-                    patient.getEmr() != null && !patient.getEmr().isEmpty() && patient.getEmr().getLast().getDiagnoses() != null ?
-                            patient.getEmr().getLast().getDiagnoses().stream().map(d -> d.getIcdCode()).toList() :
-                            java.util.Collections.emptyList()
-            ));
-
-            // Отправляем WebSocket уведомление
-            Integer previousVasLevel = checkResult.getPreviousVas();
+            // (опционально) уведомляем врача или анестезиолога
             notificationService.sendEscalationNotification(
-                    savedEscalation,
+                    lastRec,
                     patient,
                     newVasLevel,
-                    previousVasLevel,
+                    checkResult.getPreviousVas(),
                     checkResult.getRecommendations()
             );
-
-            log.info("WebSocket notification sent to doctors about escalation for patient {}", mrn);
         } else {
-            log.info("No escalation required for patient {}: {}", mrn, checkResult.getRecommendations());
+            log.info("Recommendation not in active state, skipping escalation for patient {}", mrn);
         }
     }
 
@@ -466,31 +438,6 @@ public class PainEscalationServiceImpl implements PainEscalationService {
 
     }
 
-    /*
-     * Получить последние эскалации
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public List<Escalation> findRecentEscalations(int limit) {
-        log.info("Finding {} recent escalations", limit);
-
-        return escalationRepository.findAll().stream()
-                .sorted(Comparator.comparing(Escalation::getCreatedAt).reversed())
-                .limit(limit)
-                .toList();
-    }
-
-    /*
-     * Получить эскалацию по ID
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public Escalation findEscalationById(Long id) {
-        log.info("Finding escalation by id: {}", id);
-
-        return escalationRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Escalation with id " + id + " not found"));
-    }
 
     @Override
     @Transactional
@@ -563,65 +510,66 @@ public class PainEscalationServiceImpl implements PainEscalationService {
 
     @Override
     @Transactional(readOnly = true)
-    public Escalation getLatestEscalation(String mrn) {
-        log.info("Fetching latest escalation for patient {}", mrn);
+    public Recommendation getLatestEscalation(String mrn) {
+        log.info("Fetching latest escalated recommendation for patient {}", mrn);
 
-        return escalationRepository.findTopByRecommendationPatientMrnOrderByCreatedAtDesc(mrn)
+        return recommendationRepository
+                .findTopByPatientMrnAndStatusOrderByCreatedAtDesc(mrn, RecommendationStatus.ESCALATED)
                 .orElse(null);
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public PainEscalationStatisticsDTO getEscalationStatistics() {
-        log.info("Calculating pain escalation statistics");
-
-        List<Escalation> allEscalations = escalationRepository.findAll();
-
-        long total = allEscalations.size();
-        long pending = allEscalations.stream()
-                .filter(e -> e.getStatus() == EscalationStatus.PENDING)
-                .count();
-        long resolved = allEscalations.stream()
-                .filter(e -> e.getStatus() == EscalationStatus.RESOLVED)
-                .count();
-        long critical = allEscalations.stream()
-                .filter(e -> e.getPriority() == EscalationPriority.CRITICAL)
-                .count();
-        long high = allEscalations.stream()
-                .filter(e -> e.getPriority() == EscalationPriority.HIGH)
-                .count();
-        long medium = allEscalations.stream()
-                .filter(e -> e.getPriority() == EscalationPriority.MEDIUM)
-                .count();
-
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime yesterday = now.minusHours(24);
-        LocalDateTime weekAgo = now.minusDays(7);
-
-        long last24h = allEscalations.stream()
-                .filter(e -> e.getCreatedAt().isAfter(yesterday))
-                .count();
-        long last7days = allEscalations.stream()
-                .filter(e -> e.getCreatedAt().isAfter(weekAgo))
-                .count();
-
-        // Средне время разрешения эскалаций
-        double avgResolutionHours = allEscalations.stream()
-                .filter(e -> e.getStatus() == EscalationStatus.RESOLVED && e.getResolvedAt() != null)
-                .mapToLong(e -> java.time.Duration.between(e.getCreatedAt(), e.getResolvedAt()).toHours())
-                .average()
-                .orElse(0.0);
-
-        return PainEscalationStatisticsDTO.builder()
-                .totalEscalations(total)
-                .pendingEscalations(pending)
-                .resolvedEscalations(resolved)
-                .criticalEscalations(critical)
-                .highEscalations(high)
-                .mediumEscalations(medium)
-                .averageResolutionTimeHours(avgResolutionHours)
-                .escalationsLast24Hours(last24h)
-                .escalationsLast7Days(last7days)
-                .build();
-    }
+//    @Override
+//    @Transactional(readOnly = true)
+//    public PainEscalationStatisticsDTO getEscalationStatistics() {
+//        log.info("Calculating pain escalation statistics");
+//
+//        List<Escalation> allEscalations = escalationRepository.findAll();
+//
+//        long total = allEscalations.size();
+//        long pending = allEscalations.stream()
+//                .filter(e -> e.getStatus() == EscalationStatus.PENDING)
+//                .count();
+//        long resolved = allEscalations.stream()
+//                .filter(e -> e.getStatus() == EscalationStatus.RESOLVED)
+//                .count();
+//        long critical = allEscalations.stream()
+//                .filter(e -> e.getPriority() == EscalationPriority.CRITICAL)
+//                .count();
+//        long high = allEscalations.stream()
+//                .filter(e -> e.getPriority() == EscalationPriority.HIGH)
+//                .count();
+//        long medium = allEscalations.stream()
+//                .filter(e -> e.getPriority() == EscalationPriority.MEDIUM)
+//                .count();
+//
+//        LocalDateTime now = LocalDateTime.now();
+//        LocalDateTime yesterday = now.minusHours(24);
+//        LocalDateTime weekAgo = now.minusDays(7);
+//
+//        long last24h = allEscalations.stream()
+//                .filter(e -> e.getCreatedAt().isAfter(yesterday))
+//                .count();
+//        long last7days = allEscalations.stream()
+//                .filter(e -> e.getCreatedAt().isAfter(weekAgo))
+//                .count();
+//
+//        // Средне время разрешения эскалаций
+//        double avgResolutionHours = allEscalations.stream()
+//                .filter(e -> e.getStatus() == EscalationStatus.RESOLVED && e.getResolvedAt() != null)
+//                .mapToLong(e -> java.time.Duration.between(e.getCreatedAt(), e.getResolvedAt()).toHours())
+//                .average()
+//                .orElse(0.0);
+//
+//        return PainEscalationStatisticsDTO.builder()
+//                .totalEscalations(total)
+//                .pendingEscalations(pending)
+//                .resolvedEscalations(resolved)
+//                .criticalEscalations(critical)
+//                .highEscalations(high)
+//                .mediumEscalations(medium)
+//                .averageResolutionTimeHours(avgResolutionHours)
+//                .escalationsLast24Hours(last24h)
+//                .escalationsLast7Days(last7days)
+//                .build();
+//    }
 }

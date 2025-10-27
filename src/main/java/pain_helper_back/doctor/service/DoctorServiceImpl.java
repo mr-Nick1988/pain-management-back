@@ -9,7 +9,6 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pain_helper_back.analytics.event.*;
-import pain_helper_back.anesthesiologist.entity.Escalation;
 import pain_helper_back.common.patients.dto.*;
 import pain_helper_back.common.patients.dto.exceptions.EntityExistsException;
 import pain_helper_back.common.patients.dto.exceptions.NotFoundException;
@@ -17,12 +16,9 @@ import pain_helper_back.common.patients.entity.*;
 import pain_helper_back.common.patients.repository.EmrRepository;
 import pain_helper_back.common.patients.repository.PatientRepository;
 import pain_helper_back.common.patients.repository.RecommendationRepository;
-import pain_helper_back.doctor.dto.RecommendationApprovalRejectionDTO;
-import pain_helper_back.doctor.dto.RecommendationWithVasDTO;
-import pain_helper_back.enums.EscalationPriority;
-import pain_helper_back.enums.EscalationStatus;
-import pain_helper_back.enums.PatientsGenders;
-import pain_helper_back.enums.RecommendationStatus;
+import pain_helper_back.common.patients.dto.RecommendationApprovalRejectionDTO;
+import pain_helper_back.common.patients.dto.RecommendationWithVasDTO;
+import pain_helper_back.enums.*;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -332,7 +328,6 @@ public class DoctorServiceImpl implements DoctorService {
         Patient patient = findPatientOrThrow(mrn);
         Recommendation recommendation = patient.getRecommendations().getLast();
         Vas vas = patient.getVas().getLast();
-
         RecommendationWithVasDTO dto = new RecommendationWithVasDTO();
         dto.setRecommendation(modelMapper.map(recommendation, RecommendationDTO.class));
         dto.setVas(modelMapper.map(vas, VasDTO.class));
@@ -351,47 +346,44 @@ public class DoctorServiceImpl implements DoctorService {
         Recommendation recommendation = recommendationRepository.findById(recommendationId)
                 .orElseThrow(() -> new NotFoundException("Recommendation not found"));
 
-        // Проверяем, что рекомендация ещё в статусе PENDING
-        if (recommendation.getStatus() != RecommendationStatus.PENDING) {
-            throw new IllegalStateException("Recommendation is not in PENDING status");
+        if (recommendation.getStatus() != RecommendationStatus.PENDING &&
+                recommendation.getStatus() != RecommendationStatus.ESCALATED) {
+            throw new IllegalStateException("Recommendation is not in a valid status for approval");
         }
 
-        // 1. Обновляем статус на APPROVED_BY_DOCTOR
         recommendation.setStatus(RecommendationStatus.APPROVED);
-
-        // 2. Сохраняем информацию о враче (TODO: получить из Security Context)
-        recommendation.setDoctorId("doctor_id"); // TODO: заменить на реальный ID из Security Context
+        recommendation.setDoctorId("doctor_id"); // TODO: взять из SecurityContext
         recommendation.setDoctorActionAt(LocalDateTime.now());
         recommendation.setDoctorComment(dto.getComment());
-
-        // 3. Финальное одобрение (т.к. нет эскалации)
-        recommendation.setStatus(RecommendationStatus.APPROVED);
         recommendation.setFinalApprovedBy(recommendation.getDoctorId());
         recommendation.setFinalApprovalAt(LocalDateTime.now());
 
-        // 4. Если есть комментарий от доктора — добавляем в список
         if (dto.getComment() != null && !dto.getComment().isBlank()) {
             recommendation.getComments().add("Doctor: " + dto.getComment());
         }
-        recommendationRepository.save(recommendation);
 
-        log.info("Recommendation approved: id={}, status={}", recommendation.getId(), recommendation.getStatus());
+        recommendationRepository.save(recommendation);
 
         Long processingTimeMs = Duration.between(
                 recommendation.getCreatedAt(),
                 recommendation.getDoctorActionAt()
         ).toMillis();
+
         eventPublisher.publishEvent(new RecommendationApprovedEvent(
                 this,
                 recommendation.getId(),
                 recommendation.getDoctorId(),
+                Roles.DOCTOR.name(),
                 recommendation.getPatient().getMrn(),
                 recommendation.getDoctorActionAt(),
                 recommendation.getDoctorComment(),
                 processingTimeMs
         ));
+
+        log.info("Recommendation approved: id={}, status={}", recommendation.getId(), recommendation.getStatus());
         return modelMapper.map(recommendation, RecommendationDTO.class);
     }
+
 
     @Override
     public RecommendationDTO rejectRecommendation(Long recommendationId, RecommendationApprovalRejectionDTO dto) {
@@ -400,108 +392,43 @@ public class DoctorServiceImpl implements DoctorService {
         Recommendation recommendation = recommendationRepository.findById(recommendationId)
                 .orElseThrow(() -> new NotFoundException("Recommendation not found"));
 
-        // Проверяем, что рекомендация ещё в статусе PENDING
         if (recommendation.getStatus() != RecommendationStatus.PENDING) {
             throw new IllegalStateException("Recommendation is not in PENDING status");
         }
 
-        // Проверяем, что указана причина отказа
         if (dto.getRejectedReason() == null || dto.getRejectedReason().isBlank()) {
             throw new IllegalArgumentException("Rejected reason must be provided");
         }
 
-        // 1. Обновляем статус на ESCALATED
         recommendation.setStatus(RecommendationStatus.ESCALATED);
-
-        // 2. Сохраняем информацию о враче (TODO: получить из Security Context)
-        recommendation.setDoctorId("doctor_id"); // TODO: заменить на реальный ID из Security Context
+        recommendation.setDoctorId("doctor_id"); // TODO: взять из SecurityContext
         recommendation.setDoctorActionAt(LocalDateTime.now());
         recommendation.setDoctorComment(dto.getComment());
         recommendation.setRejectedReason(dto.getRejectedReason());
 
-        // 3. СОЗДАЕМ ЭСКАЛАЦИЮ
-        Escalation escalation = new Escalation();
-        escalation.setRecommendation(recommendation);
-        escalation.setEscalatedBy(recommendation.getDoctorId());
-        escalation.setEscalatedAt(LocalDateTime.now());
-        escalation.setEscalationReason(dto.getRejectedReason());
-        escalation.setDescription("Doctor rejected recommendation: " + dto.getRejectedReason());
-
-        // 4. Определяем приоритет эскалации по уровню боли (VAS)
-        Vas vas = recommendation.getPatient().getVas().stream()
-                .max((v1, v2) -> v1.getCreatedAt().compareTo(v2.getCreatedAt()))
-                .orElse(null);
-
-        if (vas != null) {
-            if (vas.getPainLevel() >= 8) {
-                escalation.setPriority(EscalationPriority.HIGH);
-            } else if (vas.getPainLevel() >= 5) {
-                escalation.setPriority(EscalationPriority.MEDIUM);
-            } else {
-                escalation.setPriority(EscalationPriority.LOW);
-            }
-        } else {
-            // Если VAS не найден, ставим средний приоритет
-            escalation.setPriority(EscalationPriority.MEDIUM);
-        }
-
-        escalation.setStatus(EscalationStatus.PENDING);
-
-        // 5. Связываем эскалацию с рекомендацией
-        recommendation.setEscalation(escalation);
-
-        // 6. Меняем статус рекомендации на ESCALATED_TO_ANESTHESIOLOGIST
-        recommendation.setStatus(RecommendationStatus.ESCALATED);
-
-        // 7. Дополнительно: если есть комментарий — добавляем
         if (dto.getComment() != null && !dto.getComment().isBlank()) {
             recommendation.getComments().add("Doctor: " + dto.getComment());
         }
 
-        // 8. Сохраняем рекомендацию (cascade сохранит и escalation)
         recommendationRepository.save(recommendation);
 
-        log.info("Recommendation rejected and escalated: recommendationId={}, escalationId={}, priority={}",
-                recommendation.getId(), recommendation.getEscalation().getId(), escalation.getPriority());
-        //  Публикуем событие отклонения рекомендации
         eventPublisher.publishEvent(new RecommendationRejectedEvent(
                 this,
                 recommendation.getId(),
                 recommendation.getDoctorId(),
+                Roles.DOCTOR.name(),
                 recommendation.getPatient().getMrn(),
                 recommendation.getDoctorActionAt(),
                 recommendation.getRejectedReason(),
-                recommendation.getDoctorComment()
+                recommendation.getDoctorComment(),
+                null
         ));
+        log.info("Recommendation rejected and escalated: recommendationId={}, status={}",
+                recommendation.getId(), recommendation.getStatus());
 
-        // Извлекаем диагнозы пациента для аналитики
-        List<String> patientDiagnosisCodes = new ArrayList<>();
-        if (recommendation.getPatient() != null && recommendation.getPatient().getEmr() != null) {
-            for (Emr emr : recommendation.getPatient().getEmr()) {
-                if (emr.getDiagnoses() != null) {
-                    patientDiagnosisCodes.addAll(
-                            emr.getDiagnoses().stream()
-                                    .map(Diagnosis::getIcdCode)
-                                    .toList()
-                    );
-                }
-            }
-        }
-        //  Публикуем событие создания эскалации
-        eventPublisher.publishEvent(new EscalationCreatedEvent(
-                this,
-                escalation.getId(),
-                recommendation.getId(),
-                escalation.getEscalatedBy(),
-                recommendation.getPatient().getMrn(),
-                escalation.getEscalatedAt(),
-                escalation.getPriority(),
-                escalation.getEscalationReason(),
-                vas != null ? vas.getPainLevel() : 0,
-                patientDiagnosisCodes
-        ));
         return modelMapper.map(recommendation, RecommendationDTO.class);
     }
+
 
     // TODO: Данный функционал по Аудиту будет реализован в отдельном классе Spring AOP для перехвата всех действий
     // 1) @Aspect

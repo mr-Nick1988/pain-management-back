@@ -1,31 +1,27 @@
 package pain_helper_back.anesthesiologist.service;
 
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import pain_helper_back.analytics.event.EscalationResolvedEvent;
+import pain_helper_back.analytics.event.RecommendationApprovedEvent;
+import pain_helper_back.analytics.event.RecommendationRejectedEvent;
 import pain_helper_back.anesthesiologist.dto.*;
-import pain_helper_back.anesthesiologist.entity.Escalation;
-import pain_helper_back.anesthesiologist.entity.TreatmentProtocolComment;
-import pain_helper_back.anesthesiologist.entity.TreatmentsProtocol;
-import pain_helper_back.anesthesiologist.repository.ProtocolCommentRepository;
-import pain_helper_back.anesthesiologist.repository.TreatmentEscalationRepository;
-import pain_helper_back.anesthesiologist.repository.TreatmentsProtocolRepository;
+import pain_helper_back.common.patients.dto.*;
 import pain_helper_back.common.patients.dto.exceptions.NotFoundException;
+import pain_helper_back.common.patients.entity.DrugRecommendation;
+import pain_helper_back.common.patients.entity.Patient;
 import pain_helper_back.common.patients.entity.Recommendation;
+import pain_helper_back.common.patients.entity.Vas;
+import pain_helper_back.common.patients.repository.PatientRepository;
 import pain_helper_back.common.patients.repository.RecommendationRepository;
-import pain_helper_back.enums.EscalationPriority;
-import pain_helper_back.enums.EscalationStatus;
-import pain_helper_back.enums.ProtocolStatus;
 import pain_helper_back.enums.RecommendationStatus;
+import pain_helper_back.enums.Roles;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -33,248 +29,233 @@ import java.util.List;
 @Transactional
 @Slf4j
 public class AnesthesiologistServiceImpl implements AnesthesiologistServiceInterface {
-    private final TreatmentEscalationRepository escalationRepository;
-    private final TreatmentsProtocolRepository protocolRepository;
-    private final ProtocolCommentRepository commentRepository;
+
+
     private final RecommendationRepository recommendationRepository;
+    private final PatientRepository patientRepository;
     private final ModelMapper modelMapper;
     private final ApplicationEventPublisher eventPublisher;
 
-    // ================= ESCALATIONS ================= //
+
+    // Возвращает список всех рекомендаций, переданных на уровень анестезиолога (ESCALATED).
     @Override
     @Transactional(readOnly = true)
-    public List<EscalationResponseDTO> getAllEscalations() {
+    public List<RecommendationWithVasDTO> getAllEscalations() {
         log.info("Getting all escalations");
-        return escalationRepository.findAll().stream()
-                .map(escalation -> modelMapper.map(escalation, EscalationResponseDTO.class))
-                .toList();
-    }
+        return recommendationRepository.findByStatus(RecommendationStatus.ESCALATED).stream()
+                .map(recommendation -> {
+                    RecommendationWithVasDTO dto = new RecommendationWithVasDTO();
+                    dto.setRecommendation(modelMapper.map(recommendation, RecommendationDTO.class));
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<EscalationResponseDTO> getEscalationsByStatus(EscalationStatus status) {
-        log.info("Getting escalations by status: {}", status);
-        return escalationRepository.findByStatus(status).stream()
-                .map(escalation -> modelMapper.map(escalation, EscalationResponseDTO.class))
-                .toList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<EscalationResponseDTO> getEscalationsByPriority(EscalationPriority priority) {
-        log.info("Getting escalations by priority: {}", priority);
-        return escalationRepository.findByPriority(priority).stream()
-                .map(escalation -> modelMapper.map(escalation, EscalationResponseDTO.class))
+                    Vas lastVas = recommendation.getPatient().getVas().getLast();
+                    dto.setVas(modelMapper.map(lastVas, VasDTO.class));
+                    return dto;
+                })
                 .toList();
     }
 
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<EscalationResponseDTO> getActiveEscalationsOrderedByPriority() {
-        log.info("Getting active escalations ordered by priority");
-        return escalationRepository.findActiveEscalationsOrderedByPriorityAndDate().stream()
-                .map(escalation -> modelMapper.map(escalation, EscalationResponseDTO.class))
-                .toList();
-    }
 
+    // Одобряет эскалированную рекомендацию и публикует событие для аудита.
     @Override
-    @Transactional(readOnly = true)
-    public EscalationStatsDTO getEscalationStats() {
-        Long total = escalationRepository.count();
-        Long pending = escalationRepository.countByStatus(EscalationStatus.PENDING);
-        Long inProgress = escalationRepository.countByStatus(EscalationStatus.IN_REVIEW);
-        Long resolved = escalationRepository.countByStatus(EscalationStatus.RESOLVED);
-        Long high = escalationRepository.countByPriority(EscalationPriority.HIGH);
-        Long medium = escalationRepository.countByPriority(EscalationPriority.MEDIUM);
-        Long low = escalationRepository.countByPriority(EscalationPriority.LOW);
-        return new EscalationStatsDTO(total, pending, inProgress, resolved, high, medium, low);
-    }
+    public RecommendationDTO approveEscalation(Long recommendationId, RecommendationApprovalRejectionDTO dto) {
+        log.info("Approving escalation (Recommendation ID={}):", recommendationId);
 
-    @Override
-    public EscalationResponseDTO approveEscalation(Long escalationId, EscalationResolutionDTO resolutionDTO) {
-        log.info("Approving escalation: id={}, resolvedBy={}", escalationId, resolutionDTO.getResolvedBy());
-        // 1. Найти эскалацию
-        Escalation escalation = escalationRepository.findById(escalationId)
-                .orElseThrow(() -> new RuntimeException("Escalation not found with id: " + escalationId));
-        //2. Проверить статус
-        if (escalation.getStatus() == EscalationStatus.RESOLVED || escalation.getStatus() == EscalationStatus.CANCELLED) {
-            throw new IllegalStateException("Escalation is already resolved or cancelled");
+        Recommendation rec = recommendationRepository.findById(recommendationId)
+                .orElseThrow(() -> new NotFoundException("Recommendation not found"));
+
+        if (rec.getStatus() != RecommendationStatus.ESCALATED) {
+            throw new IllegalStateException("Recommendation is not in ESCALATED status for approval");
         }
-        // 3. Обновить эскалацию
-        escalation.setStatus(EscalationStatus.RESOLVED);
-        escalation.setResolvedBy(resolutionDTO.getResolvedBy());
-        escalation.setResolvedAt(LocalDateTime.now());
-        escalation.setResolution(resolutionDTO.getResolution());
-        // 4. Обновить связанную рекомендацию
-        Recommendation recommendation = escalation.getRecommendation();
-        // 4.1. Статус → APPROVED_BY_ANESTHESIOLOGIST
-        recommendation.setStatus(RecommendationStatus.APPROVED);
-        recommendation.setAnesthesiologistId(resolutionDTO.getResolvedBy());
-        recommendation.setAnesthesiologistActionAt(LocalDateTime.now());
-        recommendation.setAnesthesiologistComment(resolutionDTO.getComment());
-        // 4.2. Финальное одобрение
-        recommendation.setStatus(RecommendationStatus.APPROVED);
-        recommendation.setFinalApprovedBy(resolutionDTO.getResolvedBy());
-        recommendation.setFinalApprovalAt(LocalDateTime.now());
-        // 4.3. Добавить комментарий в список
-        if (resolutionDTO.getComment() != null && !resolutionDTO.getComment().isBlank()) {
-            recommendation.getComments().add("Anesthesiologist: " + resolutionDTO.getComment());
-        }
-        // 5. Сохранить
-        recommendationRepository.save(recommendation);
-        Escalation savedEscalation = escalationRepository.save(escalation);
-        log.info("Escalation approved: id={}, recommendationId={}, status={}",
-                savedEscalation.getId(), recommendation.getId(), recommendation.getStatus());
 
-        //Публикуем событие разрешения эскалации (одобрено)
-        Long resolutionTimeMs = Duration.between(
-                escalation.getEscalatedAt(),
-                escalation.getResolvedAt()
+        String anesthId = "anesthesiologist_id"; // TODO: взять из SecurityContext
+        String comment = dto.getComment();
+        //  Обновляем ключевые поля
+        rec.setStatus(RecommendationStatus.APPROVED);
+        rec.setAnesthesiologistId(anesthId);
+        rec.setAnesthesiologistActionAt(LocalDateTime.now());
+        rec.setAnesthesiologistComment(comment);
+        rec.setFinalApprovedBy(anesthId);
+        rec.setFinalApprovalAt(LocalDateTime.now());
+        //  Добавляем комментарий в общий список, если он есть
+        if (comment != null && !comment.isBlank()) {
+            rec.getComments().add("Anesthesiologist: " + comment);
+        }
+        recommendationRepository.save(rec);
+
+        //  время обработки от момента создания до финального решения анестезиолога
+        Long processingTimeMs = Duration.between(
+                rec.getCreatedAt(),
+                rec.getAnesthesiologistActionAt()
         ).toMillis();
-        eventPublisher.publishEvent(new EscalationResolvedEvent(
+
+        eventPublisher.publishEvent(new RecommendationApprovedEvent(
                 this,
-                savedEscalation.getId(),
-                recommendation.getId(),
-                resolutionDTO.getResolvedBy(),
-                recommendation.getPatient().getMrn(),
-                escalation.getResolvedAt(),
-                true, // approved = true
-                escalation.getResolution(),
-                resolutionTimeMs
-        ,
-                new ArrayList<>()
-        ));
-        return modelMapper.map(savedEscalation, EscalationResponseDTO.class);
-    }
-
-    @Override
-    public EscalationResponseDTO rejectEscalation(Long escalationId, EscalationResolutionDTO resolutionDTO) {
-        log.info("Rejecting escalation: id={}, resolvedBy={}", escalationId, resolutionDTO.getResolvedBy());
-        // 1. Найти эскалацию
-        Escalation escalation = escalationRepository.findById(escalationId)
-                .orElseThrow(() -> new NotFoundException("Escalation not found with id: " + escalationId));
-        // 2. Проверить статус
-        if (escalation.getStatus() == EscalationStatus.RESOLVED || escalation.getStatus() == EscalationStatus.CANCELLED) {
-            throw new IllegalStateException("Escalation is already resolved or cancelled");
-        }
-        // 3. Обновить эскалацию
-        escalation.setStatus(EscalationStatus.RESOLVED);
-        escalation.setResolvedBy(resolutionDTO.getResolvedBy());
-        escalation.setResolvedAt(LocalDateTime.now());
-        escalation.setResolution(resolutionDTO.getResolution());
-        // 4. Обновить связанную рекомендацию
-        Recommendation recommendation = escalation.getRecommendation();
-        recommendation.setStatus(RecommendationStatus.REJECTED);
-        recommendation.setAnesthesiologistId(resolutionDTO.getResolvedBy());
-        recommendation.setAnesthesiologistActionAt(LocalDateTime.now());
-        recommendation.setAnesthesiologistComment(resolutionDTO.getComment());
-        // Добавить комментарий в список
-        if (resolutionDTO.getComment() != null && !resolutionDTO.getComment().isBlank()) {
-            recommendation.getComments().add("Anesthesiologist (REJECTED): " + resolutionDTO.getComment());
-        }
-        // 5. Сохранить
-        recommendationRepository.save(recommendation);
-        Escalation savedEscalation = escalationRepository.save(escalation);
-
-        log.info("Escalation rejected: id={}, recommendationId={}, status={}",
-                savedEscalation.getId(), recommendation.getId(), recommendation.getStatus());
-
-        //Публикуем событие разрешения эскалации (отклонено)
-                Long resolutionTimeMs = Duration.between(
-                escalation.getEscalatedAt(),
-                escalation.getResolvedAt()
-        ).toMillis();
-                eventPublisher.publishEvent(new EscalationResolvedEvent(
-                this,
-                savedEscalation.getId(),
-                recommendation.getId(),
-                resolutionDTO.getResolvedBy(),
-                recommendation.getPatient().getMrn(),
-                escalation.getResolvedAt(),
-                false, // approved = false (reject)
-                escalation.getResolution(),
-                resolutionTimeMs
-        ,
-                new ArrayList<>()
+                rec.getId(),
+                anesthId,
+                Roles.ANESTHESIOLOGIST.name(),
+                rec.getPatient().getMrn(),
+                rec.getAnesthesiologistActionAt(),
+                comment,
+                processingTimeMs
         ));
 
-        return modelMapper.map(savedEscalation, EscalationResponseDTO.class);
-    }
-    // ================= PROTOCOLS ================= //
-
-    @Override
-    public ProtocolResponseDTO createProtocol(ProtocolRequestDTO protocolRequest) {
-        log.info("Creating protocol for escalation: {}", protocolRequest.getEscalationId());
-        TreatmentsProtocol protocol = modelMapper.map(protocolRequest, TreatmentsProtocol.class);
-        protocol.setStatus(ProtocolStatus.DRAFT);
-        protocol.setVersion(1);
-        TreatmentsProtocol savedProtocol = protocolRepository.save(protocol);
-        log.info("Protocol created: id={}", savedProtocol.getId());
-        return modelMapper.map(savedProtocol, ProtocolResponseDTO.class);
+        log.info("Escalation approved successfully: id={}, status={}", rec.getId(), rec.getStatus());
+        return modelMapper.map(rec, RecommendationDTO.class);
     }
 
-    @Override
-    public ProtocolResponseDTO approveProtocol(Long protocolId, String approvedBy) {
-        log.info("Approving protocol: id={}, approvedBy={}", protocolId, approvedBy);
-        TreatmentsProtocol protocol = protocolRepository.findById(protocolId)
-                .orElseThrow(() -> new RuntimeException("Protocol not found with id: " + protocolId));
-        protocol.setStatus(ProtocolStatus.APPROVED);
-        protocol.setApprovedBy(approvedBy);
-        protocol.setApprovedAt(LocalDateTime.now());
-        TreatmentsProtocol savedProtocol = protocolRepository.save(protocol);
-        return modelMapper.map(savedProtocol, ProtocolResponseDTO.class);
-    }
 
+    // Отклоняет эскалированную рекомендацию и публикует событие для аудита.
     @Override
-    public ProtocolResponseDTO rejectProtocol(Long protocolId, String rejectedReason, String rejectedBy) {
-        log.info("Rejecting protocol: id={}, rejectedBy={}", protocolId, rejectedBy);
-        TreatmentsProtocol protocol = protocolRepository.findById(protocolId)
-                .orElseThrow(() -> new RuntimeException("Protocol not found with id: " + protocolId));
-        protocol.setStatus(ProtocolStatus.REJECTED);
-        protocol.setRejectedReason(rejectedReason);
-        TreatmentsProtocol savedProtocol = protocolRepository.save(protocol);
-        return modelMapper.map(savedProtocol, ProtocolResponseDTO.class);
-    }
+    @Transactional
+    public RecommendationDTO rejectEscalation(Long recommendationId, RecommendationApprovalRejectionDTO dto) {
+        log.info("Rejecting escalation (Recommendation ID={})", recommendationId);
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<ProtocolResponseDTO> getProtocolsByEscalation(Long escalationId) {
-        return protocolRepository.findByEscalationId(escalationId).stream()
-                .map(protocol -> modelMapper.map(protocol, ProtocolResponseDTO.class))
-                .toList();
-    }
+        Recommendation rec = recommendationRepository.findById(recommendationId)
+                .orElseThrow(() -> new NotFoundException("Recommendation not found"));
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<ProtocolResponseDTO> getPendingApprovalProtocols() {
-        return protocolRepository.findByStatus(ProtocolStatus.PENDING_APPROVAL).stream()
-                .map(protocol -> modelMapper.map(protocol, ProtocolResponseDTO.class))
-                .toList();
-    }
-
-    // ================= COMMENTS ================= //
-    @Override
-    public CommentResponseDTO addComment(CommentRequestDTO commentRequest) {
-        TreatmentProtocolComment comment = modelMapper.map(commentRequest, TreatmentProtocolComment.class);
-        TreatmentProtocolComment savedComment = commentRepository.save(comment);
-        return modelMapper.map(savedComment, CommentResponseDTO.class);
-    }
-
-    @Override
-    public List<CommentResponseDTO> getCommentsByProtocol(Long protocolId) {
-        return commentRepository.findByProtocolId(protocolId).stream()
-                .map(comment -> modelMapper.map(comment, CommentResponseDTO.class))
-                .toList();
-    }
-
-    @Override
-    public void deleteComment(Long commentId, String userId) {
-        TreatmentProtocolComment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new RuntimeException("Comment not found with id: " + commentId));
-        if (!comment.getAuthorId().equals(userId)) {
-            throw new RuntimeException("User is not authorized to delete this comment");
+        if (rec.getStatus() != RecommendationStatus.ESCALATED) {
+            throw new IllegalStateException("Recommendation is not in ESCALATED status");
         }
-        commentRepository.delete(comment);
+        //  Обновляем состояние рекомендации
+        rec.setStatus(RecommendationStatus.REJECTED);
+        rec.setAnesthesiologistId("anesthesiologist_id"); // TODO: взять из SecurityContext
+        rec.setAnesthesiologistActionAt(LocalDateTime.now());
+        rec.setAnesthesiologistComment(dto.getComment());
+        rec.setRejectedReason(dto.getRejectedReason());
+        rec.setReplacedAt(LocalDateTime.now());
+
+        recommendationRepository.save(rec);
+
+        //  Публикуем событие для аудита
+        Long lifeCycleMs = Duration.between(rec.getCreatedAt(), rec.getReplacedAt()).toMillis();
+        eventPublisher.publishEvent(new RecommendationRejectedEvent(
+                this,
+                rec.getId(),
+                rec.getAnesthesiologistId(),
+                Roles.ANESTHESIOLOGIST.name(),
+                rec.getPatient().getMrn(),
+                rec.getAnesthesiologistActionAt(),
+                rec.getRejectedReason(),
+                rec.getAnesthesiologistComment(),
+                lifeCycleMs
+        ));
+        log.info("Escalation rejected successfully: id={}, lifecycle={} ms", rec.getId(), lifeCycleMs);
+        return modelMapper.map(rec, RecommendationDTO.class);
+    }
+
+
+
+    /**
+     * Создаёт новую рекомендацию вручную после отклонения предыдущей,
+     * заменяя старую, чтобы количество рекомендаций соответствовало количеству VAS-записей.
+     */
+    @Override
+    @Transactional
+    public RecommendationDTO createRecommendationAfterRejection(AnesthesiologistRecommendationCreateDTO dto) {
+
+        // 1. Находим старую рекомендацию
+        Recommendation oldRec = recommendationRepository.findById(dto.getPreviousRecommendationId())
+                .orElseThrow(() -> new NotFoundException("Previous recommendation not found"));
+
+        // 2. Находим пациента, к которому она относится
+        Patient patient = patientRepository.findByMrn(dto.getPatientMrn())
+                .orElseThrow(() -> new NotFoundException("Patient not found"));
+
+        // 3. Создаём новую рекомендацию вручную (анестезиолог берёт ответственность)
+        Recommendation newRec = new Recommendation();
+        newRec.setId(oldRec.getId()); //  тот же ID — заменяем старую запись
+        newRec.setPatient(patient);
+        newRec.setRegimenHierarchy(dto.getRegimenHierarchy());
+        newRec.setStatus(RecommendationStatus.APPROVED);
+        newRec.setCreatedBy("anesthesiologist_id"); // TODO: из SecurityContext
+        newRec.setCreatedAt(LocalDateTime.now());
+
+        // 4. Переносим данные, введённые анестезиологом
+        List<DrugRecommendation> mappedDrugs = dto.getDrugs().stream()
+                .map(d -> modelMapper.map(d, DrugRecommendation.class))
+                .toList();
+        newRec.setDrugs(mappedDrugs);
+        newRec.setContraindications(dto.getContraindications());
+        newRec.setComments(dto.getComments());
+
+        // 5. Сохраняем новую рекомендацию (перезаписывая старую)
+        recommendationRepository.save(newRec);
+
+        // 6. Обновляем коллекцию пациента — заменяем старую на новую (по индексу)
+        List<Recommendation> recList = patient.getRecommendations();
+        int index = recList.indexOf(oldRec);
+        if (index != -1) {
+            recList.set(index, newRec);
+        }
+
+        // 7. Логируем факт замены
+        log.info("Recommendation replaced: id={}, patientMrn={}, oldVersionOverwritten=true",
+                newRec.getId(), patient.getMrn());
+
+        // 8. Возвращаем DTO новой рекомендации для фронта
+        return modelMapper.map(newRec, RecommendationDTO.class);
+    }
+
+    // Обновляет данные эскалированной рекомендации после личного approve, изменяя препараты, противопоказания или комментарий.
+
+    @Override
+    @Transactional
+    public RecommendationDTO updateRecommendation(Long id, AnesthesiologistRecommendationUpdateDTO dto) {
+        log.info("Updating existing recommendation (id={})", id);
+
+        Recommendation rec = recommendationRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Recommendation not found"));
+
+        if (rec.getStatus() != RecommendationStatus.ESCALATED) {
+            throw new IllegalStateException("Only ESCALATED recommendations can be updated");
+        }
+
+        String anesthId = "anesthesiologist_id"; // TODO: из SecurityContext
+
+        // Обновляем препараты
+        if (dto.getDrugs() != null && !dto.getDrugs().isEmpty()) {
+            List<DrugRecommendation> existingDrugs = rec.getDrugs();
+
+            // проходим максимум по двум лекарствам
+            for (int i = 0; i < 2; i++) {
+                if (i >= existingDrugs.size() || i >= dto.getDrugs().size()) break;
+
+                DrugRecommendation current = existingDrugs.get(i);
+                DrugRecommendationDTO update = dto.getDrugs().get(i);
+
+                if (update.getDrugName() != null) current.setDrugName(update.getDrugName());
+                if (update.getActiveMoiety() != null) current.setActiveMoiety(update.getActiveMoiety());
+                if (update.getDosing() != null) current.setDosing(update.getDosing());
+                if (update.getInterval() != null) current.setInterval(update.getInterval());
+                if (update.getRoute() != null) current.setRoute(update.getRoute());
+                if (update.getAgeAdjustment() != null) current.setAgeAdjustment(update.getAgeAdjustment());
+                if (update.getWeightAdjustment() != null) current.setWeightAdjustment(update.getWeightAdjustment());
+                if (update.getChildPugh() != null) current.setChildPugh(update.getChildPugh());
+                if (update.getRole() != null) current.setRole(update.getRole());
+            }
+        }
+
+        //  Обновляем противопоказания
+        if (dto.getContraindications() != null) {
+            rec.setContraindications(dto.getContraindications());
+        }
+
+        //  Обновляем комментарий (обязательно для UPDATE)
+        if (dto.getComment() != null && !dto.getComment().isBlank()) {
+            rec.setAnesthesiologistComment(dto.getComment());
+            rec.getComments().add("Anesthesiologist (update): " + dto.getComment());
+        } else {
+            throw new IllegalArgumentException("Comment is required when updating a recommendation");
+        }
+
+        //  Служебные поля 
+        rec.setAnesthesiologistId(anesthId);
+        rec.setAnesthesiologistActionAt(LocalDateTime.now());
+
+        log.info("Recommendation partially updated successfully (id={})", id);
+        return modelMapper.map(rec, RecommendationDTO.class);
     }
 }
+
+

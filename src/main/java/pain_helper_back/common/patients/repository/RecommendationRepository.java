@@ -1,10 +1,13 @@
 package pain_helper_back.common.patients.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import pain_helper_back.common.patients.dto.RecommendationWithVasDTO;
 import pain_helper_back.common.patients.entity.Recommendation;
 import pain_helper_back.enums.RecommendationStatus;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Репозиторий для рекомендаций.
@@ -33,4 +36,12 @@ public interface RecommendationRepository extends JpaRepository<Recommendation, 
 
     // поиск по MRN и статусу
    List<Recommendation> findByPatientMrnAndStatus(String mrn, RecommendationStatus status);
+
+
+    Optional<Recommendation> findTopByPatientMrnAndStatusOrderByCreatedAtDesc(
+            String mrn,
+            RecommendationStatus status
+    );
+
+    List<Recommendation> findAllByCreatedAtAfter(LocalDateTime since);
 }

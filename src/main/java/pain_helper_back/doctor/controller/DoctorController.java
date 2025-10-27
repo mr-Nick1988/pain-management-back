@@ -7,7 +7,6 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import pain_helper_back.common.patients.dto.*;
-import pain_helper_back.doctor.dto.*;
 import pain_helper_back.doctor.service.DoctorService;
 
 import java.time.LocalDate;

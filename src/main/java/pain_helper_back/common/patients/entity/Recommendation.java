@@ -2,7 +2,6 @@ package pain_helper_back.common.patients.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import pain_helper_back.anesthesiologist.entity.Escalation;
 import pain_helper_back.enums.RecommendationStatus;
 
 import java.time.LocalDateTime;
@@ -68,9 +67,7 @@ public class Recommendation {
     @Column(name = "doctor_comment", length = 1000)
     private String doctorComment;
 
-    // ========== WORKFLOW: ESCALATION ========== //
-    @OneToOne(mappedBy = "recommendation", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Escalation escalation;
+
 
     // ========== WORKFLOW: ANESTHESIOLOGIST LEVEL ========== //
     @Column(name = "anesthesiologist_id", length = 50)
@@ -79,6 +76,11 @@ public class Recommendation {
     private LocalDateTime anesthesiologistActionAt;
     @Column(name = "anesthesiologist_comment", length = 1000)
     private String anesthesiologistComment;
+
+    @Column(name = "replaced_at")
+    private LocalDateTime replacedAt; // Отследить жизн. цикл после reject старой рек. заменяется на новую
+    @Column(name = "replacement_id")
+    private Long replacementId; // ID новой рекомендации, которая заменяет старую
 
     // ========== WORKFLOW: FINAL APPROVAL ========== //
     @Column(name = "final_approved_by", length = 50)
@@ -101,7 +103,7 @@ public class Recommendation {
     @JoinColumn(name = "patient_id")
     private Patient patient;
 
-    // ========== EMR RECALCULATION FIELDS ========== //
+    // ========== EMR RECALCULATION FIELDS ========== // TODO - перенести в analytics
     @Column(name = "review_reason", length = 2000)
     private String reviewReason;  // Причина необходимости пересмотра
     

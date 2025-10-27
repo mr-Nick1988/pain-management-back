@@ -1,6 +1,6 @@
 package pain_helper_back.pain_escalation_tracking.service;
 
-import pain_helper_back.anesthesiologist.entity.Escalation;
+import pain_helper_back.common.patients.entity.Recommendation;
 import pain_helper_back.pain_escalation_tracking.controller.PainEscalationController;
 import pain_helper_back.pain_escalation_tracking.dto.*;
 import pain_helper_back.pain_escalation_tracking.entity.DoseAdministration;
@@ -86,7 +86,7 @@ public interface PainEscalationService {
      * @param limit количество эскалаций
      * @return список эскалаций
      */
-    List<Escalation> findRecentEscalations(int limit);
+//    List<Escalation> findRecentEscalations(int limit);
 
     /*
      * Получить эскалацию по ID
@@ -94,7 +94,7 @@ public interface PainEscalationService {
      * @param id ID эскалации
      * @return эскалация
      */
-    Escalation findEscalationById(Long id);
+//    Escalation findEscalationById(Long id);
 
     // Новые методы для REST API
     DoseAdministration registerDoseAdministration(
@@ -108,7 +108,11 @@ public interface PainEscalationService {
 
     List<DoseHistoryDTO> getDoseHistory(String mrn);
 
-    Escalation getLatestEscalation(String mrn);
+    Recommendation getLatestEscalation(String mrn);
 
-    PainEscalationStatisticsDTO getEscalationStatistics();
+
+    //Метод getEscalationStatistics() действительно был задуман для подсчёта статистики по ухудшениям боли (эскалациям),
+    //но делал это через таблицу Escalation, которой теперь нет, а надо создавать класс - (PainEscalationEvent) журнал клинических событий и по SRS v0.2 она не требуется.
+//    PainEscalationStatisticsDTO getEscalationStatistics();
+
 }

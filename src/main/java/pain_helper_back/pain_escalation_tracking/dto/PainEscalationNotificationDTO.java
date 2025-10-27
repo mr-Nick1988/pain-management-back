@@ -3,6 +3,7 @@ package pain_helper_back.pain_escalation_tracking.dto;
 import lombok.Builder;
 import lombok.Value;
 import pain_helper_back.enums.EscalationPriority;
+import pain_helper_back.enums.RecommendationStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -22,7 +23,7 @@ public class PainEscalationNotificationDTO {
     Integer previousVas;
     Integer vasChange;
     String escalationReason;
-    EscalationPriority priority;
+    String priority;
     String recommendations;
     LocalDateTime createdAt;
     List<String> latestDiagnoses;

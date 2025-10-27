@@ -1,18 +1,17 @@
 package pain_helper_back.pain_escalation_tracking.controller;
 
-
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import pain_helper_back.anesthesiologist.entity.Escalation;
+import pain_helper_back.common.patients.entity.Recommendation;
 import pain_helper_back.pain_escalation_tracking.dto.DoseAdministrationRequestDTO;
 import pain_helper_back.pain_escalation_tracking.dto.DoseAdministrationResponseDTO;
 import pain_helper_back.pain_escalation_tracking.dto.PainEscalationCheckResultDTO;
 import pain_helper_back.pain_escalation_tracking.dto.PainTrendAnalysisDTO;
 import pain_helper_back.pain_escalation_tracking.service.PainEscalationService;
 
-import java.util.List;
+
 
 @RestController
 @RequestMapping("/api/pain-escalation")
@@ -62,20 +61,15 @@ public class PainEscalationController {
     }
 
     /**
-     * Получить список активных эскалаций для отображения на dashboard
+     * Получить последнюю эскалированную рекомендацию пациента
+     * (вместо старого метода getRecentEscalations)
      */
-    @GetMapping("/escalations/recent")
-    public List<Escalation> getRecentEscalations(@RequestParam(defaultValue = "10") int limit) {
-        return painEscalationService.findRecentEscalations(limit);
+    @GetMapping("/patients/{mrn}/latest-escalation")
+    public Recommendation getLatestEscalation(@PathVariable String mrn) {
+        return painEscalationService.getLatestEscalation(mrn);
     }
 
-    /**
-     * Получить полную информацию об эскалации
-     */
-    @GetMapping("/escalations/{id}")
-    public Escalation getEscalation(@PathVariable Long id) {
-        return painEscalationService.findEscalationById(id);
-    }
+    // === DTOs ===
 
     /**
      * DTO с информацией о доступности следующей дозы
