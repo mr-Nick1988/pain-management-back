@@ -24,6 +24,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -429,6 +430,36 @@ public class DoctorServiceImpl implements DoctorService {
         return modelMapper.map(recommendation, RecommendationDTO.class);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<RecommendationWithVasDTO> getRecommendationsWithVasByPatientMrn(String mrn) {
+        Patient patient = findPatientOrThrow(mrn);
+
+        List<Recommendation> recs = patient.getRecommendations();
+        List<Vas> vasList = patient.getVas();
+
+        int size = Math.min(recs.size(), vasList.size()); // чтобы избежать IndexOutOfBounds
+        List<RecommendationWithVasDTO> result = new ArrayList<>(size);
+
+        for (int i = 0; i < size; i++) {
+            Recommendation recommendation = recs.get(i);
+            Vas vas = vasList.get(i);
+
+            RecommendationWithVasDTO dto = new RecommendationWithVasDTO();
+            dto.setPatientMrn(mrn);
+            dto.setRecommendation(modelMapper.map(recommendation, RecommendationDTO.class));
+            dto.setVas(modelMapper.map(vas, VasDTO.class));
+
+            result.add(dto);
+        }
+        // От новых к старым
+        result.sort(Comparator.comparing(dto -> dto.getRecommendation().getCreatedAt(), Comparator.reverseOrder()));
+
+        return result;
+    }
+
+}
+
 
     // TODO: Данный функционал по Аудиту будет реализован в отдельном классе Spring AOP для перехвата всех действий
     // 1) @Aspect
@@ -448,4 +479,3 @@ public class DoctorServiceImpl implements DoctorService {
     //    AuthAuditAction → логин/логаут.
     //
     // 3) Пометить все методы для аудита @Auditable(action = PatientRegistrationAuditAction.RECOMMENDATION_REJECTED)
-}

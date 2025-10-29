@@ -1,11 +1,9 @@
 package pain_helper_back.anesthesiologist.service;
 
 
-import jakarta.validation.Valid;
-import pain_helper_back.anesthesiologist.dto.*;
-import pain_helper_back.common.patients.dto.RecommendationDTO;
-import pain_helper_back.common.patients.dto.RecommendationWithVasDTO;
-import pain_helper_back.common.patients.dto.RecommendationApprovalRejectionDTO;
+import pain_helper_back.common.patients.dto.*;
+import pain_helper_back.anesthesiologist.dto.AnesthesiologistRecommendationCreateDTO;
+import pain_helper_back.anesthesiologist.dto.AnesthesiologistRecommendationUpdateDTO;
 
 import java.util.List;
 
@@ -29,4 +27,13 @@ public interface AnesthesiologistServiceInterface {
     RecommendationDTO createRecommendationAfterRejection( AnesthesiologistRecommendationCreateDTO dto);
 
     RecommendationDTO updateRecommendation(Long id, AnesthesiologistRecommendationUpdateDTO dto);
+
+
+    // ================= PATIENT & EMR ACCESS ================= //
+    EmrDTO getLastEmrByPatientMrn(String mrn);
+    PatientDTO getPatientByMrn(String mrn);
+
+    List<RecommendationWithVasDTO> getRejectedRecommendations();
+
+    List<RecommendationWithVasDTO> getRecommendationsWithVasByPatientMrn(String mrn);
 }

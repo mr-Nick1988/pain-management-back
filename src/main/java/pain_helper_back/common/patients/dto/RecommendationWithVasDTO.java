@@ -9,4 +9,5 @@ import lombok.Data;
 public class RecommendationWithVasDTO {
     private RecommendationDTO recommendation;
     private VasDTO vas;
+    private String patientMrn;
 }

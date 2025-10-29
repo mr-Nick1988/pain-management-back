@@ -143,51 +143,13 @@ import java.util.List;
          */
         RecommendationWithVasDTO getLastRecommendationByMrn(String mrn);
 
-        // ================= WORKFLOW: APPROVAL/REJECTION ================= //
 
-        /*
-         * Одобрение рекомендации врачом
-         *
-         * WORKFLOW:
-         * 1. Проверяет, что рекомендация в статусе PENDING
-         * 2. Меняет статус: PENDING → APPROVED_BY_DOCTOR
-         * 3. Сохраняет ID врача, время одобрения и комментарий
-         * 4. Меняет статус: APPROVED_BY_DOCTOR → FINAL_APPROVED
-         * 5. Сохраняет финальное одобрение
-         *
-         * @param mrn уникальный номер медицинской карты пациента
-         * @param dto DTO с комментарием врача (опционально)
-         * @return обновленная рекомендация
-         * @throws NotFoundException если пациент не найден
-         * @throws IllegalStateException если рекомендация не в статусе PENDING
-         */
+
         RecommendationDTO approveRecommendation(Long recommendationId, RecommendationApprovalRejectionDTO dto);
 
-        /*
-         * Отклонение рекомендации врачом с автоматической эскалацией
-         *
-         * WORKFLOW:
-         * 1. Проверяет, что рекомендация в статусе PENDING
-         * 2. Меняет статус: PENDING → REJECTED_BY_DOCTOR
-         * 3. Сохраняет ID врача, время отклонения, комментарий и причину отказа
-         * 4. СОЗДАЕТ ЭСКАЛАЦИЮ:
-         *    - Связывает с рекомендацией
-         *    - Определяет приоритет по уровню боли (VAS):
-         *      * VAS >= 8 → HIGH
-         *      * VAS >= 5 → MEDIUM
-         *      * VAS < 5 → LOW
-         *    - Статус эскалации: PENDING
-         * 5. Меняет статус рекомендации: REJECTED_BY_DOCTOR → ESCALATED_TO_ANESTHESIOLOGIST
-         * 6. Сохраняет рекомендацию (cascade сохранит эскалацию)
-         *
-         * @param mrn уникальный номер медицинской карты пациента
-         * @param dto DTO с причиной отказа (обязательно) и комментарием (опционально)
-         * @return обновленная рекомендация с эскалацией
-         * @throws NotFoundException если пациент не найден
-         * @throws IllegalStateException если рекомендация не в статусе PENDING
-         * @throws IllegalArgumentException если не указана причина отказа
-         */
+
         RecommendationDTO rejectRecommendation(Long recommendationId, RecommendationApprovalRejectionDTO dto);
 
 
-}
+        List<RecommendationWithVasDTO> getRecommendationsWithVasByPatientMrn(String mrn);
+    }

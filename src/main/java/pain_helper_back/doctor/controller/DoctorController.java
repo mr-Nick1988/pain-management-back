@@ -122,4 +122,10 @@ public class DoctorController {
         return doctorService.rejectRecommendation(recommendationId, dto);
     }
 
+    // ===  get all recommendations with VAS history ===
+    @GetMapping("/patients/{mrn}/history")
+    public List<RecommendationWithVasDTO> getPatientHistory(@PathVariable String mrn) {
+        return doctorService.getRecommendationsWithVasByPatientMrn(mrn);
+    }
+
 }

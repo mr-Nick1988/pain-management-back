@@ -18,10 +18,11 @@ public class RecommendationCreatedEvent extends ApplicationEvent {
     private final List<String> dosage;
     private final String route;
     private final Integer vasLevel;
-    private final String createdBy; // nurseId
+    private final String createdBy; // nurseId or anesthesiologistId
     private final LocalDateTime createdAt;
     private final Long processingTimeMs;
     private final List<String> diagnosisCodes; // ICD коды диагнозов пациента
+
 
     public RecommendationCreatedEvent(Object source, Long recommendationId, String patientMrn,
                                       List<String> drugName, List<String> dosage, String route,

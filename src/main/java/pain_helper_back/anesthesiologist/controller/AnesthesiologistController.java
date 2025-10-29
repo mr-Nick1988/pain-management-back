@@ -3,11 +3,10 @@ package pain_helper_back.anesthesiologist.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import pain_helper_back.anesthesiologist.dto.*;
+import pain_helper_back.anesthesiologist.dto.AnesthesiologistRecommendationCreateDTO;
+import pain_helper_back.anesthesiologist.dto.AnesthesiologistRecommendationUpdateDTO;
 import pain_helper_back.anesthesiologist.service.AnesthesiologistServiceInterface;
-import pain_helper_back.common.patients.dto.RecommendationDTO;
-import pain_helper_back.common.patients.dto.RecommendationWithVasDTO;
-import pain_helper_back.common.patients.dto.RecommendationApprovalRejectionDTO;
+import pain_helper_back.common.patients.dto.*;
 
 import java.util.List;
 
@@ -24,6 +23,12 @@ public class AnesthesiologistController {
     @GetMapping("/escalations")
     public List<RecommendationWithVasDTO> getAllEscalations() {
         return anesthesiologistService.getAllEscalations();
+    }
+
+    // Rejected endpoints
+    @GetMapping("/recommendations/rejected")
+    public List<RecommendationWithVasDTO> getRejectedRecommendations() {
+        return anesthesiologistService.getRejectedRecommendations();
     }
 
 
@@ -61,14 +66,27 @@ public class AnesthesiologistController {
         return anesthesiologistService.updateRecommendation(id, dto);
     }
 
+    // ================= PATIENTS ================= //
+
+    @GetMapping("/patients/mrn/{mrn}")
+    public PatientDTO getPatientByMrn(@PathVariable String mrn) {
+        return anesthesiologistService.getPatientByMrn(mrn);
+    }
+
+// ================= EMR ================= //
+
+    @GetMapping("/patients/{mrn}/emr/last")
+    public EmrDTO getLastEmrByPatientMrn(@PathVariable String mrn) {
+        return anesthesiologistService.getLastEmrByPatientMrn(mrn);
+    }
+
+
+    @GetMapping("/patients/{mrn}/history")
+    public List<RecommendationWithVasDTO> getPatientHistory(@PathVariable String mrn) {
+        return anesthesiologistService.getRecommendationsWithVasByPatientMrn(mrn);
+    }
 
     //TODO (A) Fallback #1 — восстановление контекста рекомендации
-    //TODO Fallback #2 — проверка и напоминание о невыполненном Reject
-
-
-
-
-
 
 
 }
