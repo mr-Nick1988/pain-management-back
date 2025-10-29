@@ -200,7 +200,18 @@ public class MongoBackupService {
         );
         log.debug("Executing mongodump: {}", String.join(" ", processBuilder.command()));
 
-        Process process = processBuilder.start();
+        Process process;
+        try {
+            process = processBuilder.start();
+        } catch (IOException e) {
+            // Улучшенное сообщение об ошибке
+            String errorMsg = String.format(
+                    "Error: %s", e.getMessage()
+            );
+            log.error(errorMsg);
+            throw new IOException(errorMsg, e);
+        }
+        
         // Читать вывод процесса
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(process.getInputStream()))) {
@@ -209,6 +220,16 @@ public class MongoBackupService {
                 log.debug("mongodump: {}", line);
             }
         }
+        
+        // Читать stderr процесса (mongodump пишет прогресс в stderr)
+        try (BufferedReader errorReader = new BufferedReader(
+                new InputStreamReader(process.getErrorStream()))) {
+            String line;
+            while ((line = errorReader.readLine()) != null) {
+                log.info("mongodump: {}", line); // Прогресс, не ошибка
+            }
+        }
+        
         int exitCode = process.waitFor();
         if (exitCode != 0) {
             throw new IOException("mongodump failed with exit code: " + exitCode);
@@ -238,7 +259,18 @@ public class MongoBackupService {
         );
         log.debug("Executing mongorestore: {}", String.join(" ", processBuilder.command()));
 
-        Process process = processBuilder.start();
+        Process process;
+        try {
+            process = processBuilder.start();
+        } catch (IOException e) {
+            // Улучшенное сообщение об ошибке
+            String errorMsg = String.format(
+                    "Error: %s", e.getMessage()
+            );
+            log.error(errorMsg);
+            throw new IOException(errorMsg, e);
+        }
+        
         // Читать вывод процесса
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(process.getInputStream()))) {
@@ -247,6 +279,16 @@ public class MongoBackupService {
                 log.debug("mongorestore: {}", line);
             }
         }
+        
+        // Читать stderr процесса (mongorestore пишет прогресс в stderr)
+        try (BufferedReader errorReader = new BufferedReader(
+                new InputStreamReader(process.getErrorStream()))) {
+            String line;
+            while ((line = errorReader.readLine()) != null) {
+                log.info("mongorestore: {}", line); // Прогресс, не ошибка
+            }
+        }
+        
         int exitCode = process.waitFor();
         if (exitCode != 0) {
             throw new IOException("mongorestore failed with exit code: " + exitCode);

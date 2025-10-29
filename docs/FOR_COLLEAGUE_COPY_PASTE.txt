@@ -1,0 +1,126 @@
+═══════════════════════════════════════════════════════════════════════════
+  ДЛЯ КОЛЛЕГИ: ПРЯМЫЕ ЦИТАТЫ ИЗ SRS
+═══════════════════════════════════════════════════════════════════════════
+
+ВОПРОС: "На какой текст в SRS ты ссылаешься для Performance SLA Monitoring?"
+
+ОТВЕТ: На ДВЕ конкретные фразы:
+
+───────────────────────────────────────────────────────────────────────────
+📌 ЦИТАТА #1: SRS Section 3.5 (Reporting)
+───────────────────────────────────────────────────────────────────────────
+
+Полный текст из вашего SRS:
+
+    3.5 Отчетность
+    
+    • The system shall generate reports on usage and outcomes 
+      (TBD: Define reports e.g. 
+       Usage data: How often is the system used, which recommendations 
+                   are most commonly accepted/rejected?
+       
+       Outcome data: Improvements in patient pain levels, time to relief, 
+                     reduction in overall drug dosage; 
+       
+       Performance metrics: Average time taken to generate recommendations, 
+                            response time from approval workflows etc)
+
+КЛЮЧЕВАЯ ФРАЗА:
+>>> "Performance metrics: Average time taken to generate recommendations, 
+     response time from approval workflows"
+
+───────────────────────────────────────────────────────────────────────────
+📌 ЦИТАТА #2: SRS Section 4.2 (Performance)
+───────────────────────────────────────────────────────────────────────────
+
+Полный текст из вашего SRS:
+
+    4.2 Производительность
+    
+    • The system shall generate recommendations within [TBD: specific time frame]
+
+КЛЮЧЕВАЯ ФРАЗА:
+>>> "The system shall generate recommendations within [TBD: specific time frame]"
+
+───────────────────────────────────────────────────────────────────────────
+🎯 КАК ЭТО РЕАЛИЗОВАНО
+───────────────────────────────────────────────────────────────────────────
+
+SRS 3.5: "Average time taken to generate recommendations"
+    ↓
+Performance SLA Monitoring измеряет:
+    {
+      "operationName": "recommendation.generate",
+      "executionTimeMs": 1250,  ← "Average time taken"
+      "slaThresholdMs": 2000,
+      "timestamp": "2025-10-29T14:30:00"
+    }
+
+SRS 4.2: "Generate recommendations within [time frame]"
+    ↓
+Performance SLA Monitoring проверяет:
+    if (executionTimeMs > slaThresholdMs) {
+        log.warn("SLA VIOLATION: recommendation.generate took {}ms", 
+                 executionTimeMs);
+    }
+
+───────────────────────────────────────────────────────────────────────────
+❓ ПОЧЕМУ ЭТО НЕ ПРО CPU/RAM?
+───────────────────────────────────────────────────────────────────────────
+
+1. КОНТЕКСТ: SRS 3.5 находится в разделе "Reporting" (Отчетность)
+   - Если бы речь шла о CPU/RAM, это было бы в разделе 
+     "Non-Functional Requirements"
+
+2. ПРИМЕРЫ в SRS:
+   - "Average time to generate recommendations" ← БИЗНЕС-ОПЕРАЦИЯ
+   - "Response time from approval workflows" ← БИЗНЕС-ПРОЦЕСС
+   - НЕТ упоминания: CPU, RAM, JVM, Memory, Garbage Collection
+
+3. ФОРМУЛИРОВКА:
+   - SRS говорит: "time to generate recommendations"
+   - Это время выполнения БИЗНЕС-ЛОГИКИ (генерация рекомендации)
+   - НЕ время работы процессора или использование памяти
+
+───────────────────────────────────────────────────────────────────────────
+📊 ТАБЛИЦА СООТВЕТСТВИЯ
+───────────────────────────────────────────────────────────────────────────
+
+Требование SRS                                  | Модуль              | Реализация
+------------------------------------------------|---------------------|------------------
+"Average time to generate recommendations"      | Performance SLA     | ✅ averageTimeMs
+"Response time from approval workflows"         | Analytics+Reporting | ✅ Время между событиями
+"Generate recommendations within [time frame]"  | Performance SLA     | ✅ slaViolated
+
+───────────────────────────────────────────────────────────────────────────
+✅ ВЫВОД
+───────────────────────────────────────────────────────────────────────────
+
+Performance SLA Monitoring основан на ПРЯМЫХ цитатах из SRS:
+
+1. ✅ SRS 3.5: "Average time taken to generate recommendations"
+2. ✅ SRS 4.2: "Generate recommendations within [time frame]"
+
+Это БИЗНЕС-МЕТРИКИ (время выполнения бизнес-операций),
+а НЕ технические метрики инфраструктуры (CPU/RAM).
+
+───────────────────────────────────────────────────────────────────────────
+🎤 ФИНАЛЬНЫЙ АРГУМЕНТ
+───────────────────────────────────────────────────────────────────────────
+
+Вопрос: "Average time to generate recommendations" — это CPU или время 
+         выполнения бизнес-операции?
+
+Ответ:  Время выполнения БИЗНЕС-ОПЕРАЦИИ (генерация рекомендации).
+
+Вопрос: Как измерить это время БЕЗ Performance SLA Monitoring?
+
+Ответ:  НИКАК. Analytics НЕ измеряет время выполнения методов.
+
+Вопрос: Где в SRS написано про CPU/RAM?
+
+Ответ:  НИГДЕ. Это НЕ требуется в SRS.
+
+═══════════════════════════════════════════════════════════════════════════
+  КОНЕЦ ДИСКУССИИ
+═══════════════════════════════════════════════════════════════════════════
