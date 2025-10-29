@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordRequest;
+import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordRequestDTO;
 
 import java.time.LocalDateTime;
 
@@ -40,15 +40,15 @@ public class JsonVasParser implements VasFormatParser {
     }
 
     @Override
-    public ExternalVasRecordRequest parse(String rawData) throws ParseException {
+    public ExternalVasRecordRequestDTO parse(String rawData) throws ParseException {
         log.debug("Parsing JSON VAS data: {}", rawData);
 
         try {
             // Прямой парсинг в DTO
-            ExternalVasRecordRequest request = objectMapper.readValue(rawData, ExternalVasRecordRequest.class);
+            ExternalVasRecordRequestDTO request = objectMapper.readValue(rawData, ExternalVasRecordRequestDTO.class);
 
             // Установка формата
-            request.setFormat(ExternalVasRecordRequest.DataFormat.JSON);
+            request.setFormat(ExternalVasRecordRequestDTO.DataFormat.JSON);
 
             // Установка timestamp если отсутствует
             if (request.getTimestamp() == null) {
@@ -74,7 +74,7 @@ public class JsonVasParser implements VasFormatParser {
         return 1; // Высокий приоритет (JSON - стандарт)
     }
 
-    private void validateRequest(ExternalVasRecordRequest request) throws ParseException {
+    private void validateRequest(ExternalVasRecordRequestDTO request) throws ParseException {
         if (request.getPatientMrn() == null || request.getPatientMrn().trim().isEmpty()) {
             throw new ParseException("patientMrn is required");
         }

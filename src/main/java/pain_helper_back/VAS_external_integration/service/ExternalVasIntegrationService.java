@@ -6,7 +6,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordRequest;
+import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordRequestDTO;
+import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordResponseDTO;
+import pain_helper_back.VAS_external_integration.dto.VasMonitorStatsDTO;
 import pain_helper_back.VAS_external_integration.parser.CsvVasParser;
 import pain_helper_back.VAS_external_integration.parser.VasFormatParser;
 import pain_helper_back.analytics.event.VasRecordedEvent;
@@ -15,7 +17,9 @@ import pain_helper_back.common.patients.entity.Vas;
 import pain_helper_back.common.patients.repository.PatientRepository;
 import pain_helper_back.common.patients.repository.VasRepository;
 import pain_helper_back.nurse.service.NurseService;
+import pain_helper_back.pain_escalation_tracking.service.PainEscalationService;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -40,7 +44,8 @@ public class ExternalVasIntegrationService {
     private final NurseService nurseService;
     private final CsvVasParser csvParser;
     private final ApplicationEventPublisher eventPublisher;
-    private final pain_helper_back.pain_escalation_tracking.service.PainEscalationService painEscalationService;
+    private final PainEscalationService painEscalationService;
+    
 
     /*
      * Обработка одной VAS записи из внешней системы
@@ -48,7 +53,7 @@ public class ExternalVasIntegrationService {
      * @param externalVas Внешняя VAS запись
      * @return ID созданной VAS записи
      */
-    public Long processExternalVasRecord(ExternalVasRecordRequest externalVas) {
+    public Long processExternalVasRecord(ExternalVasRecordRequestDTO externalVas) {
         log.info("Processing external VAS record: patientMrn={}, vasLevel={}, source={}",
                 externalVas.getPatientMrn(), externalVas.getVasLevel(), externalVas.getSource());
 
@@ -62,6 +67,7 @@ public class ExternalVasIntegrationService {
         vas.setVasLevel(externalVas.getVasLevel());
         vas.setRecordedAt(externalVas.getTimestamp());
         vas.setLocation(externalVas.getLocation());
+        vas.setPainPlace(externalVas.getPainPlace());
         vas.setNotes(externalVas.getNotes());
         vas.setRecordedBy("EXTERNAL_" + externalVas.getSource()); // Помечаем как внешний источник
 
@@ -87,18 +93,29 @@ public class ExternalVasIntegrationService {
         log.info("VAS_RECORDED event published: source=EXTERNAL, device={}, vasLevel={}",
                 externalVas.getDeviceId(), externalVas.getVasLevel());
 
-        // 2.2. 🔥 АВТОМАТИЧЕСКАЯ ПРОВЕРКА ЭСКАЛАЦИИ БОЛИ
+        // 2.2. АВТОМАТИЧЕСКАЯ ПРОВЕРКА ЭСКАЛАЦИИ БОЛИ
         painEscalationService.handleNewVasRecord(patient.getMrn(), externalVas.getVasLevel());
 
         // 3. Автоматическая генерация рекомендации (если VAS >= 4)
+        // ВАЖНО: Используем отдельную транзакцию, чтобы ошибка рекомендации не откатила VAS
         if (externalVas.getVasLevel() >= 4) {
-            try {
-                nurseService.createRecommendation(patient.getMrn());
-                log.info("Recommendation generated automatically for patient: {}", patient.getMrn());
-            } catch (Exception e) {
-                log.error("Failed to generate recommendation for patient {}: {}",
-                        patient.getMrn(), e.getMessage());
-                // Не бросаем исключение - VAS уже сохранен
+            // Проверяем есть ли уже PENDING рекомендация у пациента
+            boolean hasPending = patient.getRecommendations().stream()
+                    .anyMatch(r -> r.getStatus() == pain_helper_back.enums.RecommendationStatus.PENDING);
+            
+            if (hasPending) {
+                log.info("Skipping recommendation generation - PENDING recommendation already exists for patient {}", 
+                        patient.getMrn());
+            } else {
+                try {
+                    nurseService.createRecommendation(patient.getMrn());
+                  //createRecommendationInNewTransaction(patient.getMrn());
+                    log.info("Recommendation generated automatically for patient: {}", patient.getMrn());
+                } catch (Exception e) {
+                    log.error("Failed to generate recommendation for patient {}: {}",
+                            patient.getMrn(), e.getMessage());
+                    // Не бросаем исключение - VAS уже сохранен в основной транзакции
+                }
             }
         }
         return savedVas.getId();
@@ -114,7 +131,7 @@ public class ExternalVasIntegrationService {
         log.info("Processing batch VAS import from CSV");
 
         // Парсинг CSV
-        List<ExternalVasRecordRequest> records = csvParser.parseMultiple(csvData);
+        List<ExternalVasRecordRequestDTO> records = csvParser.parseMultiple(csvData);
         int total = records.size();
         int success = 0;
         int failed = 0;
@@ -123,7 +140,7 @@ public class ExternalVasIntegrationService {
 
         // Обработка каждой записи
         for (int i = 0; i < records.size(); i++) {
-            ExternalVasRecordRequest record = records.get(i);
+            ExternalVasRecordRequestDTO record = records.get(i);
 
             try {
                 Long vasId = processExternalVasRecord(record);
@@ -151,4 +168,160 @@ public class ExternalVasIntegrationService {
 
         return result;
     }
+
+    /*
+     * Получить список VAS записей с фильтрами для мониторинга.
+     *
+     * @param deviceId Фильтр по ID устройства (optional)
+     * @param location Фильтр по локации (optional)
+     * @param timeRange Временной диапазон: "1h", "6h", "24h", "7d" (optional)
+     * @param vasLevelMin Минимальный уровень VAS (optional)
+     * @param vasLevelMax Максимальный уровень VAS (optional)
+     * @return Список VAS записей с данными пациентов
+     */
+    @Transactional(readOnly = true)
+    public List<ExternalVasRecordResponseDTO> getVasRecords(
+            String deviceId,
+            String location,
+            String timeRange,
+            Integer vasLevelMin,
+            Integer vasLevelMax) {
+
+        log.info("Fetching VAS records: deviceId={}, location={}, timeRange={}, vasRange={}-{}",
+                deviceId, location, timeRange, vasLevelMin, vasLevelMax);
+
+        // Определяем временной диапазон
+        LocalDateTime startTime = calculateStartTime(timeRange);
+
+        // Получаем VAS записи с фильтрацией
+        List<Vas> vasRecords = vasRepository.findAll().stream()
+                .filter(v -> v.getRecordedBy() != null && v.getRecordedBy().startsWith("EXTERNAL_"))
+                .filter(v -> startTime == null || v.getCreatedAt().isAfter(startTime))
+                .filter(v -> deviceId == null || extractDeviceId(v.getRecordedBy()).contains(deviceId))
+                .filter(v -> location == null || (v.getLocation() != null && v.getLocation().contains(location)))
+                .filter(v -> vasLevelMin == null || v.getVasLevel() >= vasLevelMin)
+                .filter(v -> vasLevelMax == null || v.getVasLevel() <= vasLevelMax)
+                .sorted((v1, v2) -> v2.getCreatedAt().compareTo(v1.getCreatedAt())) // DESC по времени
+                .toList();
+
+        log.info("Found {} VAS records matching filters", vasRecords.size());
+
+        // Конвертируем в DTO с данными пациента
+        return vasRecords.stream()
+                .map(this::convertToResponse)
+                .toList();
+    }
+
+    /*
+     * Получить статистику по VAS записям за сегодня.
+     *
+     * @return Статистика: total, average, high pain alerts, active devices
+     */
+    @Transactional(readOnly = true)
+    public VasMonitorStatsDTO getVasStatistics() {
+        log.info("Calculating VAS statistics for today");
+
+        LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
+
+        // Получаем все внешние VAS записи за сегодня
+        List<Vas> todayRecords = vasRepository.findAll().stream()
+                .filter(v -> v.getRecordedBy() != null && v.getRecordedBy().startsWith("EXTERNAL_"))
+                .filter(v -> v.getCreatedAt().isAfter(startOfDay))
+                .toList();
+
+        int totalRecords = todayRecords.size();
+
+        // Средний VAS
+        double averageVas = todayRecords.isEmpty() ? 0.0 :
+                todayRecords.stream()
+                        .mapToInt(Vas::getVasLevel)
+                        .average()
+                        .orElse(0.0);
+
+        // High pain alerts (VAS >= 7)
+        int highPainAlerts = (int) todayRecords.stream()
+                .filter(v -> v.getVasLevel() >= 7)
+                .count();
+
+        // Активные устройства (DISTINCT deviceId)
+        long activeDevices = todayRecords.stream()
+                .map(v -> extractDeviceId(v.getRecordedBy()))
+                .distinct()
+                .count();
+
+        log.info("VAS Statistics: total={}, avg={}, highPain={}, devices={}",
+                totalRecords, averageVas, highPainAlerts, activeDevices);
+
+        return VasMonitorStatsDTO.builder()
+                .totalRecordsToday(totalRecords)
+                .averageVas(Math.round(averageVas * 10.0) / 10.0) // Округление до 1 знака
+                .highPainAlerts(highPainAlerts)
+                .activeDevices((int) activeDevices)
+                .build();
+    }
+
+    /*
+     * Вспомогательный метод: расчет начального времени по timeRange.
+     */
+    private LocalDateTime calculateStartTime(String timeRange) {
+        if (timeRange == null) return null;
+
+        return switch (timeRange) {
+            case "1h" -> LocalDateTime.now().minusHours(1);
+            case "6h" -> LocalDateTime.now().minusHours(6);
+            case "24h" -> LocalDateTime.now().minusHours(24);
+            case "7d" -> LocalDateTime.now().minusDays(7);
+            default -> null;
+        };
+    }
+
+    /*
+     * Вспомогательный метод: извлечение deviceId из recordedBy.
+     * Format: "EXTERNAL_VAS_MONITOR" → "VAS_MONITOR"
+     */
+    private String extractDeviceId(String recordedBy) {
+        if (recordedBy == null || !recordedBy.startsWith("EXTERNAL_")) {
+            return "UNKNOWN";
+        }
+        return recordedBy.substring("EXTERNAL_".length());
+    }
+
+    /*
+     * Вспомогательный метод: конвертация Vas entity в Response DTO.
+     */
+    private ExternalVasRecordResponseDTO convertToResponse(Vas vas) {
+        Patient patient = vas.getPatient();
+
+        return ExternalVasRecordResponseDTO.builder()
+                .id(vas.getId())
+                .patientMrn(patient.getMrn())
+                .patientFirstName(patient.getFirstName())
+                .patientLastName(patient.getLastName())
+                .vasLevel(vas.getVasLevel())
+                .deviceId(extractDeviceId(vas.getRecordedBy()))
+                .location(vas.getLocation())
+                .painPlace(vas.getPainPlace())
+                .timestamp(vas.getRecordedAt())
+                .notes(vas.getNotes())
+                .source(extractDeviceId(vas.getRecordedBy()))
+                .createdAt(vas.getCreatedAt())
+                .build();
+    }
+
+    /**
+     * Создание рекомендации в отдельной транзакции.
+     * 
+     * ВАЖНО: Использует REQUIRES_NEW propagation, чтобы ошибка создания рекомендации
+     * не откатывала сохранение VAS записи.
+     * 
+     * ПРИЧИНА: При VAS >= 4 автоматически генерируется рекомендация, но если у пациента
+     * уже есть неразрешенная рекомендация, то createRecommendation() бросает исключение.
+     * Без REQUIRES_NEW это приводит к UnexpectedRollbackException и откату VAS.
+     * 
+     * @param mrn MRN пациента
+     */
+
+//    public void createRecommendationInNewTransaction(String mrn) {
+//        nurseService.createRecommendation(mrn);
+//    }
 }

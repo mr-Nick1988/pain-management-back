@@ -45,7 +45,6 @@ public class NurseServiceImpl implements NurseService {
     private final PainEscalationService painEscalationService;
 
 
-
     private Patient findPatientOrThrow(String mrn) {
         return patientRepository.findByMrn(mrn)
                 .orElseThrow(() -> new NotFoundException("Patient with this " + mrn + " not found"));
@@ -306,6 +305,7 @@ public class NurseServiceImpl implements NurseService {
             return recommendationDTO;
         }).toList();
     }
+
 
     @Override
     @Transactional

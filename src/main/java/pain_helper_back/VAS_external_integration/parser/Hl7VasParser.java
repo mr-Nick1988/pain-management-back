@@ -2,7 +2,7 @@ package pain_helper_back.VAS_external_integration.parser;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordRequest;
+import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordRequestDTO;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -41,7 +41,7 @@ public class Hl7VasParser implements VasFormatParser {
     }
 
     @Override
-    public ExternalVasRecordRequest parse(String rawData) throws ParseException {
+    public ExternalVasRecordRequestDTO parse(String rawData) throws ParseException {
         log.debug("Parsing HL7 v2 VAS data");
 
         try {
@@ -89,13 +89,13 @@ public class Hl7VasParser implements VasFormatParser {
                 }
             }
 
-            ExternalVasRecordRequest request = ExternalVasRecordRequest.builder()
+            ExternalVasRecordRequestDTO request = ExternalVasRecordRequestDTO.builder()
                     .patientMrn(patientMrn)
                     .vasLevel(vasLevel)
                     .deviceId(deviceId)
                     .timestamp(timestamp != null ? timestamp : LocalDateTime.now())
                     .source("HL7_V2_IMPORT")
-                    .format(ExternalVasRecordRequest.DataFormat.HL7_V2)
+                    .format(ExternalVasRecordRequestDTO.DataFormat.HL7_V2)
                     .build();
 
             // Валидация
@@ -126,7 +126,7 @@ public class Hl7VasParser implements VasFormatParser {
         }
     }
 
-    private void validateRequest(ExternalVasRecordRequest request) throws ParseException {
+    private void validateRequest(ExternalVasRecordRequestDTO request) throws ParseException {
         if (request.getPatientMrn() == null || request.getPatientMrn().trim().isEmpty()) {
             throw new ParseException("Patient MRN not found in HL7 message (PID segment)");
         }

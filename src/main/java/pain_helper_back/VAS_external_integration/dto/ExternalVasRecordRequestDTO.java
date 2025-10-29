@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ExternalVasRecordRequest {
+public class ExternalVasRecordRequestDTO {
     /**
      * MRN пациента (обязательно)
      * Примеры: "EMR-12345678", "MRN-987654"
@@ -45,6 +45,12 @@ public class ExternalVasRecordRequest {
      * Примеры: "Ward A, Bed 12", "ICU-3", "ER-Room-5"
      */
     private String location;
+
+    /**
+     * Локация боли на теле пациента
+     * Примеры: "Shoulder", "Leg", "Abdomen", "Chest", "Back"
+     */
+    private String painPlace;
 
     /**
      * Временная метка записи VAS
