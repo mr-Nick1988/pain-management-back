@@ -167,9 +167,26 @@ public class MongoBackupService {
                 log.error("Backup directory not found: {}", backupPath);
                 return false;
             }
+            
+            // ВАЖНО: mongodump создает поддиректорию с именем БД
+            // Структура: mongo_backup_YYYYMMDD_HHMMSS/painmanagement/*.bson
+            // mongorestore ожидает путь к директории с BSON файлами
+            Path painmanagementDir = backup.resolve("painmanagement");
+            
+            String restorePath;
+            if (Files.exists(painmanagementDir) && Files.isDirectory(painmanagementDir)) {
+                // Использовать поддиректорию с данными
+                restorePath = painmanagementDir.toString();
+                log.info("Found database subdirectory: {}", restorePath);
+            } else {
+                // Использовать корневую директорию (на случай другой структуры)
+                restorePath = backupPath;
+                log.warn("Database subdirectory not found, using root: {}", restorePath);
+            }
+            
             // Выполнить mongorestore
-            executeMongoRestore(backupPath);
-            log.info("MongoDB restore completed successfully from: {}", backupPath);
+            executeMongoRestore(restorePath);
+            log.info("MongoDB restore completed successfully from: {}", restorePath);
             return true;
         } catch (Exception e) {
             log.error("MongoDB restore failed: {}", e.getMessage(), e);
@@ -212,29 +229,43 @@ public class MongoBackupService {
             throw new IOException(errorMsg, e);
         }
         
-        // Читать вывод процесса
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(process.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                log.debug("mongodump: {}", line);
+        // ВАЖНО: Читать stdout и stderr ПАРАЛЛЕЛЬНО, иначе deadlock!
+        // mongodump пишет прогресс в stderr, который может переполнить буфер
+        Thread stdoutThread = new Thread(() -> {
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    log.debug("mongodump stdout: {}", line);
+                }
+            } catch (IOException e) {
+                log.error("Error reading mongodump stdout: {}", e.getMessage());
             }
-        }
+        });
         
-        // Читать stderr процесса (mongodump пишет прогресс в stderr)
-        try (BufferedReader errorReader = new BufferedReader(
-                new InputStreamReader(process.getErrorStream()))) {
-            String line;
-            while ((line = errorReader.readLine()) != null) {
-                log.info("mongodump: {}", line); // Прогресс, не ошибка
+        Thread stderrThread = new Thread(() -> {
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getErrorStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    log.info("mongodump: {}", line);
+                }
+            } catch (IOException e) {
+                log.error("Error reading mongodump stderr: {}", e.getMessage());
             }
-        }
+        });
+        
+        stdoutThread.start();
+        stderrThread.start();
         
         int exitCode = process.waitFor();
+        stdoutThread.join();
+        stderrThread.join();
+        
         if (exitCode != 0) {
             throw new IOException("mongodump failed with exit code: " + exitCode);
         }
-        log.debug("mongodump completed successfully");
+        log.info("mongodump completed successfully with exit code 0");
     }
 
     /*
@@ -271,29 +302,43 @@ public class MongoBackupService {
             throw new IOException(errorMsg, e);
         }
         
-        // Читать вывод процесса
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(process.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                log.debug("mongorestore: {}", line);
+        // ВАЖНО: Читать stdout и stderr ПАРАЛЛЕЛЬНО, иначе deadlock!
+        // mongorestore пишет прогресс в stderr, который может переполнить буфер
+        Thread stdoutThread = new Thread(() -> {
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    log.debug("mongorestore stdout: {}", line);
+                }
+            } catch (IOException e) {
+                log.error("Error reading mongorestore stdout: {}", e.getMessage());
             }
-        }
+        });
         
-        // Читать stderr процесса (mongorestore пишет прогресс в stderr)
-        try (BufferedReader errorReader = new BufferedReader(
-                new InputStreamReader(process.getErrorStream()))) {
-            String line;
-            while ((line = errorReader.readLine()) != null) {
-                log.info("mongorestore: {}", line); // Прогресс, не ошибка
+        Thread stderrThread = new Thread(() -> {
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getErrorStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    log.info("mongorestore: {}", line);
+                }
+            } catch (IOException e) {
+                log.error("Error reading mongorestore stderr: {}", e.getMessage());
             }
-        }
+        });
+        
+        stdoutThread.start();
+        stderrThread.start();
         
         int exitCode = process.waitFor();
+        stdoutThread.join();
+        stderrThread.join();
+        
         if (exitCode != 0) {
             throw new IOException("mongorestore failed with exit code: " + exitCode);
         }
-        log.debug("mongorestore completed successfully");
+        log.info("mongorestore completed successfully with exit code 0");
     }
 
     /*

@@ -136,38 +136,9 @@ public void scheduledCleanup()    // Удаление старых бэкапо�
   "endTime": "2025-10-29T12:00:15",
   "durationMs": 15000,
   "trigger": "MANUAL",
-  "initiatedBy": "admin123",
   "errorMessage": null,
-  "expirationDate": "2025-11-28T12:00:00"
-}
-```
-
-### 2. Восстановить из бэкапа
-
-**POST** `/api/backup/restore`
-
-**Request Body:**
-```json
-{
-  "backupId": "507f1f77bcf86cd799439011",
-  "initiatedBy": "admin123",
-  "confirmed": true  // ОБЯЗАТЕЛЬНО true для защиты
-}
-```
-
-**Response:**
-```json
-"Restore initiated successfully. Check logs for details."
-```
-
-**ВАЖНО для H2:**
-- Восстановление H2 требует ручных шагов (см. логи)
-- Приложение нужно остановить, распаковать архив, заменить файлы БД
-
-### 3. История бэкапов
-
-**GET** `/api/backup/history`
-
+  "expirationDate": "2025-11-28T12:00:00",
+  "backupHistory": []
 **Response:**
 ```json
 [

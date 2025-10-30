@@ -195,7 +195,8 @@ public class BackupManagementService {
                 break;
 
             case FULL_SYSTEM:
-                throw new RuntimeException("Full system restore not implemented. Please restore H2 and MongoDB separately.");
+                success = restoreFullSystem(backup, request.getInitiatedBy());
+                break;
 
             default:
                 throw new IllegalArgumentException("Unknown backup type: " + backupType);
@@ -207,6 +208,98 @@ public class BackupManagementService {
             log.error("Restore failed from backup: {}", request.getBackupId());
             return "Restore failed. Check logs for details.";
         }
+    }
+
+    /*
+     * Восстановить полную систему (H2 + MongoDB).
+     *
+     * ПРОЦЕСС:
+     * 1. Извлечь ID дочерних бэкапов из metadata
+     * 2. Восстановить MongoDB
+     * 3. Логировать инструкции для H2 (требует перезапуска)
+     *
+     * ВАЖНО:
+     * - MongoDB восстанавливается онлайн
+     * - H2 требует ручного восстановления с перезапуском приложения
+     *
+     * @param fullBackup История полного бэкапа
+     * @param initiatedBy Инициатор восстановления
+     * @return true если MongoDB восстановлен успешно
+     */
+    private boolean restoreFullSystem(BackupHistory fullBackup, String initiatedBy) {
+        log.warn("Starting full system restore. InitiatedBy: {}", initiatedBy);
+        
+        try {
+            // Парсинг metadata для получения ID дочерних бэкапов
+            String metadata = fullBackup.getMetadata();
+            if (metadata == null || metadata.isEmpty()) {
+                log.error("Full system backup has no metadata. Cannot restore.");
+                return false;
+            }
+            
+            // Простой парсинг JSON (без Jackson для минимальных зависимостей)
+            String h2BackupId = extractJsonValue(metadata, "h2_backup_id");
+            String mongoBackupId = extractJsonValue(metadata, "mongo_backup_id");
+            
+            log.info("Full system restore: H2 backup ID: {}, MongoDB backup ID: {}", h2BackupId, mongoBackupId);
+            
+            boolean mongoSuccess = false;
+            boolean h2Success = false;
+            
+            // 1. Восстановить MongoDB (онлайн)
+            if (mongoBackupId != null && !mongoBackupId.isEmpty()) {
+                BackupHistory mongoBackup = backupHistoryRepository.findById(mongoBackupId).orElse(null);
+                if (mongoBackup != null && mongoBackup.getBackupFilePath() != null) {
+                    mongoSuccess = mongoBackupService.restoreFromBackup(
+                            mongoBackup.getBackupFilePath(),
+                            initiatedBy
+                    );
+                    log.info("MongoDB restore result: {}", mongoSuccess ? "SUCCESS" : "FAILED");
+                } else {
+                    log.error("MongoDB backup not found or has no file path: {}", mongoBackupId);
+                }
+            }
+            
+            // 2. Логировать инструкции для H2 (требует перезапуска)
+            if (h2BackupId != null && !h2BackupId.isEmpty()) {
+                BackupHistory h2Backup = backupHistoryRepository.findById(h2BackupId).orElse(null);
+                if (h2Backup != null && h2Backup.getBackupFilePath() != null) {
+                    h2Success = h2BackupService.restoreFromBackup(
+                            h2Backup.getBackupFilePath(),
+                            initiatedBy
+                    );
+                    log.info("H2 restore instructions logged: {}", h2Backup.getBackupFilePath());
+                } else {
+                    log.error("H2 backup not found or has no file path: {}", h2BackupId);
+                }
+            }
+            
+            // Считаем успешным, если хотя бы MongoDB восстановлен
+            // H2 всегда возвращает true (только логирует инструкции)
+            return mongoSuccess;
+            
+        } catch (Exception e) {
+            log.error("Full system restore failed: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+    
+    /*
+     * Извлечь значение из простого JSON.
+     * Пример: {"key":"value"} -> extractJsonValue(json, "key") -> "value"
+     */
+    private String extractJsonValue(String json, String key) {
+        String searchKey = "\"" + key + "\":\"";
+        int startIndex = json.indexOf(searchKey);
+        if (startIndex == -1) {
+            return null;
+        }
+        startIndex += searchKey.length();
+        int endIndex = json.indexOf("\"", startIndex);
+        if (endIndex == -1) {
+            return null;
+        }
+        return json.substring(startIndex, endIndex);
     }
 
     /*
