@@ -86,17 +86,29 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
             Optional<EmrMapping> existingMapping = emrMappingRepository.findByExternalFhirId(fhirPatientId);
 
             if (existingMapping.isPresent()) {
-                // Пациент уже импортирован ранее - возвращаем существующий номер
-                log.info("Patient already imported: fhirPatientId={}, internalEmrNumber={}",
-                        fhirPatientId, existingMapping.get().getInternalEmrNumber());
-
-                EmrImportResultDTO result = EmrImportResultDTO.success("Patient already imported");
-                result.setExternalPatientIdInFhirResource(fhirPatientId);
-                result.setMatchConfidence(MatchConfidence.EXACT);  // 100% совпадение
-                result.setNewPatientCreated(false);  // Новый пациент НЕ создан
-                result.setSourceType(existingMapping.get().getSourceType());
-                result.addWarning("Patient was already imported previously");
-                return result;
+                // Пациент был импортирован ранее - проверяем, существует ли он в системе
+                String internalEmrNumber = existingMapping.get().getInternalEmrNumber();
+                Optional<Patient> existingPatient = patientRepository.findByMrn(internalEmrNumber);
+                
+                if (existingPatient.isPresent() && existingPatient.get().getIsActive()) {
+                    // Пациент существует И активен - блокируем повторный импорт
+                    log.warn("Patient already exists and is active: fhirPatientId={}, mrn={}",
+                            fhirPatientId, internalEmrNumber);
+                    
+                    EmrImportResultDTO result = EmrImportResultDTO.success("Patient already exists in system");
+                    result.setExternalPatientIdInFhirResource(fhirPatientId);
+                    result.setInternalPatientId(existingPatient.get().getId());
+                    result.setMatchConfidence(MatchConfidence.EXACT);  // 100% совпадение
+                    result.setNewPatientCreated(false);  // Новый пациент НЕ создан
+                    result.setSourceType(existingMapping.get().getSourceType());
+                    result.addWarning("Patient already exists with MRN: " + internalEmrNumber);
+                    return result;
+                }
+                
+                // Пациент был удален или не существует - НЕ удаляем маппинг, просто пропускаем проверку
+                log.info("Patient was deleted or not found, allowing re-import: fhirPatientId={}, mrn={}",
+                        fhirPatientId, internalEmrNumber);
+                log.info("Existing mapping will be reused or updated");
             }
 
             // ШАГ 2: Получаем данные пациента из FHIR сервера
@@ -119,20 +131,28 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
 
             // ШАГ 4: Присваиваем внутренний EMR номер
             // Формат: EMR-A1B2C3D4 (уникальный для нашей системы)
-            String internalEmrNumber = generateInternalEmrNumber();
-            log.info("Assigned internal EMR number: {} for FHIR patient: {}", internalEmrNumber, fhirPatientId);
-
+            String internalEmrNumber;
+            
             // ШАГ 5: Сохраняем связь между внешним FHIR ID и внутренним EMR номером
-            EmrMapping mapping = new EmrMapping();
-            mapping.setExternalFhirId(fhirPatientId);  // ID в FHIR системе другой больницы
-            mapping.setInternalEmrNumber(internalEmrNumber);  // Наш внутренний номер
-            mapping.setSourceType(EmrSourceType.FHIR_SERVER);  // Источник: FHIR сервер
-            mapping.setSourceSystemUrl(fhirPatient.getSourceSystemUrl());  // URL больницы
-            mapping.setImportedBy(importedBy);  // Кто импортировал (для аудита)
-            emrMappingRepository.save(mapping);
-
-            log.info("Successfully saved EMR mapping: externalId={}, internalEmr={}",
-                    fhirPatientId, internalEmrNumber);
+            // ВАЖНО: Если маппинг уже существует (пациент был удален) - используем его
+            if (existingMapping.isPresent()) {
+                internalEmrNumber = existingMapping.get().getInternalEmrNumber();
+                log.info("Reusing existing EMR number: {} for FHIR patient: {}", internalEmrNumber, fhirPatientId);
+            } else {
+                internalEmrNumber = generateInternalEmrNumber();
+                log.info("Assigned new internal EMR number: {} for FHIR patient: {}", internalEmrNumber, fhirPatientId);
+                
+                EmrMapping mapping = new EmrMapping();
+                mapping.setExternalFhirId(fhirPatientId);  // ID в FHIR системе другой больницы
+                mapping.setInternalEmrNumber(internalEmrNumber);  // Наш внутренний номер
+                mapping.setSourceType(EmrSourceType.FHIR_SERVER);  // Источник: FHIR сервер
+                mapping.setSourceSystemUrl(fhirPatient.getSourceSystemUrl());  // URL больницы
+                mapping.setImportedBy(importedBy);  // Кто импортировал (для аудита)
+                emrMappingRepository.save(mapping);
+                
+                log.info("Successfully saved EMR mapping: externalId={}, internalEmr={}",
+                        fhirPatientId, internalEmrNumber);
+            }
 
             // ШАГ 6-7: Создаем Patient и Emr в общей таблице (ОБЩИЙ МЕТОД)
             // ВАЖНО: Используем общий метод для устранения дублирования кода
@@ -437,14 +457,32 @@ public class EmrIntegrationServiceImpl implements EmrIntegrationService {
     /*
      * МЕТОД 7: Проверить, был ли пациент уже импортирован.
      *
+     * ВАЖНО: Проверяем не только маппинг, но и существование активного пациента!
+     * - Если пациент был удален (isActive = false) → возвращаем false (можно импортировать заново)
+     * - Если пациент существует и активен → возвращаем true (блокируем повторный импорт)
+     *
      * READ-ONLY метод - только проверяет существование в БД.
      */
     @Override
     @Transactional(readOnly = true)
     public boolean isPatientAlreadyImported(String fhirPatientId) {
-        boolean exists = emrMappingRepository.existsByExternalFhirId(fhirPatientId);
-        log.debug("Patient import check: fhirPatientId={}, exists={}", fhirPatientId, exists);
-        return exists;
+        Optional<EmrMapping> mapping = emrMappingRepository.findByExternalFhirId(fhirPatientId);
+        
+        if (mapping.isEmpty()) {
+            log.debug("Patient import check: fhirPatientId={}, result=NOT_IMPORTED", fhirPatientId);
+            return false;
+        }
+        
+        // Проверяем, существует ли пациент в системе и активен ли он
+        String internalEmrNumber = mapping.get().getInternalEmrNumber();
+        Optional<Patient> patient = patientRepository.findByMrn(internalEmrNumber);
+        
+        boolean isActivePatient = patient.isPresent() && patient.get().getIsActive();
+        log.debug("Patient import check: fhirPatientId={}, mrn={}, exists={}, active={}, result={}",
+                fhirPatientId, internalEmrNumber, patient.isPresent(), 
+                patient.map(Patient::getIsActive).orElse(false), isActivePatient);
+        
+        return isActivePatient;
     }
 
     /*
