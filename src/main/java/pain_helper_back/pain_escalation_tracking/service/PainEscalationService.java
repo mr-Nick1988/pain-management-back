@@ -1,118 +1,30 @@
 package pain_helper_back.pain_escalation_tracking.service;
+import pain_helper_back.pain_escalation_tracking.dto.PainTrendAnalysisDTO;
 
-import pain_helper_back.common.patients.entity.Recommendation;
-import pain_helper_back.pain_escalation_tracking.controller.PainEscalationController;
-import pain_helper_back.pain_escalation_tracking.dto.*;
-import pain_helper_back.pain_escalation_tracking.entity.DoseAdministration;
-
-import java.util.List;
-
-/*
- * Сервис для управления эскалацией боли
- * Отслеживает рост боли, управляет дозами и создает эскалации
+/**
+ * Сервис анализа и отслеживания роста боли (Pain Escalation Tracking).
+ * <p>
+ * Отвечает за:
+ * - анализ тренда боли пациента по VAS (для UI-графиков и аналитики);
+ * - обработку новой жалобы пациента и определение необходимости уведомления.
  */
+
 public interface PainEscalationService {
 
-    /*
-     * Проверить, требуется ли эскалация боли для пациента
+    /**
+     * Анализирует историю VAS за последние 24 часа для визуализации и аналитики.
      *
-     * @param mrn MRN пациента
-     * @return результат проверки с рекомендациями
-     */
-    PainEscalationCheckResultDTO checkPainEscalation(String mrn);
-
-    /*
-     * Проверить эскалацию с возможностью override VAS
-     *
-     * @param mrn MRN пациента
-     * @param command команда с vasLevelOverride
-     * @return результат проверки
-     */
-    PainEscalationCheckResultDTO checkPainEscalation(String mrn, PainEscalationController.PainEscalationCheckCommand command);
-
-    /*
-     * Проверить, можно ли ввести следующую дозу
-     *
-     * @param mrn MRN пациента
-     * @return true если прошло достаточно времени с последней дозы
-     */
-    boolean canAdministerNextDose(String mrn);
-
-    /*
-     * Построить DTO с информацией о доступности следующей дозы
-     *
-     * @param mrn MRN пациента
-     * @return информация о доступности дозы
-     */
-    PainEscalationController.DoseEligibilityDTO buildDoseEligibility(String mrn);
-
-    /*
-     * Зарегистрировать введение дозы (внутренний метод)
-     *
-     * @param doseAdministration информация о введенной дозе
-     * @return сохраненная запись
-     */
-    DoseAdministration registerDoseAdministration(DoseAdministration doseAdministration);
-
-    /*
-     * Зарегистрировать введение дозы через REST API
-     *
-     * @param mrn MRN пациента
-     * @param request DTO с данными о дозе
-     * @return DTO ответа
-     */
-    DoseAdministrationResponseDTO registerDoseAdministration(String mrn, DoseAdministrationRequestDTO request);
-
-    /*
-     * Проанализировать тренд боли пациента за последние 24 часа
-     *
-     * @param mrn MRN пациента
-     * @return анализ тренда боли
+     * @param mrn медицинский номер пациента
+     * @return DTO с данными по тренду боли
      */
     PainTrendAnalysisDTO analyzePainTrend(String mrn);
 
-    /*
-     * Автоматически обработать новую запись VAS
-     * Вызывается при создании нового VAS
+    /**
+     * Обрабатывает новую жалобу пациента (новое значение VAS).
+     * Если боль выросла на ≥ 2 балла — создаёт PainEscalation и отправляет уведомление анестезиологу.
      *
-     * @param mrn MRN пациента
-     * @param newVasLevel новый уровень VAS
+     * @param mrn         медицинский номер пациента
+     * @param newVasLevel новый уровень боли (VAS)
      */
     void handleNewVasRecord(String mrn, Integer newVasLevel);
-
-    /*
-     * Получить последние эскалации
-     *
-     * @param limit количество эскалаций
-     * @return список эскалаций
-     */
-//    List<Escalation> findRecentEscalations(int limit);
-
-    /*
-     * Получить эскалацию по ID
-     *
-     * @param id ID эскалации
-     * @return эскалация
-     */
-//    Escalation findEscalationById(Long id);
-
-    // Новые методы для REST API
-    DoseAdministration registerDoseAdministration(
-            String mrn,
-            String drugName,
-            Double dosage,
-            String unit,
-            String route,
-            String administeredBy
-    );
-
-    List<DoseHistoryDTO> getDoseHistory(String mrn);
-
-    Recommendation getLatestEscalation(String mrn);
-
-
-    //Метод getEscalationStatistics() действительно был задуман для подсчёта статистики по ухудшениям боли (эскалациям),
-    //но делал это через таблицу Escalation, которой теперь нет, а надо создавать класс - (PainEscalationEvent) журнал клинических событий и по SRS v0.2 она не требуется.
-//    PainEscalationStatisticsDTO getEscalationStatistics();
-
 }

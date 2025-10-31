@@ -1,6 +1,5 @@
 package pain_helper_back.pain_escalation_tracking.dto;
 
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -10,54 +9,60 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Результат анализа тренда боли пациента
+ * DTO: Анализ тренда боли пациента
+ * Используется для:
+ *  - визуализации графиков VAS на UI (frontend),
+ *  - анализа динамики боли в аналитике,
+ *  - передачи краткой статистики о боли.
  */
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class PainTrendAnalysisDTO {
+
+    /** Уникальный медицинский номер пациента (MRN) */
     private String patientMrn;
 
+    /** Текущий уровень боли (VAS) */
     private Integer currentVas;
 
+    /** Предыдущий зарегистрированный уровень боли (VAS) */
     private Integer previousVas;
 
+    /** Изменение боли между последними двумя записями */
     private Integer vasChange;
 
+    /** Дата и время последней жалобы (VAS) */
     private LocalDateTime lastVasRecordedAt;
 
+    /** Дата и время предыдущей жалобы */
     private LocalDateTime previousVasRecordedAt;
 
-    private Long hoursSinceLastVas;
+    /** Кол-во часов между последними двумя жалобами */
+    private int daysBetweenVasRecords;
 
     /**
-     * Тренд боли: INCREASING, DECREASING, STABLE
+     * Тренд боли:
+     *  - "INCREASING" — боль усиливается
+     *  - "DECREASING" — боль снижается
+     *  - "STABLE" — без изменений
      */
     private String painTrend;
 
-    /**
-     * Список VAS за последние 24 часа
-     */
-    private List<Integer> vasHistory;
 
-    /**
-     * Средний VAS за период
-     */
+    /** Средний уровень боли за период */
     private Double averageVas;
 
-    /**
-     * Максимальный VAS за период
-     */
+    /** Максимальный уровень боли за период */
     private Integer maxVas;
 
-    /**
-     * Минимальный VAS за период
-     */
+    /** Минимальный уровень боли за период */
     private Integer minVas;
 
-    /**
-     * Количество записей VAS за период
-     */
+    /** История уровней боли за весь период */
+    private List<Integer> vasHistory;
+
+    /** Количество зарегистрированных записей VAS за период */
     private Integer vasRecordCount;
 }

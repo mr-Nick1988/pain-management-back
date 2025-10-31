@@ -20,7 +20,7 @@ public class RecommendationCreatedEvent extends ApplicationEvent {
     private final Integer vasLevel;
     private final String createdBy; // nurseId or anesthesiologistId
     private final LocalDateTime createdAt;
-    private final Long processingTimeMs;
+    private final Long processingTimeMs;  // TODO это поле - метрика производительности (имеется в LoggingAspect), а не часть бизнес-аудита.
     private final List<String> diagnosisCodes; // ICD коды диагнозов пациента
 
 

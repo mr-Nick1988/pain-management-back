@@ -1,80 +1,52 @@
 package pain_helper_back.pain_escalation_tracking.dto;
 
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
+import pain_helper_back.enums.EscalationPriority;
 
 /**
- * Результат проверки необходимости эскалации боли
+ * DTO: Результат проверки роста боли (Pain Escalation Check)
+ * Используется внутри сервиса PainEscalationServiceImpl,
+ * чтобы определить, нужно ли уведомить анестезиолога.
  */
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class PainEscalationCheckResultDTO {
+
+    /** Уникальный медицинский номер пациента (MRN) */
     private String patientMrn;
 
-    /**
-     * Требуется ли эскалация
-     */
+    /** Флаг: требуется ли эскалация (уведомление) */
     private boolean escalationRequired;
 
-    /**
-     * Причина эскалации
-     */
+    /** Краткая причина, например: "VAS increased by 3 points" */
     private String escalationReason;
 
     /**
-     * Приоритет эскалации: LOW, MEDIUM, HIGH, CRITICAL
+     * Приоритет уведомления (не бизнес-приоритет):
+     LOW,
+     MEDIUM,
+     HIGH,
+     CRITICAL
      */
-    private String escalationPriority;
+    private EscalationPriority escalationPriority;
 
-    /**
-     * Текущий VAS
-     */
+    /** Текущий уровень боли (VAS) */
     private Integer currentVas;
 
-    /**
-     * Предыдущий VAS
-     */
+    /** Предыдущий уровень боли (VAS) */
     private Integer previousVas;
 
-    /**
-     * Изменение VAS
-     */
+    /** Изменение боли между последними записями */
     private Integer vasChange;
 
-    /**
-     * Можно ли ввести следующую дозу
-     */
-    private boolean canAdministerNextDose;
-
-    /**
-     * Время последней дозы
-     */
-    private LocalDateTime lastDoseTime;
-
-    /**
-     * Часов прошло с последней дозы
-     */
-    private Long hoursSinceLastDose;
-
-    /**
-     * Минимальный требуемый интервал (часы)
-     */
-    private Integer requiredIntervalHours;
-
-    /**
-     * Рекомендации для медперсонала
-     */
+    /** Текст рекомендаций / действий для анестезиолога */
     private String recommendations;
 
-    /**
-     * Анализ тренда боли
-     */
+    /** Вложенный объект анализа тренда боли */
     private PainTrendAnalysisDTO painTrendAnalysisDTO;
 }
