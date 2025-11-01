@@ -2,10 +2,13 @@ package pain_helper_back.common.patients.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import pain_helper_back.enums.PatientsGenders;
+import pain_helper_back.pain_escalation_tracking.entity.DoseAdministration;
+import pain_helper_back.pain_escalation_tracking.entity.PainEscalation;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -70,11 +73,19 @@ public class Patient {
     }
 
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("createdAt ASC")
     private List<Emr> emr;
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("createdAt ASC")
     private List<Vas> vas;
     @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("createdAt ASC")
     private List<Recommendation> recommendations;
+
+    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PainEscalation> painEscalations = new ArrayList<>();
+    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<DoseAdministration> doseAdministrations = new ArrayList<>();
 
     public int getAge() {
         return Period.between(dateOfBirth, LocalDate.now()).getYears();

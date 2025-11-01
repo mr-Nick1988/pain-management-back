@@ -93,8 +93,6 @@ public class ExternalVasIntegrationService {
         log.info("VAS_RECORDED event published: source=EXTERNAL, device={}, vasLevel={}",
                 externalVas.getDeviceId(), externalVas.getVasLevel());
 
-        // 2.2. АВТОМАТИЧЕСКАЯ ПРОВЕРКА ЭСКАЛАЦИИ БОЛИ
-        painEscalationService.handleNewVasRecord(patient.getMrn(), externalVas.getVasLevel());
 
         // 3. Автоматическая генерация рекомендации (если VAS >= 4)
         // ВАЖНО: Используем отдельную транзакцию, чтобы ошибка рекомендации не откатила VAS

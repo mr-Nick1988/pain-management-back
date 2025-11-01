@@ -3,6 +3,7 @@ package pain_helper_back.common.patients.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import pain_helper_back.enums.RecommendationStatus;
+import pain_helper_back.pain_escalation_tracking.entity.DoseAdministration;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -102,6 +103,10 @@ public class Recommendation {
     @ManyToOne
     @JoinColumn(name = "patient_id")
     private Patient patient;
+
+    // ========== Doses checking ========== //
+    @OneToMany(mappedBy = "recommendation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<DoseAdministration> doseAdministrations = new ArrayList<>();
 
     // ========== EMR RECALCULATION FIELDS ========== // TODO - перенести в analytics
     @Column(name = "review_reason", length = 2000)

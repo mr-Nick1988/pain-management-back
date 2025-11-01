@@ -4,15 +4,13 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import pain_helper_back.common.patients.entity.Recommendation;
-import pain_helper_back.pain_escalation_tracking.dto.DoseAdministrationRequestDTO;
-import pain_helper_back.pain_escalation_tracking.dto.DoseAdministrationResponseDTO;
-import pain_helper_back.pain_escalation_tracking.dto.PainEscalationCheckResultDTO;
 import pain_helper_back.pain_escalation_tracking.dto.PainTrendAnalysisDTO;
 import pain_helper_back.pain_escalation_tracking.service.PainEscalationService;
 
-
-
+/**
+ * Контроллер для анализа и отслеживания роста боли (Pain Escalation Tracking)
+ * Используется для проверки VAS, анализа трендов и автоматического реагирования системы.
+ */
 @RestController
 @RequestMapping("/api/pain-escalation")
 @RequiredArgsConstructor
@@ -22,27 +20,7 @@ public class PainEscalationController {
     private final PainEscalationService painEscalationService;
 
     /**
-     * Зарегистрировать факт введения новой дозы препарата
-     */
-    @PostMapping("/patients/{mrn}/administer-dose")
-    @ResponseStatus(HttpStatus.CREATED)
-    public DoseAdministrationResponseDTO registerDose(
-            @PathVariable String mrn,
-            @Valid @RequestBody DoseAdministrationRequestDTO request
-    ) {
-        return painEscalationService.registerDoseAdministration(mrn, request);
-    }
-
-    /**
-     * Проверить, можно ли вводить следующую дозу (для отображения таймера/подсказки в UI)
-     */
-    @GetMapping("/patients/{mrn}/can-administer-next-dose")
-    public DoseEligibilityDTO canAdministerNextDose(@PathVariable String mrn) {
-        return painEscalationService.buildDoseEligibility(mrn);
-    }
-
-    /**
-     * Получить анализ тренда боли за последние часы
+     * Анализ тренда боли за последние 24 ч для графиков и аналитики
      */
     @GetMapping("/patients/{mrn}/trend")
     public PainTrendAnalysisDTO getPainTrend(@PathVariable String mrn) {
@@ -50,40 +28,25 @@ public class PainEscalationController {
     }
 
     /**
-     * Принудительно запустить проверку эскалации боли (например, с override текущего VAS)
+     * Реакция на новую жалобу пациента (новое VAS)
+     * Если боль выросла ≥ 2 баллов — уведомляем анестезиолога
      */
-    @PostMapping("/patients/{mrn}/check")
-    public PainEscalationCheckResultDTO checkEscalation(
+    //TODO пока не используется но может пригодится для VAS external service
+    @PostMapping("/patients/{mrn}/new-vas")
+    @ResponseStatus(HttpStatus.CREATED)
+    public void handleNewVasRecord(
             @PathVariable String mrn,
-            @RequestBody(required = false) PainEscalationCheckCommand command
+            @Valid @RequestBody NewVasRecordCommand command
     ) {
-        return painEscalationService.checkPainEscalation(mrn, command);
+        painEscalationService.handleNewVasRecord(mrn, command.newVasLevel());
     }
 
     /**
-     * Получить последнюю эскалированную рекомендацию пациента
-     * (вместо старого метода getRecentEscalations)
+     * Команда поступления новой записи VAS
+     * record — это специальный тип класса, появившийся в Java 16.
+     * Он нужен, чтобы быстро описывать неизменяемые DTO (создание на ходу),
+     * где всё, что тебе нужно — это хранить данные.
      */
-    @GetMapping("/patients/{mrn}/latest-escalation")
-    public Recommendation getLatestEscalation(@PathVariable String mrn) {
-        return painEscalationService.getLatestEscalation(mrn);
+    public record NewVasRecordCommand(Integer newVasLevel) {
     }
-
-    // === DTOs ===
-
-    /**
-     * DTO с информацией о доступности следующей дозы
-     */
-    public record DoseEligibilityDTO(
-            String patientMrn,
-            boolean canAdminister,
-            Long hoursSinceLastDose,
-            Integer requiredInterval,
-            String message
-    ) { }
-
-    /**
-     * Команда для принудительной проверки эскалации боли
-     */
-    public record PainEscalationCheckCommand(Integer vasLevelOverride) { }
 }

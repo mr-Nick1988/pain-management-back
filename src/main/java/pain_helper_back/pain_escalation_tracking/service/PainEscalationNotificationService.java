@@ -6,41 +6,37 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import pain_helper_back.common.patients.entity.Patient;
 import pain_helper_back.common.patients.entity.Recommendation;
-import pain_helper_back.enums.RecommendationStatus;
 import pain_helper_back.pain_escalation_tracking.dto.PainEscalationNotificationDTO;
+import pain_helper_back.pain_escalation_tracking.entity.PainEscalation;
 import pain_helper_back.websocket.dto.UnifiedNotificationDTO;
 import pain_helper_back.websocket.service.UnifiedNotificationService;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /*
  * Сервис отправки push-уведомлений об эскалациях боли через WebSocket.
- * Теперь использует Recommendation вместо удалённой сущности Escalation.
+ * Он создаёт PainEscalationNotificationDTO на основании PainEscalation entity для отправки
+ * Это “мост” между бизнес-логикой и коммуникацией.
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class PainEscalationNotificationService {
-
+    // достаточно встроенного SimpMessagingTemplate для отправлений уведомлений по небольшим ролям
     private final SimpMessagingTemplate messagingTemplate;
+    // это некий “Notification Hub”, предназначенный для масштабных систем, где уведомлений много (разные типы, роли, приоритеты);
     private final UnifiedNotificationService unifiedNotificationService;
 
     /**
-     * Отправить уведомление о новой эскалации боли
+     * Отправить уведомление о сильном скачке боли у пациента (>=2)
      *
-     * @param recommendation рекомендация, переведённая в статус ESCALATED
-     * @param patient пациент
-     * @param currentVas текущий уровень VAS
-     * @param previousVas предыдущий уровень VAS
-     * @param recommendations текст рекомендаций / комментариев
+     * @param painEscalation - содержит всю информацию о сильном скачке боли
      */
-    public void sendEscalationNotification(Recommendation recommendation, Patient patient,
-                                           Integer currentVas, Integer previousVas,
-                                           String recommendations) {
+    public void sendEscalationNotification(PainEscalation painEscalation) {
+        Patient patient = painEscalation.getPatient();
         log.info("Sending escalation notification for patient: {}, recommendation id: {}",
-                patient.getMrn(), recommendation.getId());
+                patient.getMrn(), painEscalation.getLastRecommendation().getId());
 
         // Извлекаем диагнозы
         List<String> latestDiagnoses = patient.getEmr() != null && !patient.getEmr().isEmpty()
@@ -51,17 +47,14 @@ public class PainEscalationNotificationService {
 
         // Формируем DTO для уведомления
         PainEscalationNotificationDTO notification = PainEscalationNotificationDTO.builder()
-                .escalationId(recommendation.getId())
-                .recommendationId(recommendation.getId())
+                .escalationId(painEscalation.getId())
                 .patientMrn(patient.getMrn())
                 .patientName(patient.getFirstName() + " " + patient.getLastName())
-                .currentVas(currentVas)
-                .previousVas(previousVas)
-                .vasChange(currentVas != null && previousVas != null ? currentVas - previousVas : 0)
-                .escalationReason("Pain escalation detected: " + recommendation.getComments().getLast())
-                .priority("ESCALATED") // просто символическое поле для UI
-                .recommendations(recommendations)
-                .createdAt(LocalDateTime.now())
+                .currentVas(painEscalation.getCurrentVas())
+                .previousVas(painEscalation.getPreviousVas())
+                .vasChange(painEscalation.getVasChange())
+                .priority(painEscalation.getPriority().name())
+                .createdAt(painEscalation.getCreatedAt())
                 .latestDiagnoses(latestDiagnoses)
                 .build();
 
@@ -69,16 +62,16 @@ public class PainEscalationNotificationService {
         sendToAllChannels(notification);
 
         // Отправляем унифицированное уведомление
-        sendUnifiedNotification(recommendation, patient, currentVas, previousVas, recommendations, latestDiagnoses);
+        sendUnifiedNotification(painEscalation.getLastRecommendation(), patient, painEscalation.getCurrentVas(),
+                painEscalation.getPreviousVas(), latestDiagnoses);
     }
 
     private void sendToAllChannels(PainEscalationNotificationDTO notification) {
+        //real-time уведомления через WebSocket на Topic (doctors,anesthesiologists,dashboard)
         try {
-            messagingTemplate.convertAndSend("/topic/escalations/doctors", notification);
+//            messagingTemplate.convertAndSend("/topic/escalations/doctors", notification); не требуется так как фильтр при боле >=2 поставит статус ESCALATED
             messagingTemplate.convertAndSend("/topic/escalations/anesthesiologists", notification);
-            messagingTemplate.convertAndSend("/topic/escalations/dashboard", notification);
-
-            // “CRITICAL” здесь просто как пример — в будущем можно добавить логику приоритета
+            // “CRITICAL” - если боль критическая на Topic notification
             if ("CRITICAL".equalsIgnoreCase(notification.getPriority())) {
                 messagingTemplate.convertAndSend("/topic/escalations/critical", notification);
                 log.warn("CRITICAL escalation notification sent for patient: {}", notification.getPatientMrn());
@@ -88,40 +81,22 @@ public class PainEscalationNotificationService {
         }
     }
 
-    public void sendToDoctor(String doctorId, PainEscalationNotificationDTO notification) {
-        try {
-            messagingTemplate.convertAndSendToUser(doctorId, "/queue/escalations", notification);
-            log.info("Sent personal notification to doctor: {}", doctorId);
-        } catch (Exception e) {
-            log.error("Failed to send notification to doctor {}: {}", doctorId, e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Отправить уведомление об изменении статуса рекомендации (например, Escalated → Approved)
-     */
-    public void sendRecommendationStatusUpdate(Long recId, RecommendationStatus newStatus, String updatedBy) {
-        try {
-            var statusUpdate = new RecommendationStatusUpdateDTO(
-                    recId,
-                    newStatus.name(),
-                    updatedBy,
-                    LocalDateTime.now()
-            );
-
-            messagingTemplate.convertAndSend("/topic/escalations/status-updates", statusUpdate);
-            log.info("Sent status update for recommendation {}: {}", recId, newStatus);
-        } catch (Exception e) {
-            log.error("Failed to send status update: {}", e.getMessage(), e);
-        }
-    }
 
     /**
      * Отправить унифицированное уведомление об эскалации боли
+     * шлёт в общий notification pipeline, который собирает всё (включая боль, EMR, рекомендации, протоколы).
+     * Архитектурно: это нужно для централизованного мониторинга и UI-интеграции.
+     * В едином “notification-center” на фронтенде ты можешь показывать все события в одном списке.
+     * центральный журнал событий-уведомлений для хранения в БД
+     * Оставить её стоит только если у тебя:
+     * Есть единый компонент на фронтенде “Уведомления” (Notification Center),
+     * где показываются все типы событий — и эскалации, и EMR, и системные алерты.
+     * Или ты хочешь, чтобы администратор видел “все события системы” в одном месте.
+     * TODO можно удалить
      */
     private void sendUnifiedNotification(Recommendation recommendation, Patient patient,
                                          Integer currentVas, Integer previousVas,
-                                         String recommendations, List<String> diagnoses) {
+                                         List<String> diagnoses) {
         try {
             String title = "Pain escalation detected";
             String message = String.format(
@@ -140,7 +115,6 @@ public class PainEscalationNotificationService {
                     .title(title)
                     .message(message)
                     .details("Recommendation escalated due to pain increase.")
-                    .recommendations(recommendations)
                     .relatedEntityId(recommendation.getId())
                     .relatedEntityType("RECOMMENDATION")
                     .diagnoses(diagnoses)
@@ -158,10 +132,4 @@ public class PainEscalationNotificationService {
         }
     }
 
-    public record RecommendationStatusUpdateDTO(
-            Long recommendationId,
-            String newStatus,
-            String updatedBy,
-            LocalDateTime updatedAt
-    ) {}
 }

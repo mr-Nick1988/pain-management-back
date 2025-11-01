@@ -2,6 +2,9 @@ package pain_helper_back.pain_escalation_tracking.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import pain_helper_back.common.patients.entity.Patient;
 import pain_helper_back.common.patients.entity.Recommendation;
 
@@ -12,8 +15,10 @@ import java.time.LocalDateTime;
  * Используется для проверки интервалов между дозами
  */
 @Entity
-@Data
 @Table(name = "dose_administrations")
+@Getter
+@Setter
+@RequiredArgsConstructor
 public class DoseAdministration {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

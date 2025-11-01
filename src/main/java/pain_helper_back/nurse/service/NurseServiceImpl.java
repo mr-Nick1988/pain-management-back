@@ -28,6 +28,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 
 import static java.util.stream.Collectors.toList;
@@ -162,10 +163,14 @@ public class NurseServiceImpl implements NurseService {
         // 2 Маппим DTO → Entity
         Emr emr = modelMapper.map(emrDto, Emr.class);
         emr.setPatient(patient);
+        Set<Diagnosis> diagnoses;
+
         // 3 ВАЖНО: для Hibernate создаём "обратную связь" у каждого Diagnosis
         if (emr.getDiagnoses() != null) {
             emr.getDiagnoses().forEach(diagnosis -> diagnosis.setEmr(emr));
         }
+
+
         // 4 Добавляем EMR в коллекцию пациента
         patient.getEmr().add(emr);
         emrRepository.save(emr);
@@ -252,9 +257,8 @@ public class NurseServiceImpl implements NurseService {
                 null  //deviceId - не применимо для внутреннего ввода
         ));
 
-        //!! АВТОМАТИЧЕСКАЯ ПРОВЕРКА ЭСКАЛАЦИИ БОЛИ
+        //!! АВТОМАТИЧЕСКАЯ ПРОВЕРКА ЭСКАЛАЦИИ БОЛИ (Блок pain_escalation_tracking)
         painEscalationService.handleNewVasRecord(mrn, vas.getPainLevel());
-
         return modelMapper.map(vas, VasDTO.class);
     }
 
@@ -313,6 +317,9 @@ public class NurseServiceImpl implements NurseService {
         long startTime = System.currentTimeMillis();
 
         Patient patient = findPatientOrThrow(mrn);
+        if (patient.getEmr().isEmpty()) {
+            throw new IllegalStateException("Patient must have at least one EMR record");
+        }
         Emr emr = patient.getEmr().getLast();
         Vas vas = patient.getVas().getLast();
 
