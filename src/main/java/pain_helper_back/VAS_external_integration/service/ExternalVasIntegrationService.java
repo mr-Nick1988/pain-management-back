@@ -16,6 +16,7 @@ import pain_helper_back.common.patients.entity.Patient;
 import pain_helper_back.common.patients.entity.Vas;
 import pain_helper_back.common.patients.repository.PatientRepository;
 import pain_helper_back.common.patients.repository.VasRepository;
+import pain_helper_back.enums.RecommendationStatus;
 import pain_helper_back.nurse.service.NurseService;
 import pain_helper_back.pain_escalation_tracking.service.PainEscalationService;
 
@@ -82,7 +83,7 @@ public class ExternalVasIntegrationService {
                 savedVas.getId(),
                 externalVas.getPatientMrn(),
                 "EXTERNAL_" + externalVas.getSource(), // recordedBy - помечаем как внешний источник
-                externalVas.getTimestamp() != null ? externalVas.getTimestamp() : java.time.LocalDateTime.now(),
+                externalVas.getTimestamp() != null ? externalVas.getTimestamp() : LocalDateTime.now(),
                 externalVas.getVasLevel(),
                 externalVas.getLocation(), // painLocation
                 externalVas.getVasLevel() >= 8, // isCritical если боль >= 8
@@ -99,7 +100,7 @@ public class ExternalVasIntegrationService {
         if (externalVas.getVasLevel() >= 4) {
             // Проверяем есть ли уже PENDING рекомендация у пациента
             boolean hasPending = patient.getRecommendations().stream()
-                    .anyMatch(r -> r.getStatus() == pain_helper_back.enums.RecommendationStatus.PENDING);
+                    .anyMatch(r -> r.getStatus() == RecommendationStatus.PENDING);
             
             if (hasPending) {
                 log.info("Skipping recommendation generation - PENDING recommendation already exists for patient {}", 

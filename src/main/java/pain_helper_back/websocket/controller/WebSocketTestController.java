@@ -191,19 +191,16 @@ public class WebSocketTestController {
     public ResponseEntity<Map<String, Object>> getWebSocketStatus() {
         return ResponseEntity.ok(Map.of(
                 "status", "active",
-                "endpoints", Map.of(
-                        "main", "ws://localhost:8080/ws-notifications",
-                        "legacy", "ws://localhost:8080/ws-emr-alerts"
-                ),
+                "endpoint", "ws://localhost:8080/ws",
+                "sockjs_endpoint", "http://localhost:8080/ws",
                 "topics", Map.of(
-                        "all", "/topic/notifications/all",
-                        "doctors", "/topic/notifications/doctors",
-                        "anesthesiologists", "/topic/notifications/anesthesiologists",
-                        "nurses", "/topic/notifications/nurses",
-                        "critical", "/topic/notifications/critical",
-                        "emr_alerts", "/topic/notifications/emr-alerts",
-                        "pain_escalations", "/topic/notifications/pain-escalations"
+                        "anesthesiologists", "/topic/escalations/anesthesiologists",
+                        "doctors", "/topic/escalations/doctors",
+                        "critical", "/topic/escalations/critical",
+                        "dashboard", "/topic/escalations/dashboard",
+                        "emr_alerts", "/topic/emr-alerts"
                 ),
+                "frontend_example", "const socket = new SockJS('http://localhost:8080/ws'); const stompClient = Stomp.over(socket);",
                 "timestamp", LocalDateTime.now()
         ));
     }

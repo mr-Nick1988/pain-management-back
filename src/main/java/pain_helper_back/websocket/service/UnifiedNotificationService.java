@@ -59,27 +59,27 @@ public class UnifiedNotificationService {
     public void sendNotification(UnifiedNotificationDTO notification) {
         try {
             // Всегда отправляем на общий топик (для dashboard)
-            messagingTemplate.convertAndSend("/topic/notifications/all", notification);
-            log.debug("Sent notification to /topic/notifications/all: {}", notification.getTitle());
+            messagingTemplate.convertAndSend("/topic/escalations/dashboard", notification);
+            log.debug("Sent notification to /topic/escalations/dashboard: {}", notification.getTitle());
 
             // Отправляем на топик по роли
             if (notification.getTargetRole() != null) {
                 String roleTopic = getRoleTopicPath(notification.getTargetRole());
                 messagingTemplate.convertAndSend(roleTopic, notification);
-                log.debug("Sent notification to {}: {}", roleTopic, notification.getTitle());
+                log.info("📨 Sent notification to {}: {}", roleTopic, notification.getTitle());
             }
 
             // Отправляем на топик по типу
             String typeTopic = getTypeTopicPath(notification.getType());
             if (typeTopic != null) {
                 messagingTemplate.convertAndSend(typeTopic, notification);
-                log.debug("Sent notification to {}: {}", typeTopic, notification.getTitle());
+                log.info("📨 Sent notification to {}: {}", typeTopic, notification.getTitle());
             }
 
             // Если критический приоритет - отправляем на специальный топик
             if (notification.getPriority() == UnifiedNotificationDTO.NotificationPriority.CRITICAL) {
-                messagingTemplate.convertAndSend("/topic/notifications/critical", notification);
-                log.warn("CRITICAL notification sent: {} - {}", notification.getTitle(), notification.getMessage());
+                messagingTemplate.convertAndSend("/topic/escalations/critical", notification);
+                log.warn("🚨 CRITICAL notification sent: {} - {}", notification.getTitle(), notification.getMessage());
             }
 
             // Если указан конкретный получатель - отправляем персонально
@@ -134,8 +134,8 @@ public class UnifiedNotificationService {
      */
     public void broadcastNotification(UnifiedNotificationDTO notification) {
         try {
-            messagingTemplate.convertAndSend("/topic/notifications/all", notification);
-            log.info("Broadcast notification sent: {}", notification.getTitle());
+            messagingTemplate.convertAndSend("/topic/escalations/dashboard", notification);
+            log.info("📢 Broadcast notification sent: {}", notification.getTitle());
         } catch (Exception e) {
             log.error("Failed to broadcast notification: {}", e.getMessage(), e);
         }
@@ -151,8 +151,8 @@ public class UnifiedNotificationService {
         
         try {
             // Отправляем на все критические топики
-            messagingTemplate.convertAndSend("/topic/notifications/critical", notification);
-            messagingTemplate.convertAndSend("/topic/notifications/all", notification);
+            messagingTemplate.convertAndSend("/topic/escalations/critical", notification);
+            messagingTemplate.convertAndSend("/topic/escalations/dashboard", notification);
             
             // Если есть роль - отправляем и туда
             if (notification.getTargetRole() != null) {
@@ -160,7 +160,7 @@ public class UnifiedNotificationService {
                 messagingTemplate.convertAndSend(roleTopic, notification);
             }
 
-            log.warn("CRITICAL notification sent to all channels: {}", notification.getTitle());
+            log.warn("🚨 CRITICAL notification sent to all channels: {}", notification.getTitle());
         } catch (Exception e) {
             log.error("Failed to send critical notification: {}", e.getMessage(), e);
         }
@@ -168,28 +168,33 @@ public class UnifiedNotificationService {
 
     /*
      * Получить путь топика по роли
+     * 
+     * ВАЖНО: Топики должны совпадать с теми, на которые подписан фронтенд!
+     * Frontend подписан на: /topic/escalations/anesthesiologists
      */
     private String getRoleTopicPath(String role) {
         return switch (role.toUpperCase()) {
-            case "DOCTOR" -> "/topic/notifications/doctors";
-            case "ANESTHESIOLOGIST" -> "/topic/notifications/anesthesiologists";
-            case "NURSE" -> "/topic/notifications/nurses";
-            case "ADMIN" -> "/topic/notifications/admins";
-            default -> "/topic/notifications/all";
+            case "DOCTOR" -> "/topic/escalations/doctors";
+            case "ANESTHESIOLOGIST" -> "/topic/escalations/anesthesiologists";
+            case "NURSE" -> "/topic/escalations/nurses";
+            case "ADMIN" -> "/topic/escalations/admins";
+            default -> "/topic/escalations/all";
         };
     }
 
     /*
      * Получить путь топика по типу уведомления
+     * 
+     * ВАЖНО: Используем /topic/escalations/* вместо /topic/notifications/*
      */
     private String getTypeTopicPath(UnifiedNotificationDTO.NotificationType type) {
         return switch (type) {
-            case EMR_ALERT -> "/topic/notifications/emr-alerts";
-            case PAIN_ESCALATION -> "/topic/notifications/pain-escalations";
-            case RECOMMENDATION_UPDATE -> "/topic/notifications/recommendations";
-            case DOSE_REMINDER -> "/topic/notifications/dose-reminders";
-            case PROTOCOL_APPROVAL -> "/topic/notifications/protocol-approvals";
-            case CRITICAL_VAS -> "/topic/notifications/critical-vas";
+            case EMR_ALERT -> "/topic/emr-alerts";
+            case PAIN_ESCALATION -> "/topic/escalations/anesthesiologists"; // Эскалации боли идут анестезиологам
+            case RECOMMENDATION_UPDATE -> "/topic/escalations/doctors";
+            case DOSE_REMINDER -> "/topic/escalations/nurses";
+            case PROTOCOL_APPROVAL -> "/topic/escalations/doctors";
+            case CRITICAL_VAS -> "/topic/escalations/critical";
             default -> null;
         };
     }
