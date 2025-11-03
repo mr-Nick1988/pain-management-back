@@ -10,9 +10,9 @@ import pain_helper_back.analytics.dto.PatientStatsDTO;
 import pain_helper_back.analytics.dto.PerformanceStatsDTO;
 import pain_helper_back.analytics.dto.UserActivityDTO;
 import pain_helper_back.analytics.entity.AnalyticsEvent;
-import pain_helper_back.analytics.entity.LogEntry;
+
 import pain_helper_back.analytics.repository.AnalyticsEventRepository;
-import pain_helper_back.analytics.repository.LogEntryRepository;
+
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class AnalyticsService {
     private final AnalyticsEventRepository analyticsEventRepository;
-    private final LogEntryRepository logEntryRepository;
+
 
     /*
      * Получить общую статистику по событиям
@@ -235,7 +235,6 @@ public class AnalyticsService {
         PageRequest pageRequest = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "timestamp"));
         return analyticsEventRepository.findAll(pageRequest).getContent();
     }
-
     /*
      * Получить события по типу
      */
@@ -246,27 +245,7 @@ public class AnalyticsService {
         return analyticsEventRepository.findByEventType(eventType);
     }
 
-    /*
-     * Получить технические логи
-     */
-    public List<LogEntry> getRecentLogs(int limit) {
-        PageRequest pageRequest = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "timestamp"));
-        return logEntryRepository.findAll(pageRequest).getContent();
-    }
 
-    /*
-     * Получить логи по уровню
-     */
-    public List<LogEntry> getLogsByLevel(String level, LocalDateTime startDate, LocalDateTime endDate) {
-        if (startDate != null && endDate != null) {
-            return logEntryRepository.findByLevelAndTimestampBetween(level, startDate, endDate);
-        }
-        return logEntryRepository.findByLevel(level);
-    }
-
-    /**
-     * Вспомогательный метод для определения возрастной группы
-     */
     private String getAgeGroup(Integer age) {
         if (age == null) return "UNKNOWN";
         if (age < 18) return "0-17";

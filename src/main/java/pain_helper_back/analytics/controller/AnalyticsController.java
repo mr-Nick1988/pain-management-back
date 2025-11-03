@@ -10,7 +10,7 @@ import pain_helper_back.analytics.dto.PatientStatsDTO;
 import pain_helper_back.analytics.dto.PerformanceStatsDTO;
 import pain_helper_back.analytics.dto.UserActivityDTO;
 import pain_helper_back.analytics.entity.AnalyticsEvent;
-import pain_helper_back.analytics.entity.LogEntry;
+
 import pain_helper_back.analytics.service.AnalyticsService;
 
 import java.time.LocalDateTime;
@@ -102,32 +102,6 @@ public class AnalyticsController {
         log.info("GET /api/analytics/events/type/{} - startDate={}, endDate={}", eventType, startDate, endDate);
         List<AnalyticsEvent> events = analyticsService.getEventsByType(eventType, startDate, endDate);
         return ResponseEntity.ok(events);
-    }
-
-    /*
-     * GET /api/analytics/logs/recent
-     * Получить последние технические логи
-     */
-    @GetMapping("/logs/recent")
-    public ResponseEntity<List<LogEntry>> getRecentLogs(
-            @RequestParam(defaultValue = "100") int limit) {
-        log.info("GET /api/analytics/logs/recent - limit={}", limit);
-        List<LogEntry> logs = analyticsService.getRecentLogs(limit);
-        return ResponseEntity.ok(logs);
-    }
-
-    /*
-     * GET /api/analytics/logs/level/{level}
-     * Получить логи по уровню (INFO, WARN, ERROR)
-     */
-    @GetMapping("/logs/level/{level}")
-    public ResponseEntity<List<LogEntry>> getLogsByLevel(
-            @PathVariable String level,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate) {
-        log.info("GET /api/analytics/logs/level/{} - startDate={}, endDate={}", level, startDate, endDate);
-        List<LogEntry> logs = analyticsService.getLogsByLevel(level, startDate, endDate);
-        return ResponseEntity.ok(logs);
     }
 
 }

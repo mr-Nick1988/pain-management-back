@@ -440,7 +440,6 @@ public class HapiFhirClient {
             } else {
                 log.warn("No conditions found for patient: {}", patientId);
             }
-            
         } catch (Exception e) {
             log.error("Error fetching conditions for patient {}: {}", patientId, e.getMessage());
         }
