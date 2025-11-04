@@ -4,7 +4,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 import pain_helper_back.analytics.event.VasRecordedEvent;
 import pain_helper_back.common.patients.dto.exceptions.NotFoundException;
 import pain_helper_back.common.patients.entity.Patient;
@@ -43,8 +46,7 @@ public class PainEscalationServiceImpl implements PainEscalationService {
 
     // Слушает событие в методах создания новых VAS
     @EventListener
-    @Transactional(readOnly = true)
-    public void onVasRecorded(VasRecordedEvent event) {
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)    public void onVasRecorded(VasRecordedEvent event) {
         String mrn = event.getPatientMrn();
         Integer vasLevel = event.getVasLevel();
         try {
@@ -90,7 +92,7 @@ public class PainEscalationServiceImpl implements PainEscalationService {
         }
 
         // гарантируем правильный порядок
-      
+
 
         List<Integer> vasValues = vasHistory.stream().map(Vas::getPainLevel).toList();
         int current = vasValues.getLast();
@@ -129,7 +131,7 @@ public class PainEscalationServiceImpl implements PainEscalationService {
     // Обработка новой жалобы (новое значение VAS)
     // ------------------------------------------------------------
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleNewVasRecord(String mrn, Integer newVasLevel) {
         log.info("Handling new VAS record for patient {}: VAS={}", mrn, newVasLevel);
 

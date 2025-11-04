@@ -70,7 +70,9 @@ public class PainEscalationNotificationService {
         //real-time уведомления через WebSocket на Topic (doctors,anesthesiologists,dashboard)
         try {
 //            messagingTemplate.convertAndSend("/topic/escalations/doctors", notification); не требуется так как фильтр при боле >=2 поставит статус ESCALATED
+            log.info("📡 Preparing to send to /topic/escalations/anesthesiologists");
             messagingTemplate.convertAndSend("/topic/escalations/anesthesiologists", notification);
+            log.info("📬 Message dispatched successfully");
             // “CRITICAL” - если боль критическая на Topic notification
             if ("CRITICAL".equalsIgnoreCase(notification.getPriority())) {
                 messagingTemplate.convertAndSend("/topic/escalations/critical", notification);

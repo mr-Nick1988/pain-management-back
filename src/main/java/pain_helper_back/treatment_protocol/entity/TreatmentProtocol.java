@@ -45,4 +45,6 @@ public class TreatmentProtocol {
     @Column(length = 1000)
     private String contraindications;
 
+    // 23 fields
+
 }
