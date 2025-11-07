@@ -1,0 +1,38 @@
+Мне нужно интегрировать JWT аутентификацию в React фронтенд для системы управления болью.
+
+BACKEND:
+- Authentication Service: http://localhost:8082/api/auth
+- Monolith API: http://localhost:8080/api
+- 4 роли: ADMIN, DOCTOR, NURSE, ANESTHESIOLOGIST
+
+ENDPOINTS Authentication Service:
+- POST /api/auth/login - логин (возвращает accessToken, refreshToken)
+- POST /api/auth/refresh - обновление токена
+- POST /api/auth/change-password - смена пароля
+
+ТРЕБОВАНИЯ:
+1. Создать authService.js с методами: login, logout, refreshToken, getAccessToken
+2. Создать axios interceptor для автоматического добавления токена в заголовки
+3. Создать ProtectedRoute компонент для защиты роутов по ролям
+4. Создать Login компонент
+5. При 401 ошибке - автоматически обновлять токен через refresh
+6. Токены хранить в localStorage
+7. После логина редиректить по ролям:
+   - ADMIN → /admin/dashboard
+   - DOCTOR → /doctor/patients
+   - NURSE → /nurse/patients
+   - ANESTHESIOLOGIST → /anesthesiologist/escalations
+
+СТРУКТУРА ОТВЕТА LOGIN:
+{
+  "accessToken": "eyJhbGc...",
+  "refreshToken": "eyJhbGc...",
+  "tokenType": "Bearer",
+  "expiresIn": 86400,
+  "personId": "DOC001",
+  "firstName": "John",
+  "role": "DOCTOR",
+  "temporaryCredentials": false
+}
+
+Создай полную реализацию с примерами использования.

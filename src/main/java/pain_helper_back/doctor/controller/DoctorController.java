@@ -5,9 +5,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import pain_helper_back.common.patients.dto.*;
 import pain_helper_back.doctor.service.DoctorService;
+import pain_helper_back.security.JwtAuthenticationFilter;
+import pain_helper_back.security.RequireRole;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -27,26 +30,51 @@ public class DoctorController {
     // ================= PATIENTS ================= //
 
     @PostMapping("/patients")
-    public PatientDTO createPatient(@RequestBody @Valid PatientDTO patientDto) {
+    @RequireRole({"DOCTOR", "ADMIN"})
+    public PatientDTO createPatient(
+            @RequestBody @Valid PatientDTO patientDto,
+            Authentication authentication) {
+        JwtAuthenticationFilter.UserDetails userDetails =
+                (JwtAuthenticationFilter.UserDetails) authentication.getDetails();
+        log.info("POST /api/doctor/patients - createdBy={}", userDetails.getPersonId());
         return doctorService.createPatient(patientDto);
     }
 
     @GetMapping("/patients/mrn/{mrn}")
-    public PatientDTO getPatientByMrn(@PathVariable String mrn) {
+    @RequireRole({"DOCTOR", "ADMIN"})
+    public PatientDTO getPatientByMrn(
+            @PathVariable String mrn,
+            Authentication authentication) {
+        JwtAuthenticationFilter.UserDetails userDetails =
+                (JwtAuthenticationFilter.UserDetails) authentication.getDetails();
+        log.info("GET /api/doctor/patients/mrn/{} - requestedBy={}", mrn, userDetails.getPersonId());
         return doctorService.getPatientByMrn(mrn);
     }
 
     @GetMapping("/patients/email/{email}")
-    public PatientDTO getPatientByEmail(@PathVariable String email) {
+    @RequireRole({"DOCTOR", "ADMIN"})
+    public PatientDTO getPatientByEmail(
+            @PathVariable String email,
+            Authentication authentication) {
+        JwtAuthenticationFilter.UserDetails userDetails =
+                (JwtAuthenticationFilter.UserDetails) authentication.getDetails();
+        log.info("GET /api/doctor/patients/email/{} - requestedBy={}", email, userDetails.getPersonId());
         return doctorService.getPatientByEmail(email);
     }
 
     @GetMapping("/patients/phone/{phoneNumber}")
-    public PatientDTO getPatientByPhoneNumber(@PathVariable String phoneNumber) {
+    @RequireRole({"DOCTOR", "ADMIN"})
+    public PatientDTO getPatientByPhoneNumber(
+            @PathVariable String phoneNumber,
+            Authentication authentication) {
+        JwtAuthenticationFilter.UserDetails userDetails =
+                (JwtAuthenticationFilter.UserDetails) authentication.getDetails();
+        log.info("GET /api/doctor/patients/phone/{} - requestedBy={}", phoneNumber, userDetails.getPersonId());
         return doctorService.getPatientByPhoneNumber(phoneNumber);
     }
 
     @GetMapping("/patients")
+    @RequireRole({"DOCTOR", "ADMIN"})
     public List<PatientDTO> searchPatients(
             @RequestParam(required = false) String firstName,
             @RequestParam(required = false) String lastName,
@@ -56,75 +84,140 @@ public class DoctorController {
             @RequestParam(required = false) String insurancePolicyNumber,
             @RequestParam(required = false) String address,
             @RequestParam(required = false) String phoneNumber,
-            @RequestParam(required = false) String email
-    ) {
-
+            @RequestParam(required = false) String email,
+            Authentication authentication) {
+        JwtAuthenticationFilter.UserDetails userDetails =
+                (JwtAuthenticationFilter.UserDetails) authentication.getDetails();
+        log.info("GET /api/doctor/patients - requestedBy={}", userDetails.getPersonId());
         return doctorService.searchPatients(firstName, lastName, isActive, birthDate, gender, insurancePolicyNumber, address, phoneNumber, email);
     }
 
     @DeleteMapping("/patients/{mrn}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deletePatient(@PathVariable String mrn) {
+    @RequireRole({"DOCTOR", "ADMIN"})
+    public void deletePatient(
+            @PathVariable String mrn,
+            Authentication authentication) {
+        JwtAuthenticationFilter.UserDetails userDetails =
+                (JwtAuthenticationFilter.UserDetails) authentication.getDetails();
+        log.info("DELETE /api/doctor/patients/{} - deletedBy={}", mrn, userDetails.getPersonId());
         doctorService.deletePatient(mrn);
     }
 
     @PatchMapping("/patients/{mrn}")
-    public PatientDTO updatePatient(@PathVariable String mrn, @RequestBody @Valid PatientUpdateDTO patientUpdateDto) {
+    @RequireRole({"DOCTOR", "ADMIN"})
+    public PatientDTO updatePatient(
+            @PathVariable String mrn,
+            @RequestBody @Valid PatientUpdateDTO patientUpdateDto,
+            Authentication authentication) {
+        JwtAuthenticationFilter.UserDetails userDetails =
+                (JwtAuthenticationFilter.UserDetails) authentication.getDetails();
+        log.info("PATCH /api/doctor/patients/{} - updatedBy={}", mrn, userDetails.getPersonId());
         return doctorService.updatePatient(mrn, patientUpdateDto);
     }
 
     // ================= EMR ================= //
 
     @PostMapping("/patients/{mrn}/emr")
-    public EmrDTO createEmr(@PathVariable String mrn, @RequestBody @Valid EmrDTO emrDto) {
+    @RequireRole({"DOCTOR", "ADMIN"})
+    public EmrDTO createEmr(
+            @PathVariable String mrn,
+            @RequestBody @Valid EmrDTO emrDto,
+            Authentication authentication) {
+        JwtAuthenticationFilter.UserDetails userDetails =
+                (JwtAuthenticationFilter.UserDetails) authentication.getDetails();
+        log.info("POST /api/doctor/patients/{}/emr - createdBy={}", mrn, userDetails.getPersonId());
         return doctorService.createEmr(mrn, emrDto);
     }
 
     @GetMapping("/patients/{mrn}/emr/last")
-    public EmrDTO getLastEmrByPatientMrn(@PathVariable String mrn) {
+    @RequireRole({"DOCTOR", "ADMIN"})
+    public EmrDTO getLastEmrByPatientMrn(
+            @PathVariable String mrn,
+            Authentication authentication) {
+        JwtAuthenticationFilter.UserDetails userDetails =
+                (JwtAuthenticationFilter.UserDetails) authentication.getDetails();
+        log.info("GET /api/doctor/patients/{}/emr/last - requestedBy={}", mrn, userDetails.getPersonId());
         return doctorService.getLastEmrByPatientMrn(mrn);
     }
 
     @PatchMapping("/patients/{mrn}/emr")
-    public EmrDTO updateEmr(@PathVariable String mrn, @RequestBody @Valid EmrUpdateDTO emrUpdateDto) {
+    @RequireRole({"DOCTOR", "ADMIN"})
+    public EmrDTO updateEmr(
+            @PathVariable String mrn,
+            @RequestBody @Valid EmrUpdateDTO emrUpdateDto,
+            Authentication authentication) {
+        JwtAuthenticationFilter.UserDetails userDetails =
+                (JwtAuthenticationFilter.UserDetails) authentication.getDetails();
+        log.info("PATCH /api/doctor/patients/{}/emr - updatedBy={}", mrn, userDetails.getPersonId());
         return doctorService.updateEmr(mrn, emrUpdateDto);
     }
 
     @GetMapping("/patients/{mrn}/emr")
-    public List<EmrDTO> getAllEmrByPatientMrn(@PathVariable String mrn) {
+    @RequireRole({"DOCTOR", "ADMIN"})
+    public List<EmrDTO> getAllEmrByPatientMrn(
+            @PathVariable String mrn,
+            Authentication authentication) {
+        JwtAuthenticationFilter.UserDetails userDetails =
+                (JwtAuthenticationFilter.UserDetails) authentication.getDetails();
+        log.info("GET /api/doctor/patients/{}/emr - requestedBy={}", mrn, userDetails.getPersonId());
         return doctorService.getAllEmrByPatientMrn(mrn);
     }
 
     // ================= RECOMMENDATIONS ================= //
 
     @GetMapping("/recommendations/pending")
-    public List<RecommendationWithVasDTO> getAllPendingRecommendations() {
+    @RequireRole({"DOCTOR", "ADMIN"})
+    public List<RecommendationWithVasDTO> getAllPendingRecommendations(Authentication authentication) {
+        JwtAuthenticationFilter.UserDetails userDetails =
+                (JwtAuthenticationFilter.UserDetails) authentication.getDetails();
+        log.info("GET /api/doctor/recommendations/pending - requestedBy={}", userDetails.getPersonId());
         return doctorService.getAllPendingRecommendations();
     }
 
     @GetMapping("/patients/{mrn}/recommendations/last")
-    public RecommendationWithVasDTO getLastRecommendationByMrn(@PathVariable String mrn) {
+    @RequireRole({"DOCTOR", "ADMIN"})
+    public RecommendationWithVasDTO getLastRecommendationByMrn(
+            @PathVariable String mrn,
+            Authentication authentication) {
+        JwtAuthenticationFilter.UserDetails userDetails =
+                (JwtAuthenticationFilter.UserDetails) authentication.getDetails();
+        log.info("GET /api/doctor/patients/{}/recommendations/last - requestedBy={}", mrn, userDetails.getPersonId());
         return doctorService.getLastRecommendationByMrn(mrn);
     }
     @PostMapping("/recommendations/{recommendationId}/approve")
+    @RequireRole("DOCTOR")
     public RecommendationDTO approveRecommendation(
             @PathVariable Long recommendationId,
-            @RequestBody @Valid RecommendationApprovalRejectionDTO dto
-    ) {
+            @RequestBody @Valid RecommendationApprovalRejectionDTO dto,
+            Authentication authentication) {
+        JwtAuthenticationFilter.UserDetails userDetails =
+                (JwtAuthenticationFilter.UserDetails) authentication.getDetails();
+        log.info("POST /api/doctor/recommendations/{}/approve - approvedBy={}", recommendationId, userDetails.getPersonId());
         return doctorService.approveRecommendation(recommendationId, dto);
     }
 
     @PostMapping("/recommendations/{recommendationId}/reject")
+    @RequireRole("DOCTOR")
     public RecommendationDTO rejectRecommendation(
             @PathVariable Long recommendationId,
-            @RequestBody @Valid RecommendationApprovalRejectionDTO dto
-    ) {
+            @RequestBody @Valid RecommendationApprovalRejectionDTO dto,
+            Authentication authentication) {
+        JwtAuthenticationFilter.UserDetails userDetails =
+                (JwtAuthenticationFilter.UserDetails) authentication.getDetails();
+        log.info("POST /api/doctor/recommendations/{}/reject - rejectedBy={}", recommendationId, userDetails.getPersonId());
         return doctorService.rejectRecommendation(recommendationId, dto);
     }
 
     // ===  get all recommendations with VAS history ===
     @GetMapping("/patients/{mrn}/history")
-    public List<RecommendationWithVasDTO> getPatientHistory(@PathVariable String mrn) {
+    @RequireRole({"DOCTOR", "ADMIN"})
+    public List<RecommendationWithVasDTO> getPatientHistory(
+            @PathVariable String mrn,
+            Authentication authentication) {
+        JwtAuthenticationFilter.UserDetails userDetails =
+                (JwtAuthenticationFilter.UserDetails) authentication.getDetails();
+        log.info("GET /api/doctor/patients/{}/history - requestedBy={}", mrn, userDetails.getPersonId());
         return doctorService.getRecommendationsWithVasByPatientMrn(mrn);
     }
 

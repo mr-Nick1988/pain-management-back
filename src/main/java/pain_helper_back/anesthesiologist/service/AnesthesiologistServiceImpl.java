@@ -131,7 +131,8 @@ public class AnesthesiologistServiceImpl implements AnesthesiologistServiceInter
         //“Although SRS v0.2 defines that every rejection must include a reason,
         // the current implementation treats the anesthesiologist’s rejection as a new custom recommendation creation
         // rather than a rejection in the workflow sense; therefore, a reason is not required.”
-        String uniRegReason = rec.getRejectedReason().concat(", Rejection by anesthesiologist → new instruction created");
+        String rejectedReasons = rec.getRejectedReason() != null ? rec.getRejectedReason() : "";
+        String uniRegReason = rejectedReasons.concat(", Rejection by anesthesiologist → new instruction created");
         rec.setRejectedReason(uniRegReason);
         rec.setReplacedAt(LocalDateTime.now());
 

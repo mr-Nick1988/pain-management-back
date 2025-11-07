@@ -55,7 +55,7 @@ class EmrSyncSchedulerTest {
     private WebSocketNotificationService webSocketNotificationService;
 
     @Mock
-    private EmailNotificationService emailNotificationService;
+    private pain_helper_back.emr_recalculation.service.EmrRecalculationService emrRecalculationService;
 
     private EmrSyncScheduler scheduler;
 
@@ -66,7 +66,8 @@ class EmrSyncSchedulerTest {
                 emrRepository,
                 hapiFhirClient,
                 changeDetectionService,
-                webSocketNotificationService
+                webSocketNotificationService,
+                emrRecalculationService
         );
     }
 
