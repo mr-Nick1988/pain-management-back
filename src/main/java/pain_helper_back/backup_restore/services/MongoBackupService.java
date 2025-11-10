@@ -55,7 +55,7 @@ public class MongoBackupService {
     @Value("${backup.mongo.directory:./backups/mongodb}")
     private String backupDirectory;
 
-    @Value("${app.mongodb.backup.uri}")
+    @Value("${spring.data.mongodb.uri}")
     private String mongoUri;
 
     @Value("${backup.retention.days:30}")

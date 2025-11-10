@@ -157,20 +157,19 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-//        if (!personRepository.existsByLogin("admin")) {
-//            Person admin = new Person();
-//            admin.setPersonId("admin123");
-//            admin.setFirstName("Admin");
-//            admin.setLastName("User");
-//            admin.setLogin("admin");
-//            admin.setPassword("admin");
-//            admin.setRole(Roles.ADMIN);
-//            admin.setTemporaryCredentials(false);
-//            personRepository.save(admin);
-//            System.out.println("Admin user created successfully");
-//        } else {
-//            System.out.println("Admin user already exists");
-//        }
-//    }
+        if (!personRepository.existsByLogin("admin")) {
+            Person admin = new Person();
+            admin.setPersonId("admin123");
+            admin.setFirstName("Admin");
+            admin.setLastName("User");
+            admin.setLogin("admin");
+            admin.setPassword("admin");
+            admin.setRole(Roles.ADMIN);
+            admin.setTemporaryCredentials(false);
+            personRepository.save(admin);
+            System.out.println("Admin user created successfully");
+        } else {
+            System.out.println("Admin user already exists");
+        }
     }
 }
