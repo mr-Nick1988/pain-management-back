@@ -8,7 +8,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import pain_helper_back.analytics.entity.AnalyticsEvent;
 import pain_helper_back.analytics.event.*;
-import pain_helper_back.analytics.repository.AnalyticsEventRepository;
+import pain_helper_back.analytics.publisher.AnalyticsPublisher;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -16,13 +16,13 @@ import java.util.Map;
 
 /*
  * Слушатель бизнес-событий
- * Асинхронно сохраняет события в MongoDB для аналитики
+ * Асинхронно публикует события в Kafka для обработки микросервисом Analytics-Reporting
  */
 @Component
 @Slf4j
 @RequiredArgsConstructor
 public class AnalyticsEventListener {
-    private final AnalyticsEventRepository analyticsEventRepository;
+    private final AnalyticsPublisher analyticsPublisher;
 
     /*
      * Обработка события: Создан новый сотрудник
@@ -48,8 +48,8 @@ public class AnalyticsEventListener {
             analyticsEvent.getMetadata().put("newPersonId", event.getPersonId());
             analyticsEvent.getMetadata().put("newPersonRole", event.getRole());
 
-            analyticsEventRepository.save(analyticsEvent);
-            log.info("Analytics event saved: PERSON_CREATED, personId={}, role={}, createdBy={}",
+            analyticsPublisher.publish(analyticsEvent);
+            log.debug("Analytics event published: PERSON_CREATED, personId={}, role={}, createdBy={}",
                     event.getPersonId(), event.getRole(), event.getCreatedBy());
 
         } catch (Exception e) {
@@ -80,8 +80,8 @@ public class AnalyticsEventListener {
             analyticsEvent.getMetadata().put("deletedPersonId", event.getPersonId());
             analyticsEvent.getMetadata().put("deletedPersonRole", event.getRole());
 
-            analyticsEventRepository.save(analyticsEvent);
-            log.warn("Analytics event saved: PERSON_DELETED, personId={}, role={}, deletedBy={}",
+            analyticsPublisher.publish(analyticsEvent);
+            log.debug("Analytics event published: PERSON_DELETED, personId={}, role={}, deletedBy={}",
                     event.getPersonId(), event.getRole(), event.getDeletedBy());
 
         } catch (Exception e) {
@@ -109,8 +109,8 @@ public class AnalyticsEventListener {
 
             analyticsEvent.getMetadata().put("updatedPersonId", event.getPersonId());
 
-            analyticsEventRepository.save(analyticsEvent);
-            log.info("Analytics event saved: PERSON_UPDATED, personId={}, updatedBy={}, fields={}",
+            analyticsPublisher.publish(analyticsEvent);
+            log.debug("Analytics event published: PERSON_UPDATED, personId={}, updatedBy={}, fields={}",
                     event.getPersonId(), event.getUpdatedBy(), event.getChangedFields().keySet());
 
         } catch (Exception e) {
@@ -138,12 +138,12 @@ public class AnalyticsEventListener {
                     .metadata(metadata)
                     .build();
 
-            analyticsEventRepository.save(analyticsEvent);
+            analyticsPublisher.publish(analyticsEvent);
             if (event.getSuccess()) {
-                log.info("Analytics event saved: USER_LOGIN_SUCCESS, personId={}, role={}",
+                log.debug("Analytics event published: USER_LOGIN_SUCCESS, personId={}, role={}",
                         event.getPersonId(), event.getRole());
             } else {
-                log.warn("Analytics event saved: USER_LOGIN_FAILED, personId={}", event.getPersonId());
+                log.debug("Analytics event published: USER_LOGIN_FAILED, personId={}", event.getPersonId());
             }
 
         } catch (Exception e) {
@@ -173,8 +173,8 @@ public class AnalyticsEventListener {
                     .metadata(metadata)
                     .build();
 
-            analyticsEventRepository.save(analyticsEvent);
-            log.info("Analytics event saved: RECOMMENDATION_APPROVED, recommendationId={}, doctorId={}",
+            analyticsPublisher.publish(analyticsEvent);
+            log.debug("Analytics event published: RECOMMENDATION_APPROVED, recommendationId={}, doctorId={}",
                     event.getRecommendationId(), event.getApprovedBy());
 
         } catch (Exception e) {
@@ -205,8 +205,8 @@ public class AnalyticsEventListener {
                     .metadata(metadata)
                     .build();
 
-            analyticsEventRepository.save(analyticsEvent);
-            log.info("Analytics event saved: RECOMMENDATION_REJECTED, recommendationId={}, doctorId={}, reason={}",
+            analyticsPublisher.publish(analyticsEvent);
+            log.debug("Analytics event published: RECOMMENDATION_REJECTED, recommendationId={}, doctorId={}, reason={}",
                     event.getRecommendationId(), event.getRejectedBy(), event.getRejectionReason());
 
         } catch (Exception e) {
@@ -236,8 +236,8 @@ public class AnalyticsEventListener {
                     .metadata(metadata)
                     .build();
 
-            analyticsEventRepository.save(analyticsEvent);
-            log.info("Analytics event saved: PATIENT_REGISTERED, patientMrn={}, registeredBy={}, role={}",
+            analyticsPublisher.publish(analyticsEvent);
+            log.debug("Analytics event published: PATIENT_REGISTERED, patientMrn={}, registeredBy={}, role={}",
                     event.getPatientMrn(), event.getRegisteredBy(), event.getRegisteredByRole());
 
         } catch (Exception e) {
@@ -275,8 +275,8 @@ public class AnalyticsEventListener {
                     .metadata(metadata)
                     .build();
 
-            analyticsEventRepository.save(analyticsEvent);
-            log.info("EMR_CREATED event saved: patient={}, createdBy={}, diagnoses={}",
+            analyticsPublisher.publish(analyticsEvent);
+            log.debug("EMR_CREATED event published: patient={}, createdBy={}, diagnoses={}",
                     event.getPatientMrn(), event.getCreatedBy(),
                     event.getDiagnosisCodes() != null ? event.getDiagnosisCodes().size() : 0);
         } catch (Exception e) {
@@ -313,8 +313,8 @@ public class AnalyticsEventListener {
                     .metadata(metadata)
                     .build();
 
-            analyticsEventRepository.save(analyticsEvent);
-            log.info("Analytics event saved: VAS_RECORDED, patientMrn={}, vasLevel={}, critical={}, source={}, device={}",
+            analyticsPublisher.publish(analyticsEvent);
+            log.debug("Analytics event published: VAS_RECORDED, patientMrn={}, vasLevel={}, critical={}, source={}, device={}",
                     event.getPatientMrn(), event.getVasLevel(), event.getIsCritical(), 
                     event.getVasSource(), event.getDeviceId());
 
@@ -354,8 +354,8 @@ public class AnalyticsEventListener {
                     .metadata(metadata)
                     .build();
 
-            analyticsEventRepository.save(analyticsEvent);
-            log.info("Analytics event saved: RECOMMENDATION_CREATED, recommendationId={}, patientMrn={}, drug={}, vasLevel={}, diagnoses={}",
+            analyticsPublisher.publish(analyticsEvent);
+            log.debug("Analytics event published: RECOMMENDATION_CREATED, recommendationId={}, patientMrn={}, drug={}, vasLevel={}, diagnoses={}",
                     event.getRecommendationId(), event.getPatientMrn(), event.getDrugName(), event.getVasLevel(),
                     event.getDiagnosisCodes() != null ? event.getDiagnosisCodes().size() : 0);
 
@@ -387,8 +387,8 @@ public class AnalyticsEventListener {
                     .metadata(metadata)
                     .build();
 
-            analyticsEventRepository.save(analyticsEvent);
-            log.info("Analytics event saved: DOSE_ADMINISTERED, patientMrn={}, drug={} {}{}, administeredBy={}",
+            analyticsPublisher.publish(analyticsEvent);
+            log.debug("Analytics event published: DOSE_ADMINISTERED, patientMrn={}, drug={} {}{}, administeredBy={}",
                     event.getPatientMrn(), event.getDosage(), event.getUnit(), event.getDrugName(), event.getAdministeredBy());
 
         } catch (Exception e) {
