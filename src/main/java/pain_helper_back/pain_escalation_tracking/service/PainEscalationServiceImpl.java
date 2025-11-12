@@ -2,10 +2,8 @@ package pain_helper_back.pain_escalation_tracking.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import pain_helper_back.analytics.event.VasRecordedEvent;
 import pain_helper_back.common.patients.dto.exceptions.NotFoundException;
 import pain_helper_back.common.patients.entity.Patient;
 import pain_helper_back.common.patients.entity.Recommendation;
@@ -40,21 +38,6 @@ public class PainEscalationServiceImpl implements PainEscalationService {
     private final PainEscalationRepository painEscalationRepository;
     private final PainEscalationConfig config;
     private final PainEscalationNotificationService notificationService;
-
-    // Слушает событие в методах создания новых VAS
-    @EventListener
-    @Transactional(readOnly = true)
-    public void onVasRecorded(VasRecordedEvent event) {
-        String mrn = event.getPatientMrn();
-        Integer vasLevel = event.getVasLevel();
-        try {
-            log.info("Received VAS event for patient {} (painLevel={})", mrn, vasLevel);
-            handleNewVasRecord(mrn, vasLevel);
-        } catch (Exception e) {
-            log.error("Failed to handle VAS escalation for {}: {}", mrn, e.getMessage(), e);
-        }
-    }
-
 
     @Transactional(readOnly = true)
     public Patient getPatientByMrn(String mrn) {

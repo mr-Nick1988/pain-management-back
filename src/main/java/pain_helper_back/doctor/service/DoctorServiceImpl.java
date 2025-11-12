@@ -4,11 +4,10 @@ package pain_helper_back.doctor.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import pain_helper_back.analytics.event.*;
+import pain_helper_back.analytics.publisher.AnalyticsPublisher;
 import pain_helper_back.common.patients.dto.*;
 import pain_helper_back.common.patients.dto.exceptions.EntityExistsException;
 import pain_helper_back.common.patients.dto.exceptions.NotFoundException;
@@ -16,9 +15,9 @@ import pain_helper_back.common.patients.entity.*;
 import pain_helper_back.common.patients.repository.EmrRepository;
 import pain_helper_back.common.patients.repository.PatientRepository;
 import pain_helper_back.common.patients.repository.RecommendationRepository;
-import pain_helper_back.common.patients.dto.RecommendationApprovalRejectionDTO;
-import pain_helper_back.common.patients.dto.RecommendationWithVasDTO;
-import pain_helper_back.enums.*;
+import pain_helper_back.enums.PatientsGenders;
+import pain_helper_back.enums.RecommendationStatus;
+import pain_helper_back.security.SecurityUtils;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -37,7 +36,7 @@ public class DoctorServiceImpl implements DoctorService {
     private final RecommendationRepository recommendationRepository;
     private final PatientRepository patientRepository;
     private final ModelMapper modelMapper;
-    private final ApplicationEventPublisher eventPublisher;
+    private final AnalyticsPublisher analyticsPublisher;
     private final EmrRepository emrRepository;
 
     /*
@@ -71,16 +70,14 @@ public class DoctorServiceImpl implements DoctorService {
         patient.setMrn(mrn);
         patientRepository.save(patient);
 
-        eventPublisher.publishEvent(new PatientRegisteredEvent(
-                this,
+        analyticsPublisher.publishPatientRegistered(
                 patient.getId(),
                 mrn,
-                "doctor_id", // TODO: заменить на реальный ID из Security Context
-                "DOCTOR",
-                LocalDateTime.now(),
+                SecurityUtils.getUserIdOrSystem(),
+                SecurityUtils.getRoleOrUnknown(),
                 patient.getAge(),
                 patient.getGender().toString()
-        ));
+        );
         return modelMapper.map(patient, PatientDTO.class);
     }
 
@@ -221,20 +218,17 @@ public class DoctorServiceImpl implements DoctorService {
                 emr.getDiagnoses().stream().map(Diagnosis::getDescription).toList() : new ArrayList<>();
 
         // Публикация события
-        eventPublisher.publishEvent(new EmrCreatedEvent(
-                this,
-                emr.getId(),
+        analyticsPublisher.publishEmrCreated(
                 mrn,
-                "doctor_id",
-                "DOCTOR",
-                LocalDateTime.now(),
+                SecurityUtils.getUserIdOrSystem(),
+                SecurityUtils.getRoleOrUnknown(),
                 emr.getGfr(),
                 emr.getChildPughScore(),
                 emr.getWeight(),
                 emr.getHeight(),
                 diagnosisCodes,
                 diagnosisDescriptions
-        ));
+        );
         return modelMapper.map(emr, EmrDTO.class);
     }
 
@@ -353,7 +347,7 @@ public class DoctorServiceImpl implements DoctorService {
         }
 
         recommendation.setStatus(RecommendationStatus.APPROVED);
-        recommendation.setDoctorId("doctor_id"); // TODO: взять из SecurityContext
+        recommendation.setDoctorId(SecurityUtils.getUserIdOrSystem());
         recommendation.setDoctorActionAt(LocalDateTime.now());
         recommendation.setDoctorComment(dto.getComment());
         recommendation.setFinalApprovedBy(recommendation.getDoctorId());
@@ -370,16 +364,13 @@ public class DoctorServiceImpl implements DoctorService {
                 recommendation.getDoctorActionAt()
         ).toMillis();
 
-        eventPublisher.publishEvent(new RecommendationApprovedEvent(
-                this,
-                recommendation.getId(),
-                recommendation.getDoctorId(),
-                Roles.DOCTOR.name(),
+        analyticsPublisher.publishRecommendationApproved(
+                recommendationId,
                 recommendation.getPatient().getMrn(),
-                recommendation.getDoctorActionAt(),
-                recommendation.getDoctorComment(),
+                recommendation.getDoctorId(),
+                dto.getComment(),
                 processingTimeMs
-        ));
+        );
 
         log.info("Recommendation approved: id={}, status={}", recommendation.getId(), recommendation.getStatus());
         return modelMapper.map(recommendation, RecommendationDTO.class);
@@ -413,17 +404,13 @@ public class DoctorServiceImpl implements DoctorService {
 
         recommendationRepository.save(recommendation);
 
-        eventPublisher.publishEvent(new RecommendationRejectedEvent(
-                this,
-                recommendation.getId(),
-                recommendation.getDoctorId(),
-                Roles.DOCTOR.name(),
+        analyticsPublisher.publishRecommendationRejected(
+                recommendationId,
                 recommendation.getPatient().getMrn(),
-                recommendation.getDoctorActionAt(),
-                recommendation.getRejectedReason(),
-                recommendation.getDoctorComment(),
-                null
-        ));
+                recommendation.getDoctorId(),
+                dto.getRejectedReason(),
+                dto.getComment()
+        );
         log.info("Recommendation rejected and escalated: recommendationId={}, status={}",
                 recommendation.getId(), recommendation.getStatus());
 
@@ -461,21 +448,3 @@ public class DoctorServiceImpl implements DoctorService {
 }
 
 
-    // TODO: Данный функционал по Аудиту будет реализован в отдельном классе Spring AOP для перехвата всех действий
-    // 1) @Aspect
-    //    @Component
-    //    public class AuditTrailAspect
-    //        AuditTrail audit = new AuditTrail();
-    //        audit.setAction(PatientRegistrationAuditAction.PATIENT_REGISTERED); // enum
-    //        audit.setPerson(createdBy);
-    //        audit.setPid(patients.getId());
-    //        auditTrailRepository.save(audit);
-    //
-    // 2) Создать Enum для всех действий для AuditTrailRepository
-    //    PatientAuditAction → создание/удаление/обновление пациента.
-    //    EmrAuditAction → изменения в медкартах.
-    //    VasAuditAction → жалобы.
-    //    RecommendationAuditAction → approve/reject/modify.
-    //    AuthAuditAction → логин/логаут.
-    //
-    // 3) Пометить все методы для аудита @Auditable(action = PatientRegistrationAuditAction.RECOMMENDATION_REJECTED)

@@ -1,16 +1,11 @@
 package pain_helper_back.nurse.service;
 
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import pain_helper_back.analytics.event.EmrCreatedEvent;
-import pain_helper_back.analytics.event.PatientRegisteredEvent;
-import pain_helper_back.analytics.event.RecommendationCreatedEvent;
-import pain_helper_back.analytics.event.VasRecordedEvent;
+import pain_helper_back.analytics.publisher.AnalyticsPublisher;
 import pain_helper_back.common.patients.dto.*;
 import pain_helper_back.common.patients.dto.exceptions.EntityExistsException;
 import pain_helper_back.common.patients.dto.exceptions.NotFoundException;
@@ -21,6 +16,7 @@ import pain_helper_back.common.patients.repository.RecommendationRepository;
 import pain_helper_back.enums.RecommendationStatus;
 import pain_helper_back.pain_escalation_tracking.service.PainEscalationService;
 import pain_helper_back.treatment_protocol.service.TreatmentProtocolService;
+import pain_helper_back.security.SecurityUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -29,7 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-
 
 import static java.util.stream.Collectors.toList;
 
@@ -41,7 +36,7 @@ public class NurseServiceImpl implements NurseService {
     private final TreatmentProtocolService treatmentProtocolService;
     private final EmrRepository emrRepository;
     private final ModelMapper modelMapper;
-    private final ApplicationEventPublisher eventPublisher;
+    private final AnalyticsPublisher analyticsPublisher;
     private final RecommendationRepository recommendationRepository;
     private final PainEscalationService painEscalationService;
 
@@ -66,16 +61,14 @@ public class NurseServiceImpl implements NurseService {
         patient.setMrn(mrn);
         patientRepository.save(patient);
 
-        eventPublisher.publishEvent(new PatientRegisteredEvent(
-                this,
+        analyticsPublisher.publishPatientRegistered(
                 patient.getId(),
                 mrn,
-                "nurse_id", // TODO: заменить на реальный ID из Security Context
-                "NURSE",
-                LocalDateTime.now(),
+                SecurityUtils.getUserIdOrSystem(),
+                SecurityUtils.getRoleOrUnknown(),
                 patient.getAge(),
                 patient.getGender().toString()
-        ));
+        );
         return modelMapper.map(patient, PatientDTO.class);
     }
 
@@ -180,20 +173,17 @@ public class NurseServiceImpl implements NurseService {
         List<String> diagnosisDescriptions = emr.getDiagnoses() != null ?
                 emr.getDiagnoses().stream().map(Diagnosis::getDescription).toList() : new ArrayList<>();
 
-        eventPublisher.publishEvent(new EmrCreatedEvent(
-                this,
-                emr.getId(),
+        analyticsPublisher.publishEmrCreated(
                 mrn,
-                "nurse_id", // TODO: заменить на реальный ID
-                "NURSE",
-                LocalDateTime.now(),
+                SecurityUtils.getUserIdOrSystem(),
+                SecurityUtils.getRoleOrUnknown(),
                 emr.getGfr(),
                 emr.getChildPughScore(),
                 emr.getWeight(),
                 emr.getHeight(),
                 diagnosisCodes,
                 diagnosisDescriptions
-        ));
+        );
         // 5 Hibernate сам сохранит всё (EMR + Diagnosis) в конце транзакции
         return modelMapper.map(emr, EmrDTO.class);
     }
@@ -244,18 +234,15 @@ public class NurseServiceImpl implements NurseService {
         patient.getVas().add(vas);
 
         // Публикация события VAS (INTERNAL источник - медсестра)
-        eventPublisher.publishEvent(new VasRecordedEvent(
-                this,
-                vas.getId(),
+        analyticsPublisher.publishVasRecorded(
                 mrn,
-                "nurse_id", // TODO: заменить на реальный ID из Security Context
-                LocalDateTime.now(),
                 vas.getPainLevel(),
                 vas.getPainPlace(),
-                vas.getPainLevel() >= 8,  // isCritical если боль >= 8
-                "INTERNAL",  // vasSource - внутренний ввод медсестрой
-                null  //deviceId - не применимо для внутреннего ввода
-        ));
+                SecurityUtils.getUserIdOrSystem(),
+                vas.getPainLevel() >= 8,
+                "INTERNAL",
+                null
+        );
 
         //!! АВТОМАТИЧЕСКАЯ ПРОВЕРКА ЭСКАЛАЦИИ БОЛИ (Блок pain_escalation_tracking)
         painEscalationService.handleNewVasRecord(mrn, vas.getPainLevel());
@@ -354,46 +341,47 @@ public class NurseServiceImpl implements NurseService {
                 recommendation.getDrugs().getFirst().getRoute().name() : "UNKNOWN";
 
         // Публикация события создания рекомендации
-        eventPublisher.publishEvent(new RecommendationCreatedEvent(
-                this,
+        String drugName = !drugNames.isEmpty() ? drugNames.get(0) : "Unknown";
+        String dosage = !dosages.isEmpty() ? dosages.get(0) : "Unknown";
+        
+        analyticsPublisher.publishRecommendationCreated(
                 recommendation.getId(),
                 patient.getMrn(),
-                drugNames,
-                dosages,
-                route,
+                SecurityUtils.getUserIdOrSystem(),
+                SecurityUtils.getRoleOrUnknown(),
                 vas.getPainLevel(),
-                "nurse_id", // TODO: заменить на реальный ID из Security Context
-                LocalDateTime.now(),
+                drugName,
+                dosage,
+                route,
                 processingTime,
                 diagnosisCodes
-        ));
-
+        );
         return modelMapper.map(recommendation, RecommendationDTO.class);
     }
 
     @Override
     @Transactional
     public RecommendationDTO executeRecommendation(String mrn) {
-        //  Находим пациента и его последнюю рекомендацию
         Patient patient = findPatientOrThrow(mrn);
+        if (patient.getRecommendations().isEmpty()) {
+            throw new NotFoundException("No recommendations to execute for patient with MRN=" + mrn);
+        }
         Recommendation recommendation = patient.getRecommendations().getLast();
-        //  Проверяем, что её можно исполнить
         if (recommendation.getStatus() != RecommendationStatus.APPROVED) {
             throw new IllegalStateException("Only approved recommendations can be executed.");
         }
-        //  Получаем список препаратов для комментария
+
+        // Build a system comment with administered drugs
         List<String> drugNames = recommendation.getDrugs()
                 .stream()
-                .map(drugRecommendation -> drugRecommendation.getDrugName() != null && drugRecommendation.getDrugName().isBlank()
-                        ? drugRecommendation.getDrugName()
-                        : drugRecommendation.getActiveMoiety()
-                )
+                .map(drug -> (drug.getDrugName() != null && !drug.getDrugName().isBlank())
+                        ? drug.getDrugName()
+                        : drug.getActiveMoiety())
                 .toList();
-        //  Идентификатор текущей медсестры (временно — заглушка)
-        String nurseId = "NurseId"; // TODO: заменить на SecurityContextHolder.getContext().getAuthentication().getName()
-        //  Формируем красивое системное сообщение
+
+        String nurseId = SecurityUtils.getUserIdOrSystem();
         String comment = String.format("""
-                        [SYSTEM]  Recommendation executed by Nurse: %s
+                        [SYSTEM] Recommendation executed by Nurse: %s
                         Patient MRN: %s
                         Executed at: %s
                         Drugs administered: %s
@@ -403,18 +391,19 @@ public class NurseServiceImpl implements NurseService {
                 LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
                 String.join(", ", drugNames)
         );
-        // Добавляем комментарий и обновляем статус
+
         recommendation.getComments().add(comment);
         recommendation.setStatus(RecommendationStatus.EXECUTED);
         recommendation.setUpdatedBy(nurseId);
         recommendation.setUpdatedAt(LocalDateTime.now());
-        // Сохраняем (каскадное сохранение драг-ов произойдёт автоматически)
+
         recommendationRepository.save(recommendation);
-        // (в будущем) публикуем Event для аналитики
-        //TODO eventPublisher.publishEvent(new RecommendationExecutedEvent(...));
+
+        // Optionally, publish dose-level events via analyticsPublisher.publishDoseAdministered(...)
+        // Skipped for now due to lack of structured dosage/unit in DrugRecommendation
+
         return modelMapper.map(recommendation, RecommendationDTO.class);
     }
-
 
     @Override
     @Transactional(readOnly = true)

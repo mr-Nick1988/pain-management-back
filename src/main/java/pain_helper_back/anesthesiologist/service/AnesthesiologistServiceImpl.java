@@ -3,12 +3,9 @@ package pain_helper_back.anesthesiologist.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import pain_helper_back.analytics.event.RecommendationApprovedEvent;
-import pain_helper_back.analytics.event.RecommendationCreatedEvent;
-import pain_helper_back.analytics.event.RecommendationRejectedEvent;
+import pain_helper_back.analytics.publisher.AnalyticsPublisher;
 import pain_helper_back.common.patients.dto.*;
 import pain_helper_back.common.patients.dto.exceptions.NotFoundException;
 import pain_helper_back.common.patients.entity.*;
@@ -18,6 +15,7 @@ import pain_helper_back.enums.RecommendationStatus;
 import pain_helper_back.enums.Roles;
 import pain_helper_back.anesthesiologist.dto.AnesthesiologistRecommendationCreateDTO;
 import pain_helper_back.anesthesiologist.dto.AnesthesiologistRecommendationUpdateDTO;
+import pain_helper_back.security.SecurityUtils;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -35,7 +33,7 @@ public class AnesthesiologistServiceImpl implements AnesthesiologistServiceInter
     private final RecommendationRepository recommendationRepository;
     private final PatientRepository patientRepository;
     private final ModelMapper modelMapper;
-    private final ApplicationEventPublisher eventPublisher;
+    private final AnalyticsPublisher analyticsPublisher;
 
 
     // Возвращает список всех рекомендаций, переданных на уровень анестезиолога (ESCALATED).
@@ -71,7 +69,7 @@ public class AnesthesiologistServiceImpl implements AnesthesiologistServiceInter
             throw new IllegalStateException("Recommendation is not in ESCALATED status for approval");
         }
 
-        String anesthId = "anesthesiologist_id"; // TODO: взять из SecurityContext
+        String anesthId = SecurityUtils.getUserIdOrSystem();
         String comment = dto.getComment();
         //  Обновляем ключевые поля
         rec.setStatus(RecommendationStatus.APPROVED);
@@ -93,16 +91,14 @@ public class AnesthesiologistServiceImpl implements AnesthesiologistServiceInter
                 rec.getAnesthesiologistActionAt()
         ).toMillis();
 
-        eventPublisher.publishEvent(new RecommendationApprovedEvent(
-                this,
+        analyticsPublisher.publishRecommendationApproved(
                 rec.getId(),
-                anesthId,
-                Roles.ANESTHESIOLOGIST.name(),
                 rec.getPatient().getMrn(),
-                rec.getAnesthesiologistActionAt(),
+                anesthId,
+                SecurityUtils.getRoleOrUnknown(),
                 comment,
                 processingTimeMs
-        ));
+        );
 
         log.info("Escalation approved successfully: id={}, status={}", rec.getId(), rec.getStatus());
         return modelMapper.map(rec, RecommendationDTO.class);
@@ -140,17 +136,14 @@ public class AnesthesiologistServiceImpl implements AnesthesiologistServiceInter
 
         //  Публикуем событие для аудита
         Long lifeCycleMs = Duration.between(rec.getCreatedAt(), rec.getReplacedAt()).toMillis();
-        eventPublisher.publishEvent(new RecommendationRejectedEvent(
-                this,
+        analyticsPublisher.publishRecommendationRejected(
                 rec.getId(),
-                rec.getAnesthesiologistId(),
-                Roles.ANESTHESIOLOGIST.name(),
                 rec.getPatient().getMrn(),
-                rec.getAnesthesiologistActionAt(),
+                rec.getAnesthesiologistId(),
+                SecurityUtils.getRoleOrUnknown(),
                 rec.getRejectedReason(),
-                rec.getAnesthesiologistComment(),
-                lifeCycleMs
-        ));
+                rec.getAnesthesiologistComment()
+        );
         log.info("Escalation rejected successfully: id={}, lifecycle={} ms", rec.getId(), lifeCycleMs);
         return modelMapper.map(rec, RecommendationDTO.class);
     }
@@ -183,7 +176,7 @@ public class AnesthesiologistServiceImpl implements AnesthesiologistServiceInter
         oldRec.setPatient(patient);
         oldRec.setRegimenHierarchy(dto.getRegimenHierarchy());
         oldRec.setStatus(RecommendationStatus.APPROVED);
-        oldRec.setCreatedBy("anesthesiologist_id"); //TODO добавить из Context Spring Security
+        oldRec.setCreatedBy(SecurityUtils.getUserIdOrSystem());
         oldRec.setCreatedAt(LocalDateTime.now());
 
         //  Заменяем препараты (удаляем старые, вставляем новые)
@@ -226,19 +219,19 @@ public class AnesthesiologistServiceImpl implements AnesthesiologistServiceInter
                 saved.getDrugs().getFirst().getRoute().name() : "UNKNOWN";
 
         // Публикация события создания рекомендации
-        eventPublisher.publishEvent(new RecommendationCreatedEvent(
-                this,
+        String drugName = !drugNames.isEmpty() ? drugNames.get(0) : "Unknown";
+        String dosage = !dosages.isEmpty() ? dosages.get(0) : "Unknown";
+        analyticsPublisher.publishRecommendationCreated(
                 saved.getId(),
                 patient.getMrn(),
-                drugNames,
-                dosages,
-                route,
+                SecurityUtils.getUserIdOrSystem(),
                 vas.getPainLevel(),
-                "anesthesiologistId", // TODO: заменить на реальный ID из Security Context
-                saved.getCreatedAt(),
+                drugName,
+                dosage,
+                route,
                 processingTime,
                 diagnosisCodes
-        ));
+        );
         //  Возвращаем DTO
         return modelMapper.map(saved, RecommendationDTO.class);
     }
@@ -257,7 +250,7 @@ public class AnesthesiologistServiceImpl implements AnesthesiologistServiceInter
             throw new IllegalStateException("Only ESCALATED recommendations can be updated");
         }
 
-        String anesthId = "anesthesiologist_id"; // TODO: из SecurityContext
+        String anesthId = SecurityUtils.getUserIdOrSystem();
 
         // Обновляем препараты
         if (dto.getDrugs() != null && !dto.getDrugs().isEmpty()) {

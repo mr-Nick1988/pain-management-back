@@ -3,7 +3,6 @@ package pain_helper_back.VAS_external_integration.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordRequestDTO;
@@ -11,7 +10,7 @@ import pain_helper_back.VAS_external_integration.dto.ExternalVasRecordResponseDT
 import pain_helper_back.VAS_external_integration.dto.VasMonitorStatsDTO;
 import pain_helper_back.VAS_external_integration.parser.CsvVasParser;
 import pain_helper_back.VAS_external_integration.parser.VasFormatParser;
-import pain_helper_back.analytics.event.VasRecordedEvent;
+import pain_helper_back.analytics.publisher.AnalyticsPublisher;
 import pain_helper_back.common.patients.entity.Patient;
 import pain_helper_back.common.patients.entity.Vas;
 import pain_helper_back.common.patients.repository.PatientRepository;
@@ -44,7 +43,7 @@ public class ExternalVasIntegrationService {
     private final VasRepository vasRepository;
     private final NurseService nurseService;
     private final CsvVasParser csvParser;
-    private final ApplicationEventPublisher eventPublisher;
+    private final AnalyticsPublisher analyticsPublisher;
     private final PainEscalationService painEscalationService;
     
 
@@ -78,21 +77,25 @@ public class ExternalVasIntegrationService {
                 savedVas.getId(), externalVas.getPatientMrn(), externalVas.getVasLevel());
 
         // 2.1. Публикация события VAS (EXTERNAL источник - внешнее устройство)
-        eventPublisher.publishEvent(new VasRecordedEvent(
-                this,
-                savedVas.getId(),
+        analyticsPublisher.publishVasRecorded(
                 externalVas.getPatientMrn(),
-                "EXTERNAL_" + externalVas.getSource(), // recordedBy - помечаем как внешний источник
-                externalVas.getTimestamp() != null ? externalVas.getTimestamp() : LocalDateTime.now(),
                 externalVas.getVasLevel(),
-                externalVas.getLocation(), // painLocation
-                externalVas.getVasLevel() >= 8, // isCritical если боль >= 8
-                "EXTERNAL", // vasSource - внешний источник
-                externalVas.getDeviceId() // deviceId устройства
-        ));
+                externalVas.getLocation(),
+                "EXTERNAL_" + externalVas.getSource(),
+                externalVas.getVasLevel() >= 8,
+                "EXTERNAL",
+                externalVas.getDeviceId()
+        );
 
         log.info("VAS_RECORDED event published: source=EXTERNAL, device={}, vasLevel={}",
                 externalVas.getDeviceId(), externalVas.getVasLevel());
+
+        // 2.2. Явный вызов логики эскалации боли (ранее слушалось через VasRecordedEvent)
+        try {
+            painEscalationService.handleNewVasRecord(externalVas.getPatientMrn(), externalVas.getVasLevel());
+        } catch (Exception e) {
+            log.error("Failed to trigger pain escalation handling for MRN {}: {}", externalVas.getPatientMrn(), e.getMessage());
+        }
 
 
         // 3. Автоматическая генерация рекомендации (если VAS >= 4)

@@ -4,21 +4,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pain_helper_back.admin.dto.PersonDTO;
 import pain_helper_back.admin.dto.PersonRegisterRequestDTO;
 import pain_helper_back.admin.entity.Person;
 import pain_helper_back.admin.repository.PersonRepository;
-import pain_helper_back.analytics.event.PersonCreatedEvent;
-import pain_helper_back.analytics.event.PersonDeletedEvent;
-import pain_helper_back.analytics.event.PersonUpdatedEvent;
+import pain_helper_back.analytics.publisher.AnalyticsPublisher;
 import pain_helper_back.common.patients.dto.PatientDTO;
 import pain_helper_back.common.patients.repository.PatientRepository;
 import pain_helper_back.enums.Roles;
+import pain_helper_back.security.SecurityUtils;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +29,7 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
     private final PersonRepository personRepository;
     private final PatientRepository patientRepository;
     private final ModelMapper modelMapper;
-    private final ApplicationEventPublisher eventPublisher;
+    private final AnalyticsPublisher analyticsPublisher;
 
     @Override
     public PersonDTO createPerson(PersonRegisterRequestDTO dto) {
@@ -45,16 +42,13 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
         Person person = modelMapper.map(dto, Person.class);
         person.setTemporaryCredentials(true);
         personRepository.save(person);
-
-        eventPublisher.publishEvent(new PersonCreatedEvent(
-                this,
+        analyticsPublisher.publishPersonCreated(
                 person.getPersonId(),
+                person.getRole().name(),
                 person.getFirstName(),
                 person.getLastName(),
-                person.getRole().name(),
-                "admin", // TODO: заменить на реальный ID из Security Context
-                LocalDateTime.now()
-        ));
+                SecurityUtils.getUserIdOrSystem()
+        );
         log.info("Person created: personId={}, role={}", person.getPersonId(), person.getRole());
         return modelMapper.map(person, PersonDTO.class);
     }
@@ -78,20 +72,18 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
         }
         person.setRole(Roles.valueOf(dto.getRole()));
         //Отслеживаем изменения
-        Map<String, String> changedFields = new HashMap<>();
+        Map<String, Object> changedFields = new HashMap<>();
         changedFields.put("firstName", person.getFirstName());
         changedFields.put("lastName", person.getLastName());
         changedFields.put("login", person.getLogin());
         changedFields.put("role", person.getRole().name());
         personRepository.save(person);
 
-        eventPublisher.publishEvent(new PersonUpdatedEvent(
-                this,
+        analyticsPublisher.publishPersonUpdated(
                 person.getPersonId(),
-                "admin", // TODO: заменить на реальный ID из Security Context
-                LocalDateTime.now(),
+                SecurityUtils.getUserIdOrSystem(),
                 changedFields
-        ));
+        );
 
         log.info("Person updated: personId={}, changedFields={}", person.getPersonId(), changedFields.keySet());
         return modelMapper.map(person, PersonDTO.class);
@@ -108,19 +100,16 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
 
         personRepository.delete(person);
         // Публикуем событие удаления сотрудника
-        eventPublisher.publishEvent(new PersonDeletedEvent(
-                this,
+        analyticsPublisher.publishPersonDeleted(
                 personId,
+                role,
                 firstName,
                 lastName,
-                role,
-                "admin", // TODO: заменить на реальный ID из Security Context
-                LocalDateTime.now(),
-                "Deleted by admin" // Причина удаления
-        ));
+                SecurityUtils.getUserIdOrSystem(),
+                "Deleted by admin"
+        );
         log.warn("Person deleted: personId={}, role={}", personId, role);
     }
-
 
     @Override
     @Transactional(readOnly = true)
