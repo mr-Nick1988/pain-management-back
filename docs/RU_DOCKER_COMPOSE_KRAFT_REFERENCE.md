@@ -69,6 +69,7 @@ kafka-create-topics:
   entrypoint: ["bash", "-lc", "\
     kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic analytics-events --replication-factor 1 --partitions 1 && \
     kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic logging-events --replication-factor 1 --partitions 1 && \
+    kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic reporting-commands --replication-factor 1 --partitions 1 && \
     echo 'Kafka topics ensured' "]
   networks:
     - dev-net
@@ -187,6 +188,7 @@ analytics-reporting-service:
     SPRING_PROFILES_ACTIVE: local
     KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     KAFKA_TOPIC_ANALYTICS_EVENTS: ${KAFKA_TOPIC_ANALYTICS_EVENTS:-analytics-events}
+    KAFKA_TOPIC_REPORTING_COMMANDS: ${KAFKA_TOPIC_REPORTING_COMMANDS:-reporting-commands}
     PG_JDBC_URL: jdbc:postgresql://postgres-analytics:5432/analytics_reporting
     PG_USER: ${PG_USER:-analytics}
     PG_PASSWORD: ${PG_PASSWORD:-analytics}
@@ -204,7 +206,7 @@ analytics-reporting-service:
     - dev-net
 ```
 
-- В контейнере сервис читает Kafka по адресу `kafka:29092`.
+- В контейнере сервис читает Kafka по адресу `kafka:29092` и слушает топик команд `reporting-commands` (Monolith -> Reporting).
 - Подключения к Postgres и Mongo — по именам сервисов в сети compose.
 - Порт 8091 проброшен наружу для доступа с хоста.
 
