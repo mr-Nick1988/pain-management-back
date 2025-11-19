@@ -1,0 +1,231 @@
+name: painmgmt-dev
+
+# Unified local development stack for Pain Management
+# - Default brings up infrastructure (Kafka KRaft, Postgres, MongoDB)
+# - Optional microservices can be enabled via compose profiles: analytics, auth, logging
+
+services:
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: dev_kafka
+    ports:
+      - "9092:9092"   # host access (PLAINTEXT_HOST)
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      # Dual listeners: inside docker network and from host, plus controller listener
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - dev-net
+
+  # Optional job to ensure topics exist (will exit after creation)
+  kafka-create-topics:
+    image: confluentinc/cp-kafka:7.6.1
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["bash", "-lc", "\
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic analytics-events --replication-factor 1 --partitions 1 && \
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic logging-events --replication-factor 1 --partitions 1 && \
+      echo 'Kafka topics ensured' "]
+    networks:
+      - dev-net
+
+  # =========================
+  # Postgres (monolith + auth)
+  # =========================
+  postgres-main:
+    image: postgres:16
+    container_name: dev_postgres_main
+    environment:
+      POSTGRES_DB: pain_management_db
+      POSTGRES_USER: ${PG_AUTH_USER:-postgres}
+      POSTGRES_PASSWORD: ${PG_AUTH_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"   # monolith connects to localhost:5432
+    volumes:
+      - pg-main-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - dev-net
+
+  postgres-analytics:
+    image: postgres:16
+    container_name: dev_postgres_analytics
+    environment:
+      POSTGRES_DB: analytics_reporting
+      POSTGRES_USER: ${PG_USER:-analytics}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-analytics}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pg-analytics-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - dev-net
+
+  # =========================
+  # MongoDB (analytics, logging)
+  # =========================
+  mongodb-analytics:
+    image: mongo:7.0
+    container_name: dev_mongodb_analytics
+    environment:
+      MONGO_INITDB_DATABASE: analytics_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-analytics-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - dev-net
+
+  mongodb-logging:
+    image: mongo:7.0
+    container_name: dev_mongodb_logging
+    environment:
+      MONGO_INITDB_DATABASE: logging_db
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo-logging-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - dev-net
+
+  # =========================
+  # Optional microservices (enable via profiles)
+  # =========================
+  analytics-reporting-service:
+    image: analytics-reporting-service:dev
+    build:
+      context: C:/backend_projects/microservices/analytics_reporting_service
+    container_name: dev_analytics_reporting
+    profiles: ["analytics"]
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_TOPIC_ANALYTICS_EVENTS: ${KAFKA_TOPIC_ANALYTICS_EVENTS:-analytics-events}
+      KAFKA_TOPICS_ANALYTICS_EVENTS: ${KAFKA_TOPICS_ANALYTICS_EVENTS:-analytics-events}
+      SPRING_KAFKA_CONSUMER_GROUP_ID: analytics-reporting-group
+      SERVER_PORT: 8091
+      PG_JDBC_URL: jdbc:postgresql://postgres-analytics:5432/analytics_reporting
+      PG_USER: ${PG_USER:-analytics}
+      PG_PASSWORD: ${PG_PASSWORD:-analytics}
+      MONGODB_ANALYTICS_URI: mongodb://mongodb-analytics:27017/analytics_db
+      SPRING_DATA_MONGODB_URI: mongodb://mongodb-analytics:27017/analytics_db
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres-analytics:
+        condition: service_started
+      mongodb-analytics:
+        condition: service_started
+    ports:
+      - "8091:8091"
+    networks:
+      - dev-net
+
+  authentication-service:
+    image: authentication-service:dev
+    build:
+      context: C:/backend_projects/microservices/authentication-service
+    container_name: dev_authentication
+    profiles: ["auth"]
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://host.docker.internal:5432/auth_db}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-newpassword}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: none
+      JWT_SECRET: your-256-bit-secret-key-change-this-in-production-please-make-it-long-enough
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
+    ports:
+      - "8082:8082"
+    networks:
+      - dev-net
+
+  logging-service:
+    image: logging-service:dev
+    build:
+      context: C:/backend_projects/microservices/logging-service
+    container_name: dev_logging
+    profiles: ["logging"]
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_DATA_MONGODB_URI: mongodb://mongodb-logging:27017/logging_db
+      KAFKA_TOPIC_LOGGING_EVENTS: ${KAFKA_TOPIC_LOGGING_EVENTS:-logging-events}
+      SPRING_KAFKA_CONSUMER_GROUP_ID: logging-service-group
+      SERVER_PORT: 8083
+    depends_on:
+      kafka:
+        condition: service_healthy
+      mongodb-logging:
+        condition: service_started
+    ports:
+      - "8081:8083"
+    networks:
+      - dev-net
+
+  # =========================
+  # Optional tools
+  # =========================
+  kafdrop:
+    image: obsidiandynamics/kafdrop:latest
+    container_name: dev_kafdrop
+    profiles: ["tools"]
+    environment:
+      KAFKA_BROKERCONNECT: kafka:29092
+      JVM_OPTS: -Xms32M -Xmx64M
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "9000:9000"
+    networks:
+      - dev-net
+
+networks:
+  dev-net:
+    driver: bridge
+
+volumes:
+  pg-main-data:
+  pg-analytics-data:
+  mongo-analytics-data:
+  mongo-logging-data:
