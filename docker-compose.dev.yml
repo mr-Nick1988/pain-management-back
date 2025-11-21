@@ -148,7 +148,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: local
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      SPRING_DATA_MONGODB_URI: ${LOGGING_MONGODB_URI}
+      SPRING_DATA_MONGODB_URI: ${LOGGING_MONGODB_URI:?Set LOGGING_MONGODB_URI in your environment before running docker compose}
       KAFKA_TOPIC_LOGGING_EVENTS: ${KAFKA_TOPIC_LOGGING_EVENTS:-logging-events}
       SPRING_KAFKA_CONSUMER_GROUP_ID: logging-service-group
       SERVER_PORT: 8083
