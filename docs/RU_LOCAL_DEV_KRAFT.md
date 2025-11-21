@@ -13,7 +13,7 @@
 - Два слушателя Kafka:
   - Для приложений на вашем компьютере (хост): `localhost:9092`.
   - Для контейнеров внутри Docker-сети: `kafka:29092`.
-- Микросервисы поднимаются по профилям (`analytics`, `auth`, `logging`).
+- Микросервисы поднимаются по профилям (`reporting`, `auth`, `logging`).
 - Конфиги микросервисов формата `application-local.yml`, где значения читаются из переменных окружения (которые подставляет Docker Compose), а при запуске «с хоста» используются дефолты `localhost`.
 
 ---
@@ -31,26 +31,22 @@ flowchart LR
       KFK[Kafka KRaft\n PLAINTEXT_HOST:9092\n PLAINTEXT:29092]
       PG_MAIN[(Postgres Main 5432)]
       PG_AN[(Postgres Analytics 5433)]
-      MNG_AN[(Mongo Analytics 27017)]
-      MNG_LOG[(Mongo Logging 27018)]
 
       subgraph Profiles
         AUTH[authentication-service 8082]
-        ARS[analytics-reporting-service 8091]
+        RS[reporting-service 8091]
         LOGS[logging-service]
       end
     end
 
     IDE -- bootstrap-servers=localhost:9092 --> KFK
     AUTH -- bootstrap-servers=kafka:29092 --> KFK
-    ARS -- bootstrap-servers=kafka:29092 --> KFK
+    RS -- bootstrap-servers=kafka:29092 --> KFK
     LOGS -- bootstrap-servers=kafka:29092 --> KFK
 
     IDE --> PG_MAIN
     AUTH --> PG_MAIN
-    ARS --> PG_AN
-    ARS --> MNG_AN
-    LOGS --> MNG_LOG
+    RS --> PG_AN
 
     KafUI --> KFK
 ```
@@ -76,14 +72,14 @@ docker-compose down --remove-orphans
 
 Из корня репозитория монолита:
 
-- Поднять инфраструктуру (Kafka KRaft, Postgres, Mongo, топики):
+- Поднять инфраструктуру (Kafka KRaft, Postgres, топики):
 ```
 docker compose -f docker-compose.dev.yml up -d
 ```
 - Поднять нужные микросервисы по профилям:
 ```
-# Analytics Reporting (8091)
-docker compose -f docker-compose.dev.yml --profile analytics up -d analytics-reporting-service
+# Reporting Service (8091)
+docker compose -f docker-compose.dev.yml --profile reporting up -d reporting-service
 
 # Authentication (8082)
 docker compose -f docker-compose.dev.yml --profile auth up -d authentication-service
@@ -98,11 +94,11 @@ docker compose -f docker-compose.dev.yml --profile tools up -d kafdrop
 
 - Примечание по сборке микросервисов: в compose уже настроены пути `build:` — образы соберутся автоматически при первом запуске профилей. Используются пути:
   - Authentication: `C:/backend_projects/microservices/authentication-service`
-  - Analytics-Reporting: `C:/backend_projects/microservices/analytics_reporting_service`
+  - Reporting: `C:/backend_projects/microservices/reporting_service`
   - Logging: `C:/backend_projects/microservices/logging-service`
   При необходимости принудительно пересобрать образ: добавьте флаг `--build`, например:
   ```
-  docker compose -f docker-compose.dev.yml --profile analytics up -d --build analytics-reporting-service
+  docker compose -f docker-compose.dev.yml --profile reporting up -d --build reporting-service
   ```
   Требуется наличие `Dockerfile` в указанных каталогах. Если его нет — дайте знать, добавлю корректный `Dockerfile`.
 
@@ -185,19 +181,14 @@ logging:
 - В Docker Compose для auth уже проставлено `SPRING_PROFILES_ACTIVE=local` и JDBC на `postgres-main:5432/auth_db`.
 - При запуске с хоста (без контейнера) берутся дефолты `localhost`.
 
-### 6.2 Analytics-Reporting Service (`application-local.yml`)
+### 6.2 Reporting Service (`application-local.yml`)
 ```yaml
 server:
   port: 8091
 
 spring:
   application:
-    name: analytics-reporting-service
-
-  data:
-    mongodb:
-      uri: ${MONGODB_ANALYTICS_URI:mongodb://localhost:27017/analytics_db}
-      auto-index-creation: true
+    name: reporting-service
 
   datasource:
     url: ${PG_JDBC_URL:jdbc:postgresql://localhost:5433/analytics_reporting}
@@ -216,13 +207,13 @@ spring:
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
-      group-id: analytics-reporting-group
+      group-id: ${SPRING_KAFKA_CONSUMER_GROUP_ID:reporting-service-group}
       auto-offset-reset: earliest
       enable-auto-commit: false
 
 kafka:
   topics:
-    analytics-events: ${KAFKA_TOPIC_ANALYTICS_EVENTS:analytics-events}
+    reporting-commands: ${KAFKA_TOPIC_REPORTING_COMMANDS:reporting-commands}
 
 management:
   endpoints:
@@ -234,7 +225,7 @@ management:
       show-details: always
 ```
 
-- В Docker Compose для analytics сервис подключается к `kafka:29092`, Postgres `postgres-analytics:5432`, Mongo `mongodb-analytics:27017`.
+- В Docker Compose для reporting сервис подключается к `kafka:29092`, Postgres `postgres-analytics:5432`.
 - При запуске с хоста используются дефолты `localhost`.
 
 ### 6.3 Logging Service (`application-local.yml`)
@@ -245,7 +236,7 @@ spring:
 
   data:
     mongodb:
-      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27018/logging_db}
+      uri: ${SPRING_DATA_MONGODB_URI}
       auto-index-creation: true
 
   kafka:
@@ -276,7 +267,7 @@ logging:
     org.mongodb: INFO
 ```
 
-- В Docker Compose для logging подключение к `kafka:29092` и `mongodb-logging:27017` уже пробрасывается через переменные окружения.
+- В Docker Compose для logging `SPRING_DATA_MONGODB_URI` прокидывается из переменной `LOGGING_MONGODB_URI` (Atlas). Локальные контейнеры Mongo не используются.
 
 ---
 
@@ -284,7 +275,7 @@ logging:
 
 Шаблоны лежат в монолите:
 - `docs/microservices-dockerfiles/Dockerfile.authentication-service`
-- `docs/microservices-dockerfiles/Dockerfile.analytics-reporting-service`
+- `docs/microservices-dockerfiles/Dockerfile.reporting-service`
 - `docs/microservices-dockerfiles/Dockerfile.logging-service`
 
 Скопируйте их в корни соответствующих микросервисов и переименуйте в `Dockerfile`:
@@ -294,8 +285,8 @@ logging:
 # из корня монолита
 copy .\docs\microservices-dockerfiles\Dockerfile.authentication-service C:\backend_projects\microservices\authentication-service\Dockerfile
 
-# Analytics-Reporting
-copy .\docs\microservices-dockerfiles\Dockerfile.analytics-reporting-service C:\backend_projects\microservices\analytics_reporting_service\Dockerfile
+# Reporting
+copy .\docs\microservices-dockerfiles\Dockerfile.reporting-service C:\backend_projects\microservices\reporting_service\Dockerfile
 
 # Logging
 copy .\docs\microservices-dockerfiles\Dockerfile.logging-service C:\backend_projects\microservices\logging-service\Dockerfile
@@ -304,7 +295,7 @@ copy .\docs\microservices-dockerfiles\Dockerfile.logging-service C:\backend_proj
 После копирования можно сразу собирать/запускать профили с `--build`:
 ```
 docker compose -f docker-compose.dev.yml --profile auth up -d --build authentication-service
-docker compose -f docker-compose.dev.yml --profile analytics up -d --build analytics-reporting-service
+docker compose -f docker-compose.dev.yml --profile reporting up -d --build reporting-service
 docker compose -f docker-compose.dev.yml --profile logging up -d --build logging-service
 ```
 
@@ -333,7 +324,7 @@ docker compose -f docker-compose.dev.yml --profile logging up -d --build logging
 
 - «Приложение в контейнере не видит Kafka по localhost:9092» — внутри контейнера используйте `kafka:29092`. В compose это уже задано переменными окружения.
 - «Монолит не видит Postgres» — проверьте, что `postgres-main` слушает `localhost:5432`, а в `application.properties` URL по умолчанию — `jdbc:postgresql://localhost:5432/pain_management_db`.
-- «Топиков нет» — контейнер `kafka-create-topics` создаёт `analytics-events` и `logging-events`. Повторите запуск compose или создайте топики командой вручную из контейнера Kafka.
+- «Топиков нет» — контейнер `kafka-create-topics` создаёт `analytics-events`, `logging-events` и `reporting-commands`. Повторите запуск compose или создайте топики командой вручную из контейнера Kafka.
 - «Нужен UI для Kafka?» — профилем `tools` поднимите Kafdrop на http://localhost:9000. Если не нужен — удалите секцию `kafdrop` из compose.
 
 - Kafka контейнер упал сразу после старта, в логах: `Running in KRaft mode... CLUSTER_ID is required`
@@ -363,7 +354,7 @@ docker compose -f docker-compose.dev.yml --profile logging up -d --build logging
 ```
 # Примерные команды (укажите реальные пути)
 docker build -t authentication-service:dev C:\path\to\authentication-service
-docker build -t analytics-reporting-service:dev C:\path\to\analytics-reporting-service
+docker build -t reporting-service:dev C:\path\to\reporting-service
 docker build -t logging-service:dev C:\path\to\logging-service
 ```
 
@@ -382,7 +373,7 @@ docker compose -f docker-compose.dev.yml up -d --build authentication-service
 Посмотреть логи конкретного сервиса (следить в реальном времени):
 ```
 docker compose -f docker-compose.dev.yml logs -f authentication-service
-docker compose -f docker-compose.dev.yml logs -f analytics-reporting-service
+docker compose -f docker-compose.dev.yml logs -f reporting-service
 docker compose -f docker-compose.dev.yml logs -f logging-service
 ```
 
@@ -414,7 +405,7 @@ docker compose -f docker-compose.dev.yml rm -f authentication-service
 
 ## 11. Где посмотреть детальную расшифровку всего compose
 
-См. файл `docs/RU_DOCKER_COMPOSE_KRAFT_REFERENCE.md` — там помодульно и построчно разобраны `kafka`, `kafka-create-topics`, `postgres-main`, `postgres-analytics`, `mongodb-analytics`, `mongodb-logging`, а также блоки микросервисов и все переменные окружения.
+См. файл `docs/RU_DOCKER_COMPOSE_KRAFT_REFERENCE.md` — там помодульно и построчно разобраны `kafka`, `kafka-create-topics`, `postgres-main`, `postgres-analytics`, а также блоки микросервисов и все переменные окружения.
 
 ---
 
@@ -422,12 +413,12 @@ docker compose -f docker-compose.dev.yml rm -f authentication-service
 
 Остановить только микросервисы:
 ```
-docker compose -f docker-compose.dev.yml stop authentication-service analytics-reporting-service logging-service
+docker compose -f docker-compose.dev.yml stop authentication-service reporting-service logging-service
 ```
 
 Удалить контейнеры микросервисов (образы и данные БД не трогать):
 ```
-docker compose -f docker-compose.dev.yml rm -f authentication-service analytics-reporting-service logging-service
+docker compose -f docker-compose.dev.yml rm -f authentication-service reporting-service logging-service
 ```
 
 Остановить всю инфраструктуру, сохранить данные Postgres/Mongo (тома остаются):
@@ -442,7 +433,7 @@ docker compose -f docker-compose.dev.yml down -v --remove-orphans
 
 Удалить только образы микросервисов (если надо пересобрать «с нуля»):
 ```
-docker image rm authentication-service:dev analytics-reporting-service:dev logging-service:dev
+docker image rm authentication-service:dev reporting-service:dev logging-service:dev
 ```
 
 Очистить кеш сборщика Docker (безопасно):

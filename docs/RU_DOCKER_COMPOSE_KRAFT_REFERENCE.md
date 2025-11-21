@@ -129,76 +129,37 @@ postgres-analytics:
 
 - Отдельная БД для сервиса Analytics-Reporting.
 
-## MongoDB: mongodb-analytics и mongodb-logging
+## MongoDB
 
-```yaml
-mongodb-analytics:
-  image: mongo:7.0
-  container_name: dev_mongodb_analytics
-  environment:
-    MONGO_INITDB_DATABASE: analytics_db
-  ports:
-    - "27017:27017"
-  volumes:
-    - mongo-analytics-data:/data/db
-  healthcheck:
-    test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-    interval: 10s
-    timeout: 5s
-    retries: 10
-  networks:
-    - dev-net
-```
-
-- Mongo для аналитики.
-
-```yaml
-mongodb-logging:
-  image: mongo:7.0
-  container_name: dev_mongodb_logging
-  environment:
-    MONGO_INITDB_DATABASE: logging_db
-  ports:
-    - "27018:27017"
-  volumes:
-    - mongo-logging-data:/data/db
-  healthcheck:
-    test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-    interval: 10s
-    timeout: 5s
-    retries: 10
-  networks:
-    - dev-net
-```
-
-- Mongo для логгинга.
+Локальные контейнеры MongoDB в новом compose не используются. 
+Logging Service подключается к Atlas по URI, который передаётся через переменную окружения `LOGGING_MONGODB_URI` и попадает в контейнер как `SPRING_DATA_MONGODB_URI`.
 
 ## Профильные сервисы (опционально)
 
-### analytics-reporting-service
+### reporting-service
 
 ```yaml
-analytics-reporting-service:
-  image: analytics-reporting-service:dev
+reporting-service:
+  image: reporting-service:dev
   build:
-    context: C:/backend_projects/microservices/analytics_reporting_service
-  container_name: dev_analytics_reporting
-  profiles: ["analytics"]
+    context: C:/backend_projects/microservices/reporting_service
+  container_name: dev_reporting
+  profiles: ["reporting"]
   environment:
     SPRING_PROFILES_ACTIVE: local
     KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-    KAFKA_TOPIC_ANALYTICS_EVENTS: ${KAFKA_TOPIC_ANALYTICS_EVENTS:-analytics-events}
+    SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
     KAFKA_TOPIC_REPORTING_COMMANDS: ${KAFKA_TOPIC_REPORTING_COMMANDS:-reporting-commands}
+    KAFKA_TOPICS_REPORTING_COMMANDS: ${KAFKA_TOPICS_REPORTING_COMMANDS:-reporting-commands}
+    SPRING_KAFKA_CONSUMER_GROUP_ID: analytics-reporting-group
+    SERVER_PORT: 8091
     PG_JDBC_URL: jdbc:postgresql://postgres-analytics:5432/analytics_reporting
     PG_USER: ${PG_USER:-analytics}
     PG_PASSWORD: ${PG_PASSWORD:-analytics}
-    MONGODB_ANALYTICS_URI: mongodb://mongodb-analytics:27017/analytics_db
   depends_on:
     kafka:
       condition: service_healthy
     postgres-analytics:
-      condition: service_started
-    mongodb-analytics:
       condition: service_started
   ports:
     - "8091:8091"
@@ -206,8 +167,8 @@ analytics-reporting-service:
     - dev-net
 ```
 
-- В контейнере сервис читает Kafka по адресу `kafka:29092` и слушает топик команд `reporting-commands` (Monolith -> Reporting).
-- Подключения к Postgres и Mongo — по именам сервисов в сети compose.
+- Сервис читает Kafka по адресу `kafka:29092` и потребляет топик команд `reporting-commands` (Monolith -> Reporting).
+- Подключение к Postgres — по имени сервиса `postgres-analytics`.
 - Порт 8091 проброшен наружу для доступа с хоста.
 
 ### authentication-service
@@ -250,18 +211,16 @@ logging-service:
   environment:
     SPRING_PROFILES_ACTIVE: local
     SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-    SPRING_DATA_MONGODB_URI: mongodb://mongodb-logging:27017/logging_db
+    SPRING_DATA_MONGODB_URI: ${LOGGING_MONGODB_URI}
     KAFKA_TOPIC_LOGGING_EVENTS: ${KAFKA_TOPIC_LOGGING_EVENTS:-logging-events}
   depends_on:
     kafka:
       condition: service_healthy
-    mongodb-logging:
-      condition: service_started
   networks:
     - dev-net
 ```
 
-- Kafka и Mongo — по именам сервисов Docker-сети.
+- Kafka — по имени сервиса Docker-сети; Mongo — внешний Atlas URI через `LOGGING_MONGODB_URI`.
 
 ## Инструменты (опционально)
 
@@ -294,9 +253,7 @@ networks:
 volumes:
   pg-main-data:
   pg-analytics-data:
-  mongo-analytics-data:
-  mongo-logging-data:
 ```
 
 - `bridge`-сеть для общения контейнеров по именам сервисов.
-- Томы для персистентности данных БД и Mongo.
+- Томы для персистентности данных PostgreSQL.

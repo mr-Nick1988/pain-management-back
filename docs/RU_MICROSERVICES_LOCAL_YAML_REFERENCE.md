@@ -85,7 +85,7 @@ logging:
 
 ---
 
-## 2) Analytics-Reporting Service — `application-local.yml`
+## 2) Reporting Service — `application-local.yml`
 
 ```yaml
 server:
@@ -93,12 +93,7 @@ server:
 
 spring:
   application:
-    name: analytics-reporting-service
-
-  data:
-    mongodb:
-      uri: ${MONGODB_ANALYTICS_URI:mongodb://localhost:27017/analytics_db}
-      auto-index-creation: true
+    name: reporting-service
 
   datasource:
     url: ${PG_JDBC_URL:jdbc:postgresql://localhost:5433/analytics_reporting}
@@ -117,13 +112,13 @@ spring:
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
-      group-id: analytics-reporting-group
+      group-id: ${SPRING_KAFKA_CONSUMER_GROUP_ID:reporting-service-group}
       auto-offset-reset: earliest
       enable-auto-commit: false
 
 kafka:
   topics:
-    analytics-events: ${KAFKA_TOPIC_ANALYTICS_EVENTS:analytics-events}
+    reporting-commands: ${KAFKA_TOPIC_REPORTING_COMMANDS:reporting-commands}
 
 management:
   endpoints:
@@ -136,16 +131,17 @@ management:
 ```
 
 Разбор ключевых строк:
-- `spring.data.mongodb.uri` — Mongo для аналитики. В контейнере будет `mongodb://mongodb-analytics:27017/analytics_db` (через `MONGODB_ANALYTICS_URI`).
 - `spring.datasource.url` — Postgres аналитики. В контейнере `jdbc:postgresql://postgres-analytics:5432/analytics_reporting` (через `PG_JDBC_URL`).
 - `spring.kafka.bootstrap-servers` — Kafka. В контейнере `kafka:29092` (через `KAFKA_BOOTSTRAP_SERVERS`). На хосте — дефолт `localhost:9092`.
-- `kafka.topics.analytics-events` — имя топика для аналитики.
+- `kafka.topics.reporting-commands` — топик команд для репортинга (монолит публикует, сервис потребляет).
 
-Связь с Compose (`analytics-reporting-service`):
+Связь с Compose (`reporting-service`):
 - `SPRING_PROFILES_ACTIVE=local`
 - `KAFKA_BOOTSTRAP_SERVERS=kafka:29092`
+- `SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092` (если используется)
+- `KAFKA_TOPIC_REPORTING_COMMANDS=reporting-commands`
 - `PG_JDBC_URL=jdbc:postgresql://postgres-analytics:5432/analytics_reporting`
-- `MONGODB_ANALYTICS_URI=mongodb://mongodb-analytics:27017/analytics_db`
+- `PG_USER`, `PG_PASSWORD`
 
 ---
 
@@ -158,7 +154,7 @@ spring:
 
   data:
     mongodb:
-      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27018/logging_db}
+      uri: ${SPRING_DATA_MONGODB_URI}
       auto-index-creation: true
 
   kafka:
@@ -190,14 +186,14 @@ logging:
 ```
 
 Разбор ключевых строк:
-- `spring.data.mongodb.uri` — Mongo для логов. В контейнере: `mongodb://mongodb-logging:27017/logging_db` (через `SPRING_DATA_MONGODB_URI`).
+- `spring.data.mongodb.uri` — Mongo для логов. В контейнере прокидывается из `SPRING_DATA_MONGODB_URI` (в compose это маппится на `LOGGING_MONGODB_URI` Atlas). Дефолта на localhost нет.
 - `spring.kafka.bootstrap-servers` — Kafka. В контейнере: `kafka:29092` (через `SPRING_KAFKA_BOOTSTRAP_SERVERS`). На хосте — дефолт `localhost:9092`.
 - `kafka.topic.logging-events` — топик логирования.
 
 Связь с Compose (`logging-service`):
 - `SPRING_PROFILES_ACTIVE=local`
 - `SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:29092`
-- `SPRING_DATA_MONGODB_URI=mongodb://mongodb-logging:27017/logging_db`
+- `SPRING_DATA_MONGODB_URI=${LOGGING_MONGODB_URI}` (Atlas)
 
 ---
 

@@ -90,8 +90,10 @@ spring.kafka.producer.retries=3
 
 ```properties
 kafka.topic.analytics-events=${KAFKA_TOPIC_ANALYTICS_EVENTS:analytics-events}
+kafka.topics.reporting-commands=${KAFKA_TOPIC_REPORTING_COMMANDS:reporting-commands}
 ```
 - Имя топика, куда монолит публикует аналитические события. Топик создаётся контейнером `kafka-create-topics`.
+- Имя топика команд для репортинга (Monolith -> Reporting microservice). Создаётся контейнером `kafka-create-topics`.
 
 ---
 

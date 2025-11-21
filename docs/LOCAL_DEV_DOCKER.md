@@ -4,7 +4,7 @@ This repo now contains a unified `docker-compose.dev.yml` to run all local infra
 
 - File: `docker-compose.dev.yml`
 - Env vars: copy `.env.example` to `.env` and adjust secrets
-- Profiles: `analytics`, `auth`, `logging`, `tools`
+- Profiles: `reporting`, `auth`, `logging`, `tools`
 
 ## What this stack runs (KRaft)
 
@@ -29,9 +29,9 @@ docker compose -f docker-compose.dev.yml up -d
 
 ## Start optional microservices
 
-- Analytics Reporting:
+- Reporting Service:
 ```bash
-docker compose -f docker-compose.dev.yml --profile analytics up -d analytics-reporting-service
+docker compose -f docker-compose.dev.yml --profile reporting up -d reporting-service
 ```
 - Authentication:
 ```bash
@@ -116,19 +116,14 @@ cors:
   allow-credentials: true
 ```
 
-Analytics Reporting Service:
+Reporting Service:
 ```yaml
 server:
   port: 8091
 
 spring:
   application:
-    name: analytics-reporting-service
-
-  data:
-    mongodb:
-      uri: ${MONGODB_ANALYTICS_URI:mongodb://localhost:27017/analytics_db}
-      auto-index-creation: true
+    name: reporting-service
 
   datasource:
     url: ${PG_JDBC_URL:jdbc:postgresql://localhost:5433/analytics_reporting}
@@ -147,13 +142,13 @@ spring:
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
-      group-id: analytics-reporting-group
+      group-id: ${SPRING_KAFKA_CONSUMER_GROUP_ID:reporting-service-group}
       auto-offset-reset: earliest
       enable-auto-commit: false
 
 kafka:
   topics:
-    analytics-events: ${KAFKA_TOPIC_ANALYTICS_EVENTS:analytics-events}
+    reporting-commands: ${KAFKA_TOPIC_REPORTING_COMMANDS:reporting-commands}
 ```
 
 Logging Service:
@@ -192,7 +187,7 @@ Likely you previously started Kafka from different compose files (e.g., one from
 
 ## Topics
 
-`kafka-create-topics` job ensures `analytics-events` and `logging-events` exist (in KRaft via `kafka:29092`). Add new topics by editing that container entrypoint.
+`kafka-create-topics` job ensures `analytics-events`, `logging-events` and `reporting-commands` exist (in KRaft via `kafka:29092`). Add new topics by editing that container entrypoint.
 
 ## KRaft (no ZooKeeper)
 
