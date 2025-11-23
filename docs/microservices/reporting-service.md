@@ -9,6 +9,7 @@ This service is fully SQL‑only. All legacy MongoDB ingestion, weekly/monthly a
 ## Key Features
 
 - Daily KPI aggregation from SQL tables (no MongoDB).
+- Login metrics via FDW view `auth_fdw.v_login_events_daily` (UTC) from `auth_db`.
 - Kafka command consumer for on‑demand generation:
   - GENERATE_DAILY, GENERATE_YESTERDAY, GENERATE_PERIOD (+ regenerate flag)
 - Nightly scheduler (00:30) to generate yesterday's report.
@@ -23,7 +24,8 @@ This service is fully SQL‑only. All legacy MongoDB ingestion, weekly/monthly a
 ## Architecture
 
 - Aggregation: `SQLAggregationService`
-  - Queries application SQL tables: `patient`, `vas`, `recommendation`, `pain_escalation`, `login_event`.
+  - Queries application SQL tables: `patient`, `vas`, `recommendation`, `pain_escalation`.
+  - Login metrics are read from FDW view `auth_fdw.v_login_events_daily` (UTC) in `analytics_reporting` (FDW to `auth_db`).
   - Builds `DailyReportAggregate` and persists via JPA repository.
 - Kafka: `ReportingCommandConsumer`
   - Subscribes to `reporting-commands` topic
@@ -37,6 +39,36 @@ This service is fully SQL‑only. All legacy MongoDB ingestion, weekly/monthly a
 - Storage: `daily_report_aggregate` (JPA entity `DailyReportAggregate`)
 
 ---
+
+## Login metrics via FDW (auth_db)
+
+- Source table in `auth_db`: `public.auth_login_events` (written by Authentication Service).
+- Daily aggregation view in `analytics_reporting`: `auth_fdw.v_login_events_daily` with UTC day boundary.
+- Required FDW setup (run inside analytics_reporting Postgres):
+
+```sql
+CREATE EXTENSION IF NOT EXISTS postgres_fdw;
+CREATE SERVER IF NOT EXISTS auth_db_server
+  FOREIGN DATA WRAPPER postgres_fdw
+  OPTIONS (host 'host.docker.internal', port '5432', dbname 'auth_db');
+CREATE USER MAPPING IF NOT EXISTS FOR analytics
+  SERVER auth_db_server OPTIONS (user 'postgres', password 'newpassword');
+CREATE SCHEMA IF NOT EXISTS auth_fdw;
+IMPORT FOREIGN SCHEMA public LIMIT TO (auth_login_events) FROM SERVER auth_db_server INTO auth_fdw;
+CREATE OR REPLACE VIEW auth_fdw.v_login_events_daily AS
+SELECT
+  (occurred_at AT TIME ZONE 'UTC')::date AS day,
+  count(*) AS total_logins,
+  count(*) FILTER (WHERE outcome = 'SUCCESS') AS successful_logins,
+  count(*) FILTER (WHERE outcome = 'FAILED') AS failed_logins,
+  count(DISTINCT person_id) FILTER (WHERE outcome = 'SUCCESS' AND person_id IS NOT NULL) AS unique_active_users
+FROM auth_fdw.auth_login_events
+GROUP BY 1;
+```
+
+Notes:
+- `totalLogins = successfulLogins + failedLogins` (populated from the view).
+- On regeneration (`regenerate=true`) the service deletes an existing row for the day and inserts a new one in the same transaction (ensures no unique constraint violations on `report_date`).
 
 ## Data Model: DailyReportAggregate
 

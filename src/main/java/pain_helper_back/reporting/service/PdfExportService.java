@@ -9,7 +9,7 @@ import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.springframework.stereotype.Service;
-import pain_helper_back.reporting.entity.DailyReportAggregate;
+import pain_helper_back.reporting.dto.DailyReportAggregateDTO;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -29,7 +29,7 @@ public class PdfExportService {
     private static final float FONT_SIZE_NORMAL = 12;
     private static final float LINE_HEIGHT = 15;
 
-    public byte[] exportDailyReportToPdf(DailyReportAggregate report) throws IOException {
+    public byte[] exportDailyReportToPdf(DailyReportAggregateDTO report) throws IOException {
         log.info("Exporting daily report for {} to PDF", report.getReportDate());
 
         try (PDDocument document = new PDDocument();
@@ -94,7 +94,7 @@ public class PdfExportService {
         }
     }
 
-    public byte[] exportMultipleDailyReportsToPdf(List<DailyReportAggregate> reports,
+    public byte[] exportMultipleDailyReportsToPdf(List<DailyReportAggregateDTO> reports,
                                                   LocalDate startDate,
                                                   LocalDate endDate) throws IOException {
         log.info("Exporting {} reports from {} to {} to PDF", reports.size(), startDate, endDate);
@@ -135,7 +135,7 @@ public class PdfExportService {
 
             double avgVasLevel = reports.stream()
                     .filter(r -> r.getAverageVasLevel() != null)
-                    .mapToDouble(DailyReportAggregate::getAverageVasLevel)
+                    .mapToDouble(DailyReportAggregateDTO::getAverageVasLevel)
                     .average()
                     .orElse(0.0);
 
@@ -150,7 +150,7 @@ public class PdfExportService {
             yPosition = addSectionHeader(contentStream, yPosition, "DAILY BREAKDOWN");
             yPosition -= LINE_HEIGHT;
 
-            for (DailyReportAggregate report : reports) {
+            for (DailyReportAggregateDTO report : reports) {
                 if (yPosition < MARGIN + 100) {
                     contentStream.close();
                     page = new PDPage(PDRectangle.A4);

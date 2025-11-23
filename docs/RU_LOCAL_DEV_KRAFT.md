@@ -359,6 +359,7 @@ docker build -t logging-service:dev C:\path\to\logging-service
 ```
 
 Принудительная пересборка через compose:
+
 ```
 docker compose -f docker-compose.dev.yml build authentication-service
 docker compose -f docker-compose.dev.yml up -d --build authentication-service

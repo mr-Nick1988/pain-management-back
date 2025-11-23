@@ -11,7 +11,7 @@ import java.time.LocalDate;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ReportingCommand {
+public class ReportingCommandDTO {
     private String action;       // GENERATE_DAILY | GENERATE_YESTERDAY | GENERATE_PERIOD
     private LocalDate date;      // for GENERATE_DAILY
     private Boolean regenerate;  // default = false

@@ -45,6 +45,37 @@
 - `temporaryCredentials` (boolean, по умолчанию true), `active` (boolean, по умолчанию true)
 - `createdAt`, `lastLoginAt`
 
+## События логина и интеграция с отчётностью (FDW)
+
+- При каждой попытке входа сервис записывает событие в Postgres `auth_db.public.auth_login_events`.
+- Использование: Reporting Service читает агрегированные метрики логинов через FDW‑VIEW `auth_fdw.v_login_events_daily` (граница дня — UTC) и включает их в `DailyReportAggregate`.
+
+Схема `auth_login_events`:
+
+```sql
+CREATE TABLE IF NOT EXISTS public.auth_login_events (
+  id              bigserial PRIMARY KEY,
+  occurred_at     timestamptz NOT NULL DEFAULT now(),
+  login           text NOT NULL,
+  person_id       text NULL,
+  outcome         text NOT NULL CHECK (outcome IN ('SUCCESS','FAILED')),
+  failure_reason  text NULL,
+  ip              text NULL,
+  user_agent      text NULL
+);
+```
+
+Правила заполнения:
+- `SUCCESS`: успешная аутентификация. `person_id` заполнен.
+- `FAILED`: отказ в аутентификации. `failure_reason` ∈ {`USER_NOT_FOUND`,`INVALID_PASSWORD`,`USER_INACTIVE`}.
+- `ip` и `user_agent` берутся из запроса. IP определяется по заголовку `X-Forwarded-For` (первый адрес) с фолбэком на `remoteAddr`.
+
+Метрики в отчётах (UTC):
+- `totalLogins = successfulLogins + failedLogins`
+- `successfulLogins`: число записей с `outcome='SUCCESS'`
+- `failedLogins`: число записей с `outcome='FAILED'`
+- `uniqueActiveUsers`: число уникальных `person_id` среди `SUCCESS` (NULL не учитывается)
+
 ## Эндпоинты API (base: `/api/auth`)
 
 - **POST `/register`** — регистрация пользователя (для админ-сценариев)

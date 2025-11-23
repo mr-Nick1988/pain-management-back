@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
-import pain_helper_back.reporting.dto.ReportingCommand;
+import pain_helper_back.reporting.dto.ReportingCommandDTO;
 
 import java.time.LocalDate;
 
@@ -16,13 +16,13 @@ import java.time.LocalDate;
 public class ReportingCommandProducer {
 
     @Qualifier("reportingKafkaTemplate")
-    private final KafkaTemplate<String, ReportingCommand> kafka;
+    private final KafkaTemplate<String, ReportingCommandDTO> kafka;
 
     @Value("${kafka.topics.reporting-commands:reporting-commands}")
     private String topic;
 
     public void sendGenerateDaily(LocalDate date, boolean regenerate) {
-        ReportingCommand cmd = ReportingCommand.builder()
+        ReportingCommandDTO cmd = ReportingCommandDTO.builder()
                 .action("GENERATE_DAILY")
                 .date(date)
                 .regenerate(regenerate)
@@ -32,7 +32,7 @@ public class ReportingCommandProducer {
     }
 
     public void sendGenerateYesterday(boolean regenerate) {
-        ReportingCommand cmd = ReportingCommand.builder()
+        ReportingCommandDTO cmd = ReportingCommandDTO.builder()
                 .action("GENERATE_YESTERDAY")
                 .regenerate(regenerate)
                 .build();
@@ -41,7 +41,7 @@ public class ReportingCommandProducer {
     }
 
     public void sendGeneratePeriod(LocalDate start, LocalDate end, boolean regenerate) {
-        ReportingCommand cmd = ReportingCommand.builder()
+        ReportingCommandDTO cmd = ReportingCommandDTO.builder()
                 .action("GENERATE_PERIOD")
                 .startDate(start)
                 .endDate(end)

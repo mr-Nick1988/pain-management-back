@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
-import pain_helper_back.reporting.entity.DailyReportAggregate;
+import pain_helper_back.reporting.dto.DailyReportAggregateDTO;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -20,7 +20,7 @@ public class ExcelExportService {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    public byte[] exportDailyReportToExcel(DailyReportAggregate report) throws IOException {
+    public byte[] exportDailyReportToExcel(DailyReportAggregateDTO report) throws IOException {
         log.info("Exporting daily report for {} to Excel", report.getReportDate());
 
         try (Workbook workbook = new XSSFWorkbook();
@@ -75,7 +75,7 @@ public class ExcelExportService {
         }
     }
 
-    public byte[] exportMultipleDailyReportsToExcel(List<DailyReportAggregate> reports,
+    public byte[] exportMultipleDailyReportsToExcel(List<DailyReportAggregateDTO> reports,
                                                     LocalDate startDate,
                                                     LocalDate endDate) throws IOException {
         log.info("Exporting {} reports from {} to {} to Excel", reports.size(), startDate, endDate);
@@ -108,7 +108,7 @@ public class ExcelExportService {
                 cell.setCellStyle(headerStyle);
             }
 
-            for (DailyReportAggregate report : reports) {
+            for (DailyReportAggregateDTO report : reports) {
                 Row dataRow = sheet.createRow(rowNum++);
                 dataRow.createCell(0).setCellValue(report.getReportDate().format(DATE_FORMATTER));
                 dataRow.createCell(1).setCellValue(n(report.getTotalPatientsRegistered()));

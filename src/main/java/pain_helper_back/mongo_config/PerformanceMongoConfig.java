@@ -1,6 +1,5 @@
 package pain_helper_back.mongo_config;
 
-
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -45,13 +44,20 @@ public class PerformanceMongoConfig {
 
     @Bean
     public ApplicationRunner performanceIndexes(
-            @Qualifier("performanceMongoTemplate") MongoTemplate template
+            @Qualifier("performanceMongoTemplate") MongoTemplate template,
+            @Value("${app.mongodb.performance.uri:}") String uri
     ) {
         return args -> {
-            template.indexOps(PerformanceMetric.class).createIndex(new Index().on("operationName", Sort.Direction.ASC));
-            template.indexOps(PerformanceMetric.class).createIndex(new Index().on("slaViolated", Sort.Direction.ASC));
-            template.indexOps(PerformanceMetric.class).createIndex(new Index().on("status", Sort.Direction.ASC));
-            template.indexOps(PerformanceMetric.class).createIndex(new Index().on("timestamp", Sort.Direction.ASC));
+            try {
+                if (uri == null || uri.isBlank()) {
+                    return;
+                }
+                template.indexOps(PerformanceMetric.class).createIndex(new Index().on("operationName", Sort.Direction.ASC));
+                template.indexOps(PerformanceMetric.class).createIndex(new Index().on("slaViolated", Sort.Direction.ASC));
+                template.indexOps(PerformanceMetric.class).createIndex(new Index().on("status", Sort.Direction.ASC));
+                template.indexOps(PerformanceMetric.class).createIndex(new Index().on("timestamp", Sort.Direction.ASC));
+            } catch (Exception ignored) {
+            }
         };
     }
 }

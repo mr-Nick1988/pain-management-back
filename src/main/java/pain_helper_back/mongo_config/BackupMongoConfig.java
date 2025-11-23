@@ -44,13 +44,20 @@ public class BackupMongoConfig {
 
     @Bean
     public ApplicationRunner backupIndexes(
-            @Qualifier("backupMongoTemplate") MongoTemplate template
+            @Qualifier("backupMongoTemplate") MongoTemplate template,
+            @Value("${app.mongodb.backup.uri:}") String uri
     ) {
         return args -> {
-            template.indexOps(BackupHistory.class).createIndex(new Index().on("backupType", Sort.Direction.ASC));
-            template.indexOps(BackupHistory.class).createIndex(new Index().on("status", Sort.Direction.ASC));
-            template.indexOps(BackupHistory.class).createIndex(new Index().on("startTime", Sort.Direction.DESC));
-            template.indexOps(BackupHistory.class).createIndex(new Index().on("expirationDate", Sort.Direction.ASC));
+            try {
+                if (uri == null || uri.isBlank()) {
+                    return;
+                }
+                template.indexOps(BackupHistory.class).createIndex(new Index().on("backupType", Sort.Direction.ASC));
+                template.indexOps(BackupHistory.class).createIndex(new Index().on("status", Sort.Direction.ASC));
+                template.indexOps(BackupHistory.class).createIndex(new Index().on("startTime", Sort.Direction.DESC));
+                template.indexOps(BackupHistory.class).createIndex(new Index().on("expirationDate", Sort.Direction.ASC));
+            } catch (Exception ignored) {
+            }
         };
     }
 }

@@ -10,7 +10,7 @@
 //import org.springframework.mail.javamail.MimeMessageHelper;
 //import org.springframework.scheduling.annotation.Async;
 //import org.springframework.stereotype.Service;
-//import pain_helper_back.reporting.entity.DailyReportAggregate;
+//import pain_helper_back.reporting.dto.DailyReportAggregate;
 //
 //import java.io.IOException;
 //import java.time.LocalDate;

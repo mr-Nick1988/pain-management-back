@@ -8,9 +8,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import pain_helper_back.reporting.entity.DailyReportAggregate;
-import pain_helper_back.reporting.repository.DailyReportRepository;
+import pain_helper_back.reporting.dto.DailyReportAggregateDTO;
 import pain_helper_back.reporting.service.PdfExportService;
+import pain_helper_back.reporting.service.SQLAggregationService;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -23,7 +23,7 @@ import java.util.List;
 public class PdfExportController {
 
     private final PdfExportService pdfExportService;
-    private final DailyReportRepository dailyReportRepository;
+    private final SQLAggregationService sqlAggregationService;
 
     @GetMapping("/daily/{date}/export/pdf")
     public ResponseEntity<byte[]> exportDailyReport(
@@ -32,7 +32,7 @@ public class PdfExportController {
         log.info("GET /api/reports/daily/{}/export/pdf", date);
 
         try {
-            DailyReportAggregate report = dailyReportRepository.findByReportDate(date)
+            DailyReportAggregateDTO report = sqlAggregationService.getReportByDate(date)
                     .orElseThrow(() -> new RuntimeException("Report not found for date: " + date));
 
             byte[] pdfBytes = pdfExportService.exportDailyReportToPdf(report);
@@ -62,8 +62,7 @@ public class PdfExportController {
         log.info("GET /api/reports/export/pdf - startDate: {}, endDate: {}", startDate, endDate);
 
         try {
-            List<DailyReportAggregate> reports = dailyReportRepository
-                    .findAllByReportDateBetween(startDate, endDate);
+            List<DailyReportAggregateDTO> reports = sqlAggregationService.getReportsForPeriod(startDate, endDate);
 
             if (reports.isEmpty()) {
                 return ResponseEntity.noContent().build();

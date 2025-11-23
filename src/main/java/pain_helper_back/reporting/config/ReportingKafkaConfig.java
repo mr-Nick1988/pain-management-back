@@ -9,7 +9,7 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonSerializer;
-import pain_helper_back.reporting.dto.ReportingCommand;
+import pain_helper_back.reporting.dto.ReportingCommandDTO;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,7 +18,7 @@ import java.util.Map;
 public class ReportingKafkaConfig {
 
     @Bean
-    public ProducerFactory<String, ReportingCommand> reportingProducerFactory(
+    public ProducerFactory<String, ReportingCommandDTO> reportingProducerFactory(
             @Value("${spring.kafka.bootstrap-servers:localhost:9092}") String bootstrap
     ) {
         Map<String, Object> props = new HashMap<>();
@@ -38,8 +38,8 @@ public class ReportingKafkaConfig {
     }
 
     @Bean(name = "reportingKafkaTemplate")
-    public KafkaTemplate<String, ReportingCommand> reportingKafkaTemplate(
-            ProducerFactory<String, ReportingCommand> pf
+    public KafkaTemplate<String, ReportingCommandDTO> reportingKafkaTemplate(
+            ProducerFactory<String, ReportingCommandDTO> pf
     ) {
         return new KafkaTemplate<>(pf);
     }

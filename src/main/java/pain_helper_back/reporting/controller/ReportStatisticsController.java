@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import pain_helper_back.reporting.entity.DailyReportAggregate;
+import pain_helper_back.reporting.dto.DailyReportAggregateDTO;
 import pain_helper_back.reporting.dto.ReportsSummaryDTO;
 import pain_helper_back.reporting.service.ReportStatisticsService;
 
@@ -23,7 +23,7 @@ public class ReportStatisticsController {
     private final ReportStatisticsService reportStatisticsService;
 
     @GetMapping("/daily")
-    public ResponseEntity<List<DailyReportAggregate>> getReportsForPeriod(
+    public ResponseEntity<List<DailyReportAggregateDTO>> getReportsForPeriod(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
@@ -31,7 +31,7 @@ public class ReportStatisticsController {
     }
 
     @GetMapping("/daily/{date}")
-    public ResponseEntity<DailyReportAggregate> getReportByDate(
+    public ResponseEntity<DailyReportAggregateDTO> getReportByDate(
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
         return reportStatisticsService.getReportByDate(date)
@@ -40,14 +40,14 @@ public class ReportStatisticsController {
     }
 
     @GetMapping("/daily/recent")
-    public ResponseEntity<List<DailyReportAggregate>> getRecentReports(
+    public ResponseEntity<List<DailyReportAggregateDTO>> getRecentReports(
             @RequestParam(defaultValue = "7") int limit
     ) {
         return ResponseEntity.ok(reportStatisticsService.getRecentReports(limit));
     }
 
     @PostMapping("/daily/generate")
-    public ResponseEntity<DailyReportAggregate> generateReportForDate(
+    public ResponseEntity<DailyReportAggregateDTO> generateReportForDate(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @RequestParam(defaultValue = "false") boolean regenerate
     ) {
