@@ -21,6 +21,7 @@ public class Person {
     private String login;
 
     private String password;
+    @Enumerated(EnumType.STRING)
     private Roles role;
     private boolean temporaryCredentials = true;
 }
