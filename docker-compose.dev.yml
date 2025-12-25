@@ -8,6 +8,7 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.6.1
     container_name: dev_kafka
+    profiles: ["infra"]
     ports:
       - "9092:9092"   # host access (PLAINTEXT_HOST)
     environment:
@@ -39,6 +40,7 @@ services:
   # Optional job to ensure topics exist (will exit after creation)
   kafka-create-topics:
     image: confluentinc/cp-kafka:7.6.1
+    profiles: ["infra"]
     depends_on:
       kafka:
         condition: service_healthy
@@ -54,7 +56,7 @@ services:
   # Postgres (monolith + auth)
   # =========================
   postgres-main:
-    image: postgres:16
+    image: postgres:16-alpine
     container_name: dev_postgres_main
     environment:
       POSTGRES_DB: pain_management_db
@@ -77,6 +79,7 @@ services:
       context: ../microservices/backup_restore
       dockerfile: Dockerfile
     container_name: backup-restore
+    profiles: ["ops"]
     ports:
       - "8085:8085"
     environment:
@@ -118,8 +121,9 @@ services:
       - dev-net
 
   postgres-analytics:
-    image: postgres:16
+    image: postgres:16-alpine
     container_name: dev_postgres_analytics
+    profiles: ["reporting"]
     environment:
       POSTGRES_DB: analytics_reporting
       POSTGRES_USER: ${PG_USER:-analytics}
@@ -194,15 +198,28 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: local
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      SPRING_DATA_MONGODB_URI: ${LOGGING_MONGODB_URI:?Set LOGGING_MONGODB_URI in your environment before running docker compose}
+      SPRING_DATA_MONGODB_URI: ${LOGGING_MONGODB_URI:-mongodb://mongo:27017/logging_db}
       KAFKA_TOPIC_LOGGING_EVENTS: ${KAFKA_TOPIC_LOGGING_EVENTS:-logging-events}
       SPRING_KAFKA_CONSUMER_GROUP_ID: logging-service-group
       SERVER_PORT: 8083
     depends_on:
       kafka:
         condition: service_healthy
+      mongo:
+        condition: service_started
     ports:
       - "8081:8083"
+    networks:
+      - dev-net
+
+  mongo:
+    image: mongo:7.0
+    container_name: dev_mongo
+    profiles: ["logging"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
     networks:
       - dev-net
 
@@ -231,3 +248,4 @@ networks:
 volumes:
   pg-main-data:
   pg-analytics-data:
+  mongo-data:
