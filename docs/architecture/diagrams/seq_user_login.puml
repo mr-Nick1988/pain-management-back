@@ -1,0 +1,22 @@
+@startuml
+' User login (current in-monolith flow)
+skinparam monochrome true
+
+actor User
+participant "PersonController" as PC
+participant "PersonService" as PS
+database "PersonRepository" as PR
+participant "ApplicationEventPublisher" as AEP
+participant "AnalyticsEventListener" as AEL
+database "AnalyticsEventRepository (Mongo)" as AER
+
+User -> PC : POST /api/person/login
+PC -> PS : login(request)
+PS -> PR : findByLogin(...)
+PR --> PS : Person
+PS -> AEP : publish UserLoginEvent
+AEP -> AEL : on UserLoginEvent
+AEL -> AER : save AnalyticsEvent
+PS --> PC : PersonLoginResponseDTO
+PC --> User : 200 OK
+@enduml

@@ -1,0 +1,19 @@
+@startuml
+' EMR Change Event via Kafka
+skinparam monochrome true
+
+queue Kafka
+participant "EmrEventListener" as L
+database "PatientRepository" as PR
+database "EmrRepository" as ER
+participant "EmrRecalculationService" as C
+participant "WebSocketNotificationService" as W
+
+Kafka -> L : emr.changes [List<Map>]
+L -> PR : findByMrn(mrn)
+PR --> L : Patient
+L -> ER : findByPatientMrn(mrn)
+ER --> L : List<Emr>
+L -> C : handleCriticalEmrChanges(patient, alerts, latestEmr)
+C -> W : notify clients
+@enduml
