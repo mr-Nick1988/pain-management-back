@@ -1,6 +1,36 @@
 spring:
   application:
     name: pain_helper_back
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/pain_management_db}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        type:
+          preferred_enum_type: string
+  liquibase:
+    enabled: false
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:25}
+    username: ${MAIL_USERNAME:noreply@painmanagement.local}
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+  data:
+    mongodb:
+      uri: ${LOGGING_MONGODB_URI:mongodb://localhost:27017/analyticsdb}
+      auto-index-creation: true
   kafka:
     bootstrap-servers: localhost:9092
     consumer:

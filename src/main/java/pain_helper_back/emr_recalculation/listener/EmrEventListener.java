@@ -24,7 +24,7 @@ public class EmrEventListener {
     private final PatientRepository patientRepository;
     private final EmrRepository emrRepository;
 
-    @KafkaListener(topics = "emr.changes", groupId = "pain-monolith-emr-group", containerFactory = "emrKafkaListenerContainerFactory")
+    @KafkaListener(topics = "emr.changes", groupId = "pain-monolith-emr-group")
     public void handleEmrChanges(List<Map<String, Object>> rawAlerts) {
         // Note: Ideally we deserialize directly to List<EmrChangeAlertDTO>, but JsonDeserializer with List can be tricky.
         // Assuming the payload comes as a List of objects.

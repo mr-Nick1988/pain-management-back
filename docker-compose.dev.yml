@@ -47,6 +47,8 @@ services:
     entrypoint: ["bash", "-lc", "\
       kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic analytics-events --replication-factor 1 --partitions 1 && \
       kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic logging-events --replication-factor 1 --partitions 1 && \
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic emr.changes --replication-factor 1 --partitions 1 && \
+      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic emr.upserted --replication-factor 1 --partitions 1 && \
       kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic reporting-commands --replication-factor 1 --partitions 1 && \
       echo 'Kafka topics ensured' "]
     networks:
@@ -143,6 +145,32 @@ services:
   # =========================
   # Optional microservices (enable via profiles)
   # =========================
+  external-emr:
+    image: external-emr:dev
+    build:
+      context: C:/backend_projects/microservices/external_emr
+    container_name: dev_external_emr
+    profiles: ["emr"]
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_KAFKA_PRODUCER_KEY_SERIALIZER: org.apache.kafka.common.serialization.StringSerializer
+      SPRING_KAFKA_PRODUCER_VALUE_SERIALIZER: org.springframework.kafka.support.serializer.JsonSerializer
+      EMR_CHANGES_TOPIC: ${EMR_CHANGES_TOPIC:-emr.changes}
+      EMR_UPSERTED_TOPIC: ${EMR_UPSERTED_TOPIC:-emr.upserted}
+      EMR_SYNC_ENABLED: ${EMR_SYNC_ENABLED:-false}
+      FHIR_SERVER_URL: ${FHIR_SERVER_URL:-http://hapi.fhir.org/baseR4}
+      FHIR_CONNECTION_TIMEOUT: ${FHIR_CONNECTION_TIMEOUT:-10000}
+      FHIR_SOCKET_TIMEOUT: ${FHIR_SOCKET_TIMEOUT:-10000}
+      SERVER_PORT: 8086
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8086:8086"
+    networks:
+      - dev-net
   reporting-service:
     image: reporting-service:dev
     build:

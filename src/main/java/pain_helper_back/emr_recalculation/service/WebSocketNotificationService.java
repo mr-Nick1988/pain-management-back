@@ -8,7 +8,7 @@ import pain_helper_back.emr_recalculation.dto.EmrChangeAlertDTO;
 
 import java.util.List;
 
-@Service
+@Service("emrRecalculationWebSocketNotificationService")
 @RequiredArgsConstructor
 @Slf4j
 public class WebSocketNotificationService {

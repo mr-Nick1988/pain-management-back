@@ -14,7 +14,7 @@
 ```http
 POST /api/nurse/patients
 {
-  "firstName": "Test",
+  "firstName": "Test",_
   "lastName": "Patient",
   "dateOfBirth": "1980-01-01",
   "gender": "MALE",

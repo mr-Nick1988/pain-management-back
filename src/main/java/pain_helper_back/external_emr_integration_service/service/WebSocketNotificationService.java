@@ -37,7 +37,7 @@ import java.util.List;
  *   "recommendation": "СРОЧНО: Требуется коррекция дозировок всех препаратов"
  * }
  */
-@Service
+@Service("externalEmrWebSocketNotificationService")
 @RequiredArgsConstructor
 @Slf4j
 public class WebSocketNotificationService {
