@@ -52,11 +52,32 @@ auth:
     url: ${AUTH_SERVICE_URL:http://localhost:8082}
     timeout: ${AUTH_SERVICE_TIMEOUT:5000}
 
+# Reporting Service интеграция
+reporting:
+  service:
+    url: ${REPORTING_SERVICE_URL:http://localhost:8091}
+    timeout: ${REPORTING_SERVICE_TIMEOUT:10000}
+
+# Kafka topics configuration
+kafka:
+  topic:
+    reporting-commands: ${KAFKA_TOPIC_REPORTING_COMMANDS:reporting-commands}
+    analytics-events: ${KAFKA_TOPIC_ANALYTICS_EVENTS:analytics-events}
+
 # Resilience4j Circuit Breaker для микросервисов
 resilience4j:
   circuitbreaker:
     instances:
       authService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+      reportingService:
         registerHealthIndicator: true
         slidingWindowSize: 10
         minimumNumberOfCalls: 5
