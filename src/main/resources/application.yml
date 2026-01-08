@@ -16,7 +16,8 @@ spring:
         type:
           preferred_enum_type: string
   liquibase:
-    enabled: false
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.xml
   mail:
     host: ${MAIL_HOST:localhost}
     port: ${MAIL_PORT:25}
@@ -40,3 +41,27 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "*"
+
+# JWT конфигурация (должен совпадать с Authentication Service)
+jwt:
+  secret: ${JWT_SECRET:pain-management-secret-key-change-in-production-min-256-bits-required-for-hs256-algorithm-security}
+
+# Authentication Service интеграция
+auth:
+  service:
+    url: ${AUTH_SERVICE_URL:http://localhost:8082}
+    timeout: ${AUTH_SERVICE_TIMEOUT:5000}
+
+# Resilience4j Circuit Breaker для микросервисов
+resilience4j:
+  circuitbreaker:
+    instances:
+      authService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10

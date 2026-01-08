@@ -1,32 +1,38 @@
 package pain_helper_back.common.persons.controller;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import pain_helper_back.common.persons.dto.ChangeCredentialsDTO;
-import pain_helper_back.common.persons.dto.PersonLoginRequestDTO;
-import pain_helper_back.common.persons.dto.PersonLoginResponseDTO;
+import pain_helper_back.admin.entity.Person;
 import pain_helper_back.common.persons.service.PersonService;
 
+/**
+ * PersonController - контроллер для работы с профилями пользователей
+ * 
+ * NOTE: Endpoints /login и /change-credentials удалены.
+ * Для аутентификации используйте Authentication Service:
+ * - POST http://localhost:8082/api/auth/login
+ * - POST http://localhost:8082/api/auth/change-password
+ * - GET http://localhost:8082/api/auth/me
+ * 
+ * Этот контроллер оставлен для дополнительных операций с профилем (если потребуется).
+ */
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api")
+@RequestMapping("/api/person")
 @CrossOrigin(origins = "http://localhost:5173")
-@Slf4j  // Это как черный ящик в самолёте — записывает шаги системы.
-// Если пользователь пишет "я не мог залогиниться" → смотришь лог: был ли запрос, с каким логином, была ли ошибка.
+@Slf4j
 public class PersonController {
 
     private final PersonService personService;
 
-    @PostMapping("/person/login")
-    public PersonLoginResponseDTO login(@RequestBody @Valid PersonLoginRequestDTO loginRequest) {
-        return personService.login(loginRequest);
+    /**
+     * Получить информацию о текущем пользователе через JWT
+     */
+    @GetMapping("/me")
+    public Person getCurrentPerson(@AuthenticationPrincipal String personId) {
+        log.info("Getting current person info for personId: {}", personId);
+        return personService.getPersonByPersonId(personId);
     }
-
-    @PostMapping("/person/change-credentials")
-    public void changeCredentials(@RequestBody @Valid ChangeCredentialsDTO request) {
-        personService.changeCredentials(request);
-    }
-
 }

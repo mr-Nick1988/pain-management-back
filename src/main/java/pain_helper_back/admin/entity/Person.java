@@ -20,8 +20,9 @@ public class Person {
     @Column(nullable = false, unique = true)
     private String login;
 
-    private String password;
     @Enumerated(EnumType.STRING)
     private Roles role;
+    
+    // NOTE: password удален - аутентификация через Authentication Service (порт 8082)
     private boolean temporaryCredentials = true;
 }
