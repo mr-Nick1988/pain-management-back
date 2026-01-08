@@ -128,31 +128,44 @@ common/persons/controller/PersonController.java (упрощен)
 
 ---
 
-## 🔄 В ПРОЦЕССЕ
+## ✅ ЗАВЕРШЕНО (ПРОДОЛЖЕНИЕ)
 
-### ЭТАП 1.1F-G: Финализация интеграции (10%)
+### STAGE 1.2: Integration with Reporting Service (100%)
 
-**Осталось сделать:**
-- [ ] Обновить все контроллеры (убрать `@RequestParam(defaultValue = "system")`)
-- [ ] Заменить на `@AuthenticationPrincipal String personId`
-- [ ] Добавить `@PreAuthorize` для role-based access control
-- [ ] Unit тесты для `JwtUtil` и `JwtAuthenticationFilter`
-- [ ] Integration тесты с WireMock для Auth Service
-- [ ] E2E тест: login через Auth Service → запрос к монолиту
+**Date:** 2026-01-08
+
+**Completed:**
+- ✅ Created ReportingCommand DTO for Kafka messages
+- ✅ Created ReportingCommandProducer for publishing to `reporting-commands` topic
+- ✅ Created KafkaProducerConfig for Kafka infrastructure
+- ✅ Created ReportingServiceClient with Circuit Breaker for REST proxy
+- ✅ Created DailyReportDTO for response mapping
+- ✅ Deleted entire reporting package (14 files, 2763 lines)
+- ✅ Removed Apache POI dependency (Excel export)
+- ✅ Removed Apache PDFBox dependency (PDF export)
+- ✅ Removed Spring Mail dependency (email reports)
+- ✅ Added Reporting Service configuration to application.yml
+- ✅ Added Kafka topic configuration
+- ✅ Added Circuit Breaker settings for reportingService
+
+**Commits:** 2
+- `395aa76` - Kafka Producer and REST Client
+- `4d2f0c6` - Remove reporting module from monolith
 
 ---
 
-## ⏳ ОЖИДАНИЕ
+## 🔄 IN PROGRESS
 
-### ЭТАП 1.2: Интеграция с Reporting Service
-- Kafka Producer для `reporting-commands`
-- REST Proxy для `/api/reports/*`
-- Удаление пакета `reporting/` из монолита
+### STAGE 1.3: Integration with Logging Service (0%)
 
-### ЭТАП 1.3: Интеграция с Logging Service
-- Kafka Producer для `analytics-events`
-- Удаление `analytics/` из монолита
-- Удаление MongoDB (если используется только для аналитики)
+**Next steps:**
+- [ ] Create Kafka Producer for `analytics-events`
+- [ ] Remove analytics module from monolith
+- [ ] Remove MongoDB dependency (if only used for analytics)
+
+---
+
+## ⏳ PENDING
 
 ### ЭТАП 2: Создание новых микросервисов
 - EMR Integration Service
