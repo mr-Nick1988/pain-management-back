@@ -1,0 +1,18 @@
+# ============================================================================
+# Grafana Datasource - Prometheus
+# ============================================================================
+# Автоматическая настройка Prometheus как источника данных при старте Grafana
+# ============================================================================
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+    jsonData:
+      httpMethod: POST
+      timeInterval: 15s

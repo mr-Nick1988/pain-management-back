@@ -115,6 +115,19 @@
             <artifactId>spring-kafka</artifactId>
         </dependency>
 
+        <!-- Observability: Spring Boot Actuator for metrics -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- Observability: Micrometer Prometheus Registry -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- JWT для интеграции с Authentication Service -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

@@ -152,3 +152,29 @@ resilience4j:
         waitDurationInOpenState: 10s
         failureRateThreshold: 50
         eventConsumerBufferSize: 10
+
+# ============================================================================
+# Spring Boot Actuator - Observability Endpoints
+# ============================================================================
+# Эндпоинты для мониторинга, метрик и health checks
+# Prometheus scrapes /actuator/prometheus каждые 15 секунд
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics  # Доступные эндпоинты
+      base-path: /actuator
+  
+  endpoint:
+    health:
+      show-details: when-authorized  # Детали health check только для авторизованных
+    prometheus:
+      enabled: true  # Включить Prometheus endpoint
+  
+  metrics:
+    export:
+      prometheus:
+        enabled: true  # Экспорт метрик в формате Prometheus
+    tags:
+      application: ${spring.application.name}  # Тег для всех метрик
+      environment: ${ENVIRONMENT:dev}

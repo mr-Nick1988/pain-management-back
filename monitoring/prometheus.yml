@@ -1,0 +1,127 @@
+# ============================================================================
+# Prometheus Configuration - Pain Management Platform
+# ============================================================================
+# Сбор метрик со всех сервисов через Spring Boot Actuator /actuator/prometheus
+# Scrape interval: каждые 15 секунд
+# ============================================================================
+
+global:
+  scrape_interval: 15s      # Как часто собирать метрики
+  evaluation_interval: 15s  # Как часто оценивать правила
+  external_labels:
+    cluster: 'pain-management-dev'
+    environment: 'development'
+
+# ============================================================================
+# Scrape Configurations - откуда собирать метрики
+# ============================================================================
+scrape_configs:
+
+  # --------------------------------------------------------------------------
+  # Prometheus Self-Monitoring
+  # --------------------------------------------------------------------------
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # --------------------------------------------------------------------------
+  # Pain Management Monolith (port 8080)
+  # --------------------------------------------------------------------------
+  - job_name: 'monolith'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8080']  # Монолит на хосте
+        labels:
+          application: 'pain-management-monolith'
+          service: 'monolith'
+
+  # --------------------------------------------------------------------------
+  # Authentication Service (port 8082)
+  # --------------------------------------------------------------------------
+  - job_name: 'auth-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['dev_auth:8082']
+        labels:
+          application: 'authentication-service'
+          service: 'auth'
+
+  # --------------------------------------------------------------------------
+  # EMR Integration Service (port 8086)
+  # --------------------------------------------------------------------------
+  - job_name: 'emr-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['dev_emr:8086']
+        labels:
+          application: 'emr-integration-service'
+          service: 'emr'
+
+  # --------------------------------------------------------------------------
+  # Notification Service (port 8087)
+  # --------------------------------------------------------------------------
+  - job_name: 'notification-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['dev_notification:8087']
+        labels:
+          application: 'notification-service'
+          service: 'notification'
+
+  # --------------------------------------------------------------------------
+  # Pain Escalation Service (port 8088)
+  # --------------------------------------------------------------------------
+  - job_name: 'pain-escalation-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['dev_pain_escalation:8088']
+        labels:
+          application: 'pain-escalation-service'
+          service: 'escalation'
+
+  # --------------------------------------------------------------------------
+  # External VAS Service (port 8089)
+  # --------------------------------------------------------------------------
+  - job_name: 'external-vas-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['dev_external_vas:8089']
+        labels:
+          application: 'external-vas-service'
+          service: 'external-vas'
+
+  # --------------------------------------------------------------------------
+  # Reporting Service (port 8091)
+  # --------------------------------------------------------------------------
+  - job_name: 'reporting-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['dev_reporting:8091']
+        labels:
+          application: 'reporting-service'
+          service: 'reporting'
+
+  # --------------------------------------------------------------------------
+  # Backup & Restore Service (port 8085)
+  # --------------------------------------------------------------------------
+  - job_name: 'backup-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['dev_backup:8085']
+        labels:
+          application: 'backup-restore-service'
+          service: 'backup'
+
+# ============================================================================
+# Alerting Rules (optional - для продакшена)
+# ============================================================================
+# rule_files:
+#   - 'alerts.yml'
+
+# ============================================================================
+# NOTES
+# ============================================================================
+# 1. Все сервисы должны иметь spring-boot-starter-actuator
+# 2. Endpoint /actuator/prometheus должен быть доступен
+# 3. Micrometer Prometheus registry должен быть настроен
+# 4. Для production добавить authentication и TLS

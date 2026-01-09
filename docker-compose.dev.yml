@@ -395,6 +395,62 @@ services:
     networks:
       - dev-net
 
+  # ==========================================================================
+  # OBSERVABILITY: Prometheus - Metrics Collection (порт 9090)
+  # ==========================================================================
+  # Сборщик метрик со всех сервисов через /actuator/prometheus
+  # Web UI: http://localhost:9090
+  # Легковесный образ: prom/prometheus (Alpine-based, ~200MB)
+  prometheus:
+    image: prom/prometheus:latest  # Alpine-based
+    container_name: dev_prometheus
+    profiles: ["monitoring", "all"]
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'  # Позволяет перезагружать конфиг без перезапуска
+    networks:
+      - dev-net
+
+  # ==========================================================================
+  # OBSERVABILITY: Grafana - Visualization (порт 3000)
+  # ==========================================================================
+  # Дашборды и визуализация метрик
+  # Web UI: http://localhost:3000
+  # Default credentials: admin/admin (изменить при первом входе)
+  # Легковесный образ: grafana/grafana (Alpine-based, ~300MB)
+  grafana:
+    image: grafana/grafana:latest  # Alpine-based
+    container_name: dev_grafana
+    profiles: ["monitoring", "all"]
+    ports:
+      - "3000:3000"
+    environment:
+      # Admin credentials
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      
+      # Disable analytics
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      
+      # Performance для dev окружения
+      GF_LOG_LEVEL: info
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning  # Автоматическая настройка datasources и dashboards
+    depends_on:
+      - prometheus
+    networks:
+      - dev-net
+
 # ============================================================================
 # NETWORKS
 # ============================================================================
@@ -411,6 +467,10 @@ volumes:
     name: painmgmt-postgres-data
   postgres-analytics-data:
     name: painmgmt-analytics-data
+  prometheus-data:
+    name: painmgmt-prometheus-data
+  grafana-data:
+    name: painmgmt-grafana-data
   # MongoDB volume УДАЛЕН - больше не используется!
 
 # ============================================================================
