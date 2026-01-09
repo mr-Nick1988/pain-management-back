@@ -1,4 +1,4 @@
-package pain_helper_back.treatment_protocol.service.rule;
+﻿package pain_helper_back.treatment_protocol.service.rule;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
@@ -78,7 +78,7 @@ public class ChildPughApplier implements TreatmentRuleApplier {
 
         String drugName = SafeValueUtils.safeValue(drug);
 
-        // 1. avoid → очищаем препарат
+        // 1. avoid → очищаем drug
         if (patientRule.contains("avoid")) {
             recommendation.getComments().add("System: avoid " + drugName + " for patient with Child-Pugh = " + patientChildPugh);
             rejectionReasons.add(String.format(

@@ -466,7 +466,7 @@ public class DoctorServiceImpl implements DoctorService {
     //        auditTrailRepository.save(audit);
     //
     // 2) Создать Enum для всех действий для AuditTrailRepository
-    //    PatientAuditAction → создание/удаление/обновление пациента.
+    //    PatientAuditAction → создание/удаление/обновление patient.
     //    EmrAuditAction → изменения в медкартах.
     //    VasAuditAction → жалобы.
     //    RecommendationAuditAction → approve/reject/modify.

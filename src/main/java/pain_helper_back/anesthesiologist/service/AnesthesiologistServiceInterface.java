@@ -1,4 +1,4 @@
-package pain_helper_back.anesthesiologist.service;
+﻿package pain_helper_back.anesthesiologist.service;
 
 
 import pain_helper_back.common.patients.dto.*;
@@ -8,7 +8,7 @@ import pain_helper_back.anesthesiologist.dto.AnesthesiologistRecommendationUpdat
 import java.util.List;
 
 /*
- * Сервис для работы анестезиолога с эскалациями и протоколами
+ * Сервис для работы анестезиолога с эскалациями и protocolами
  * Обновлен под новый workflow: Doctor → Anesthesiologist
  */
 public interface AnesthesiologistServiceInterface {
@@ -22,7 +22,7 @@ public interface AnesthesiologistServiceInterface {
     RecommendationDTO rejectEscalation(Long recommendationId, RecommendationApprovalRejectionDTO resolutionDTO);
 
 
-    // ================= PROTOCOLS (Протоколы лечения) ================= //
+    // ================= PROTOCOLS (protocolы лечения) ================= //
 
     RecommendationDTO createRecommendationAfterRejection( AnesthesiologistRecommendationCreateDTO dto);
 

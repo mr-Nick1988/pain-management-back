@@ -1,4 +1,4 @@
-package pain_helper_back.common.patients.repository;
+﻿package pain_helper_back.common.patients.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import pain_helper_back.common.patients.entity.DrugRecommendation;
@@ -11,14 +11,14 @@ import java.util.List;
  * но можно делать прямые запросы.
  *
  * Примеры кастомных запросов:
- * - Найти все препараты для конкретного пациента по MRN.
- * - Найти все препараты по названию для пациента.
+ * - Найти все drugы для конкретного patient по MRN.
+ * - Найти все drugы по названию для patient.
  */
 public interface DrugRecommendationRepository extends JpaRepository<DrugRecommendation, Long> {
 
-    // Все лекарства для пациента (JOIN через recommendation → patient → mrn)
+    // Все лекарства для patient (JOIN через recommendation → patient → mrn)
     List<DrugRecommendation> findByRecommendationPatientMrn(String mrn);
 
-    // Фильтрация по названию препарата (например, чтобы проверить дубли)
+    // Фильтрация по названию drugа (например, чтобы проверить дубли)
     List<DrugRecommendation> findByRecommendationPatientMrnAndDrugName(String mrn, String drugName);
 }

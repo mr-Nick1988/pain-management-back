@@ -1,4 +1,4 @@
-package pain_helper_back.websocket.controller;
+﻿package pain_helper_back.websocket.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -59,11 +59,11 @@ public class WebSocketTestController {
     @PostMapping("/test/emr-alert")
     public ResponseEntity<Map<String, String>> sendTestEmrAlert() {
                 .patientMrn("TEST-12345")
-                .patientName("Тестовый Пациент")
+                .patientName("Тестовый patient")
                 .title("Критическое падение GFR")
                 .message("GFR упал с 45 до 25 - требуется коррекция дозировок")
                 .details("Тяжелая почечная недостаточность. Рекомендуется немедленный пересмотр всех назначений.")
-                .recommendations("СРОЧНО: Скорректировать дозировки всех препаратов с учетом GFR < 30")
+                .recommendations("СРОЧНО: Скорректировать дозировки всех drugов considering GFR < 30")
                 .targetRole("DOCTOR")
                 .requiresAction(true)
                 .build();
@@ -87,8 +87,8 @@ public class WebSocketTestController {
                 .patientName("Тестовый")
                 .title("Эскалация боли")
                 .message("VAS увеличился с 5 до 9 через 2 часа после введения дозы")
-                .details("Значительный рост боли слишком рано после последней дозы. Текущий протокол может быть недостаточным.")
-                .recommendations("Рассмотреть увеличение дозировки или смену препарата")
+                .details("Значительный рост боли слишком рано после последней дозы. Текущий protocol может быть недостаточным.")
+                .recommendations("Рассмотреть увеличение дозировки или смену drugа")
                 .targetRole("DOCTOR")
                 .requiresAction(true)
                 .build();
@@ -109,10 +109,10 @@ public class WebSocketTestController {
     @PostMapping("/test/critical")
     public ResponseEntity<Map<String, String>> sendTestCriticalNotification() {
                 .patientMrn("TEST-12345")
-                .patientName("Тестовый Пациент")
+                .patientName("Тестовый patient")
                 .title("КРИТИЧЕСКИЙ уровень боли")
                 .message("VAS = 10 - максимальный уровень боли")
-                .details("Пациент испытывает невыносимую боль. Требуется немедленное вмешательство.")
+                .details("patient испытывает невыносимую боль. Требуется немедленное вмешательство.")
                 .recommendations("ЭКСТРЕННО: Вызвать анестезиолога, рассмотреть IV анальгетики")
                 .targetRole("DOCTOR")
                 .requiresAction(true)

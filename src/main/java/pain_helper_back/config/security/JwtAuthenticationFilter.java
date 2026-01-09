@@ -1,4 +1,4 @@
-package pain_helper_back.config.security;
+﻿package pain_helper_back.config.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -37,14 +37,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (token != null && jwtUtil.validateToken(token)) {
             String tokenType = jwtUtil.getTokenTypeFromToken(token);
             
-            // Проверяем, что это ACCESS токен (не REFRESH)
+            // Check, что это ACCESS токен (не REFRESH)
             if ("ACCESS".equals(tokenType)) {
                 String personId = jwtUtil.getPersonIdFromToken(token);
                 String role = jwtUtil.getRoleFromToken(token);
                 String login = jwtUtil.getLoginFromToken(token);
 
                 if (personId != null && role != null) {
-                    // Создаем Authentication объект
+                    // Create Authentication объект
                     UsernamePasswordAuthenticationToken authentication = 
                         new UsernamePasswordAuthenticationToken(
                             personId, // principal
@@ -52,10 +52,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
                         );
                     
-                    // Добавляем детали запроса
+                    // Add детали запроса
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     
-                    // Устанавливаем в SecurityContext
+                    // Set в SecurityContext
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                     
                     log.debug("JWT authentication successful for personId: {}, role: {}", personId, role);

@@ -1,4 +1,4 @@
-package pain_helper_back.treatment_protocol.service.rule;
+﻿package pain_helper_back.treatment_protocol.service.rule;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
@@ -18,8 +18,8 @@ import java.util.List;
 public class AgeRuleApplier implements TreatmentRuleApplier {
 
     /**
-     * Применяет возрастное правило к конкретной прописке препарата.
-     * Если препарат разрешён — заполняет данные из TP.
+     * Применяет возрастное правило к конкретной прописке drugа.
+     * Если drug разрешён — заполняет data из TP.
      * Если противопоказан — добавляет запись в rejectionReasons и comments.
      */
     @Override
@@ -44,7 +44,7 @@ public class AgeRuleApplier implements TreatmentRuleApplier {
             return;
         }
 
-        // 2 Извлекаем числовой порог (например из ">75 years - avoid" → 75)
+        // 2 Extract числовой порог (например из ">75 years - avoid" → 75)
         Integer limit = PatternUtils.extractFirstInt(ageAdjustment);
         if (limit == null) {
             log.error("Invalid protocol config: '{}'", ageAdjustment);
@@ -53,9 +53,9 @@ public class AgeRuleApplier implements TreatmentRuleApplier {
 
 
 
-        // 3 Применяем возрастное правило
+        // 3 Apply возрастное правило
         if (drug.getRole() == DrugRole.MAIN) {
-            // Основной препарат запрещён при возрасте выше лимита
+            // Основной drug запрещён при возрасте выше лимита
             if (patientAge > limit) {
                 String comment = String.format(
                         "System: avoid main drug %s — patient age (%d) > %d",
@@ -76,7 +76,7 @@ public class AgeRuleApplier implements TreatmentRuleApplier {
             }
 
         } else {
-            // Альтернативный препарат запрещён при возрасте ниже лимита
+            // Альтернативный drug запрещён при возрасте ниже лимита
             if (patientAge < limit) {
                 String comment = String.format(
                         "System: avoid alternative drug %s — patient age (%d) < %d",
@@ -101,7 +101,7 @@ public class AgeRuleApplier implements TreatmentRuleApplier {
     }
 
     /**
-     * Копирует данные препарата из TreatmentProtocol.
+     * Копирует data drugа из TreatmentProtocol.
      */
     private void fillDrugFromProtocol(DrugRecommendation drug, TreatmentProtocol tp) {
         if (drug.getRole() == DrugRole.MAIN) {

@@ -1,4 +1,4 @@
-package pain_helper_back.treatment_protocol.icd_diagnosis.entity;
+﻿package pain_helper_back.treatment_protocol.icd_diagnosis.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Entity;
@@ -18,7 +18,7 @@ import lombok.Setter;
 public class IcdDictionary {
 
     @Id
-    @JsonProperty("icdCode")   // 👈 добавляем JSON-алиас для соответствия с фронтом
+    @JsonProperty("icdCode")   // 👈 Add JSON-алиас для соответствия с фронтом
     private String code;        // "E11.9"
 
     private String description; // "Type 2 diabetes mellitus..."

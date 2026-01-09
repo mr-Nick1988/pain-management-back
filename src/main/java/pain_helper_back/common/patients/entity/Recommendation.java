@@ -1,4 +1,4 @@
-package pain_helper_back.common.patients.entity;
+﻿package pain_helper_back.common.patients.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
@@ -27,13 +27,13 @@ public class Recommendation {
     @Column(name = "regimen_hierarchy")
     private int regimenHierarchy;
     @Column(name = "status")
-    @Enumerated(EnumType.STRING)   // По умолчанию, если не поставить аннотацию @Enumerated, то JPA сохранит числовой индекс enum-а (ORDINAL).
+    @Enumerated(EnumType.STRING)   // by default, если не поставить аннотацию @Enumerated, то JPA сохранит числовой индекс enum-а (ORDINAL).
     private RecommendationStatus status;
     @Column(name = "rejected_reason")
     private String rejectedReason;
 
 
-    // ========== ПРЕПАРАТЫ ========== //
+    // ========== drugЫ ========== //
     @OneToMany(mappedBy = "recommendation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<DrugRecommendation> drugs = new ArrayList<>();
 
@@ -80,7 +80,7 @@ public class Recommendation {
     @Column(name = "replaced_at")
     private LocalDateTime replacedAt; // Отследить жизн. цикл после reject старой рек. заменяется на новую
     @Column(name = "replacement_id")
-    private Long replacementId; // ID новой рекомендации, которая заменяет старую
+    private Long replacementId; // ID новой recommendation, которая заменяет старую
 
     // ========== WORKFLOW: FINAL APPROVAL ========== //
     @Column(name = "final_approved_by", length = 50)
@@ -121,10 +121,10 @@ public class Recommendation {
     private LocalDateTime reviewedAt;  // Когда пересмотрено
     
     @Column(name = "description", length = 5000, columnDefinition = "TEXT")
-    private String description;  // Описание рекомендации
+    private String description;  // Описание recommendation
     
     @Column(name = "justification", length = 5000, columnDefinition = "TEXT")
-    private String justification;  // Обоснование рекомендации
+    private String justification;  // Обоснование recommendation
 
     // ========== LIFECYCLE CALLBACKS ========== //
     @PrePersist

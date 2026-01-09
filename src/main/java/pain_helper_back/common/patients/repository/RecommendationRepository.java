@@ -1,4 +1,4 @@
-package pain_helper_back.common.patients.repository;
+﻿package pain_helper_back.common.patients.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import pain_helper_back.common.patients.dto.RecommendationWithVasDTO;
@@ -11,13 +11,13 @@ import java.util.Optional;
 
 /**
  * Репозиторий для рекомендаций.
- * Обычно их тянут через пациента,
+ * Обычно их тянут через patient,
  * но иногда нужен прямой доступ.
  *
  * Примеры кастомных запросов:
- * - Найти все рекомендации по MRN пациента.
- * - Найти последние рекомендации по MRN.
- * - Найти все рекомендации по статусу (например, только PENDING).
+ * - Найти все recommendation по MRN patient.
+ * - Найти последние recommendation по MRN.
+ * - Найти все recommendation по статусу (например, только PENDING).
  */
 public interface RecommendationRepository extends JpaRepository<Recommendation, Long> {
 
@@ -26,7 +26,7 @@ public interface RecommendationRepository extends JpaRepository<Recommendation, 
     // по бизнес-идентификатору (MRN)
     List<Recommendation> findByPatientMrn(String mrn);
 
-    // сортировка по дате обновления (например, чтобы взять свежие рекомендации)
+    // сортировка по дате обновления (например, чтобы взять свежие recommendation)
     List<Recommendation> findByPatientMrnOrderByUpdatedAtDesc(String mrn);
 
 

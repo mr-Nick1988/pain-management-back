@@ -1,4 +1,4 @@
-package pain_helper_back.treatment_protocol.service.rule;
+﻿package pain_helper_back.treatment_protocol.service.rule;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
@@ -17,8 +17,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /*
-WeightRuleApplier — корректировка дозировок или интервалов для пациентов с низким весом (<50 кг).
-Если в протоколе указано "<50kg - 8h" или "<50kg - 50mg", применяется соответствующее правило.
+WeightRuleApplier — корректировка дозировок или интервалов для patientов с низким весом (<50 кг).
+Если в protocolе указано "<50kg - 8h" или "<50kg - 50mg", применяется соответствующее правило.
 */
 
 @Component
@@ -46,14 +46,14 @@ public class WeightRuleApplier implements TreatmentRuleApplier {
 
         log.info("=== [START] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
 
-        // 1 Если препарат уже отклонён или пустой — выходим
+        // 1 Если drug уже отклонён или пустой — выходим
         if (!DrugUtils.hasInfo(drug)) {
             log.debug("Skipping {} — drug already rejected or empty", getClass().getSimpleName());
             log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
             return;
         }
 
-        // 2 Извлекаем вес пациента
+        // 2 Extract вес patient
         Double patientWeight = patient.getEmr().getLast().getWeight();
         if (patientWeight == null) {
             log.warn("Patient weight is null — cannot apply {}", getClass().getSimpleName());
@@ -61,14 +61,14 @@ public class WeightRuleApplier implements TreatmentRuleApplier {
             return;
         }
 
-        // По протоколу корректировка применяется только если вес < 50 кг
+        // По protocolу корректировка применяется only if вес < 50 кг
         if (patientWeight >= 50.0) {
             log.debug("Patient weight {}kg ≥ 50kg — rule not applied", patientWeight);
             log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
             return;
         }
 
-        // 3 Получаем правило из нужной колонки (первое или второе лекарство)
+        // 3 Get правило из нужной колонки (первое или второе лекарство)
         String weightRule = (drug.getRole() == DrugRole.MAIN) ? tp.getWeightKg() : tp.getSecondWeightKg();
         if (weightRule == null || weightRule.trim().isEmpty() || weightRule.trim().toUpperCase().contains("NA")) {
             log.debug("Weight rule empty or NA for protocol {}", tp.getId());
@@ -87,7 +87,7 @@ public class WeightRuleApplier implements TreatmentRuleApplier {
         String number = m.group(1);            // "8" или "50"
         String unit   = m.group(2).toLowerCase(); // "h" или "mg"
 
-        // 5 Применяем корректировку по единице измерения
+        // 5 Apply корректировку по единице измерения
         String drugLabel = (drug.getDrugName() != null ? drug.getDrugName() : drug.getActiveMoiety());
         if ("mg".equals(unit)) {
             // Корректировка дозы, например "<50kg - 50mg"

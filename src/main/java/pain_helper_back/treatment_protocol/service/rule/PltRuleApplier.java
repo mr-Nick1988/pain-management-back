@@ -1,4 +1,4 @@
-package pain_helper_back.treatment_protocol.service.rule;
+﻿package pain_helper_back.treatment_protocol.service.rule;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
@@ -24,7 +24,7 @@ public class PltRuleApplier implements TreatmentRuleApplier {
      * PLT (platelet count) — количество тромбоцитов в крови.
      * Измеряется в тысячах на микролитр крови: 1K/µL = 1000 тромбоцитов/µL
      * Норма: 150K–450K/µL
-     * <100K/µL → риск кровотечения, нужно избегать некоторых препаратов
+     * <100K/µL → риск кровотечения, нужно избегать некоторых drugов
      */
 
     // Пример формата правила: "<100K/µL - avoid"
@@ -39,7 +39,7 @@ public class PltRuleApplier implements TreatmentRuleApplier {
 
         log.info("=== [START] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
 
-        //  Пропускаем, если препарат уже отклонён или пустой
+        //  Пропускаем, если drug уже отклонён или пустой
         if (!DrugUtils.hasInfo(drug)) {
             log.debug("Skipping {} — drug already rejected or empty", getClass().getSimpleName());
             log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
@@ -72,11 +72,11 @@ public class PltRuleApplier implements TreatmentRuleApplier {
         boolean below = operator.contains("<") && patientPlt < limit;
         boolean above = operator.contains(">") && patientPlt > limit;
 
-        //  Безопасно извлекаем имена препаратов (избегаем NPE)
+        //  Безопасно Extract имена drugов (избегаем NPE)
         String mainDrugName = SafeValueUtils.safeValue(recommendation.getDrugs().getFirst());
         String altMoiety = SafeValueUtils.safeValue(recommendation.getDrugs().get(1));
 
-        // Если правило содержит "avoid" — отклоняем все препараты и добавляем причину отказа
+        // Если правило содержит "avoid" — отклоняем все drugы и Add причину отказа
         if ((below || above) && rule.toLowerCase().contains("avoid")) {
 
             String reasonText = String.format(
@@ -89,10 +89,10 @@ public class PltRuleApplier implements TreatmentRuleApplier {
                     patientPlt
             );
 
-            // Добавляем причину в общий список отказов (для аналитики и UI "No automatic recommendation found")
+            // Add причину в общий list отказов (для аналитики и UI "No automatic recommendation found")
             rejectionReasons.add(reasonText);
 
-            // Обнуляем все препараты, чтобы рекомендация была исключена
+            // Обнуляем все drugы, чтобы recommendation была исключена
             for (DrugRecommendation d : recommendation.getDrugs()) {
                 DrugUtils.clearDrug(d);
             }

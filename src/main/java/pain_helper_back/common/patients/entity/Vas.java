@@ -1,4 +1,4 @@
-package pain_helper_back.common.patients.entity;
+﻿package pain_helper_back.common.patients.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
  * ПОДДЕРЖКА ВНЕШНЕЙ ИНТЕГРАЦИИ:
  * - vasLevel - уровень боли (0-10)
  * - recordedAt - время записи
- * - location - локация пациента
+ * - location - локация patient
  * - notes - дополнительные заметки
  * - recordedBy - кто записал (медсестра или внешняя система)
  */
@@ -53,7 +53,7 @@ public class Vas {
     private LocalDateTime recordedAt;
 
     /**
-     * Локация пациента
+     * Локация patient
      * Примеры: "Ward A, Bed 12", "ICU-3", "ER-Room-5"
      */
     @Column(name = "location", length = 255)

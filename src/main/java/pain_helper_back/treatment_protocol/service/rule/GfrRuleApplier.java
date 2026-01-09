@@ -1,4 +1,4 @@
-package pain_helper_back.treatment_protocol.service.rule;
+﻿package pain_helper_back.treatment_protocol.service.rule;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
@@ -63,7 +63,7 @@ public class GfrRuleApplier implements TreatmentRuleApplier {
 
         log.info("=== [START] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
 
-        // Разбор строки GFR из протокола
+        // Разбор строки GFR из protocolа
         Map<String, String> rules = new LinkedHashMap<>();
         Matcher matcher = COMPLEX_PATTERN.matcher(gfrRule);
         while (matcher.find()) {

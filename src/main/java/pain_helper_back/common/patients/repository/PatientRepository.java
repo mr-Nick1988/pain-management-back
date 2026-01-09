@@ -1,4 +1,4 @@
-package pain_helper_back.common.patients.repository;
+﻿package pain_helper_back.common.patients.repository;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Основной репозиторий для работы с пациентами.
+ * Основной репозиторий для работы с patientми.
  * Через него можно добраться до всех связанных сущностей (EMR, VAS, Recommendations).
  */
 public interface PatientRepository extends JpaRepository<Patient, Long>, JpaSpecificationExecutor<Patient> {

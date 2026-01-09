@@ -1,4 +1,4 @@
-package pain_helper_back.config;
+﻿package pain_helper_back.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -7,7 +7,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 /*
  * Конфигурация для асинхронных операций и планировщика задач
  *
- * НАЗНАЧЕНИЕ:
+ * НАvalue:
  * - Включение @Async для асинхронной отправки email
  * - Включение @Scheduled для автоматической агрегации данных
  */
@@ -15,7 +15,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableAsync
 @EnableScheduling
 public class AsyncConfig {
-    // Конфигурация по умолчанию
+    // Конфигурация by default
     // Spring Boot автоматически создаст ThreadPoolTaskExecutor
 }
 

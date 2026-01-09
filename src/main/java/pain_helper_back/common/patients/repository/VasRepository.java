@@ -1,4 +1,4 @@
-package pain_helper_back.common.patients.repository;
+﻿package pain_helper_back.common.patients.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import pain_helper_back.common.patients.entity.Vas;
@@ -6,9 +6,9 @@ import pain_helper_back.common.patients.entity.Vas;
 import java.util.List;
 
 /**
- * Репозиторий для жалоб пациента (VAS – pain score).
+ * Репозиторий для жалоб patient (VAS – pain score).
  * Через Patient можно получить все жалобы,
- * но иногда нужны выборки по всем пациентам.
+ * но иногда нужны выборки по всем patientм.
  *
  * Примеры кастомных запросов:
  * - Найти все жалобы, где painLevel > 7 (сильная боль).

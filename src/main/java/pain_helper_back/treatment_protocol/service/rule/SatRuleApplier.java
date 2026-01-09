@@ -1,4 +1,4 @@
-package pain_helper_back.treatment_protocol.service.rule;
+﻿package pain_helper_back.treatment_protocol.service.rule;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
@@ -19,7 +19,7 @@ import java.util.List;
 SAT (oxygen saturation, SpO₂) — уровень насыщения крови кислородом.
 Измеряется в процентах (%).
 Нормальный диапазон: 95–100%.
-Если сатурация <93%, рекомендуется избегать большинства препаратов (avoid).
+Если сатурация <93%, рекомендуется избегать большинства drugов (avoid).
 */
 
 @Component
@@ -58,7 +58,7 @@ public class SatRuleApplier implements TreatmentRuleApplier {
             return;
         }
 
-        // 2 Извлекаем числовой лимит (например из "<93 - avoid" → 93)
+        // 2 Extract числовой лимит (например из "<93 - avoid" → 93)
         Integer limit = PatternUtils.extractFirstInt(rule);
         if (limit == null) {
             log.warn("Could not extract numeric limit from SAT rule '{}'", rule);
@@ -68,18 +68,18 @@ public class SatRuleApplier implements TreatmentRuleApplier {
 
         double limitDouble = limit.doubleValue();
 
-        // 3 Проверяем условие (если сатурация ниже порога)
+        // 3 Check условие (если сатурация ниже порога)
         if (patientSat < limitDouble) {
 
             if (recommendation.getComments() == null)
                 recommendation.setComments(new ArrayList<>());
 
-            //  Безопасно извлекаем имена препаратов
+            //  Безопасно Extract имена drugов
             String mainDrugName = SafeValueUtils.safeValue(recommendation.getDrugs().getFirst());
             String altMoiety = SafeValueUtils.safeValue(recommendation.getDrugs().get(1));
 
 
-            // Добавляем причину в общий список отказов
+            // Add причину в общий list отказов
             rejectionReasons.add(String.format(
                     "[%s] Avoid recommendation with drugs (%s and %s) triggered by SAT rule '%s' (limit=%.0f, patient=%.1f)",
                     getClass().getSimpleName(),
@@ -90,7 +90,7 @@ public class SatRuleApplier implements TreatmentRuleApplier {
                     patientSat
             ));
 
-            // Очищаем препараты
+            // Очищаем drugы
             recommendation.getDrugs().forEach(DrugUtils::clearDrug);
 
             log.warn("Avoid triggered by SAT rule: patient={}, value={}, rule={}", patient.getId(), patientSat, rule);

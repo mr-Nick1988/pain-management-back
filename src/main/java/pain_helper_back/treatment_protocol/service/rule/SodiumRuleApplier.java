@@ -1,4 +1,4 @@
-package pain_helper_back.treatment_protocol.service.rule;
+﻿package pain_helper_back.treatment_protocol.service.rule;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
@@ -19,7 +19,7 @@ Sodium (Na⁺) — концентрация натрия в крови.
 Измеряется в миллиэквивалентах на литр (mEq/L).
 Нормальный диапазон: 135–145 mEq/L.
 Если уровень Na⁺ <130 mEq/L — это гипонатриемия (пониженный натрий),
-при которой рекомендуется избегать большинства препаратов (avoid).
+при которой рекомендуется избегать большинства drugов (avoid).
 */
 
 @Component
@@ -36,14 +36,14 @@ public class SodiumRuleApplier implements TreatmentRuleApplier {
 
         log.info("=== [START] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
 
-        // 1 Пропуск, если препарат уже очищен или пуст
+        // 1 Пропуск, если drug уже очищен или пуст
         if (!DrugUtils.hasInfo(drug)) {
             log.debug("Skipping {} — drug already rejected or empty", getClass().getSimpleName());
             log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
             return;
         }
 
-        // 2 Извлекаем данные пациента и протокола
+        // 2 Extract data patient и protocolа
         Double patientSodium = patient.getEmr().getLast().getSodium(); // напр. 128.0
         String rule = tp.getSodium();                                 // напр. "<130 - avoid"
 
@@ -59,7 +59,7 @@ public class SodiumRuleApplier implements TreatmentRuleApplier {
             return;
         }
 
-        // 3 Извлекаем числовой порог из строки протокола (например "<130 - avoid" → 130)
+        // 3 Extract числовой порог из строки protocolа (например "<130 - avoid" → 130)
         Integer limit = PatternUtils.extractFirstInt(rule);
         if (limit == null) {
             log.warn("Could not extract numeric limit from sodium rule '{}'", rule);
@@ -69,13 +69,13 @@ public class SodiumRuleApplier implements TreatmentRuleApplier {
 
         double limitDouble = limit.doubleValue();
 
-        // 4 Проверяем, ниже ли уровень натрия порога
+        // 4 Check, ниже ли уровень натрия порога
         if (patientSodium < limitDouble) {
 
-            //  Безопасно извлекаем имена препаратов
+            //  Безопасно Extract имена drugов
             String mainDrugName = SafeValueUtils.safeValue(recommendation.getDrugs().getFirst());
             String altMoiety = SafeValueUtils.safeValue(recommendation.getDrugs().get(1));
-            // Добавляем строку причину отклонения для отклонённой рекомендации (recommendationFailed)
+            // Add строку причину отклонения для отклонённой recommendation (recommendationFailed)
             rejectionReasons.add(String.format(
                     "[%s] Avoid recommendation with drugs (%s and %s) triggered by sodium rule '%s' (limit=%.0f mEq/L, patient=%.1f mEq/L)",
                     getClass().getSimpleName(),
@@ -86,7 +86,7 @@ public class SodiumRuleApplier implements TreatmentRuleApplier {
                     patientSodium
             ));
 
-            // Очищаем препараты
+            // Очищаем drugы
             recommendation.getDrugs().forEach(DrugUtils::clearDrug);
 
             log.warn("Avoid triggered by sodium rule: patient={}, value={}, rule={}",

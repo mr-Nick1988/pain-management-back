@@ -1,4 +1,4 @@
-package pain_helper_back.treatment_protocol.service.rule;
+﻿package pain_helper_back.treatment_protocol.service.rule;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
@@ -17,10 +17,10 @@ import java.util.List;
 import java.util.stream.Stream;
 
 /*
- * AVOID if sensitivity — правило исключения препаратов при индивидуальной чувствительности (аллергии).
- * Пациент может иметь список чувствительных веществ (например, ["PARACETAMOL", "TRAMADOL"]).
+ * AVOID if sensitivity — правило исключения drugов при индивидуальной чувствительности (аллергии).
+ * patient может иметь list чувствительных веществ (например, ["PARACETAMOL", "TRAMADOL"]).
  * Если в Treatment Protocol указано "PARACETAMOL OR TRAMADOL",
- * и одно из веществ совпадает с пациентскими, препараты из рекомендации исключаются (avoid).
+ * и одно из веществ совпадает с patientскими, drugы из recommendation исключаются (avoid).
  */
 
 @Component
@@ -37,19 +37,19 @@ public class SensitivityRuleApplier implements TreatmentRuleApplier {
 
         log.info("=== [START] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
 
-        //  Пропускаем, если препарат уже отклонён или пустой
+        //  Пропускаем, если drug уже отклонён или пустой
         if (!DrugUtils.hasInfo(drug)) {
             log.debug("Skipping {} — drug already rejected or empty", getClass().getSimpleName());
             log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
             return;
         }
 
-        // Извлекаем данные пациента и протокола
+        // Extract data patient и protocolа
         Emr emr = patient.getEmr().getLast();
         List<String> sensitivities = emr.getSensitivities();
         String rule = tp.getAvoidIfSensitivity();
 
-        //  Проверяем входные данные (ранний выход)
+        //  Check входные data (ранний выход)
         if (rule == null || rule.trim().isEmpty() || rule.equalsIgnoreCase("NA")
                 || sensitivities == null || sensitivities.isEmpty()) {
             log.debug("No sensitivity data or rule NA for {}", getClass().getSimpleName());
@@ -57,10 +57,10 @@ public class SensitivityRuleApplier implements TreatmentRuleApplier {
             return;
         }
 
-        // Нормализуем данные: приводим всё к верхнему регистру,
+        // Нормализуем data: приводим всё к верхнему регистру,
         // игнорирует регистр, разделяет по любым типам разделителей: OR, запятая, слеш, точка с запятой, вертикальная черта, не боится лишних пробелов.
         List<String> ruleSensitivities = Stream.of(
-                        rule.split("(?i)(?:(?<=\\s)OR(?=\\s)|AND|[,;/|\\\\]+)") // OR — только если окружён пробелами
+                        rule.split("(?i)(?:(?<=\\s)OR(?=\\s)|AND|[,;/|\\\\]+)") // OR — only if окружён пробелами
                 )
                 .map(SanitizeUtils::normalize)
                 .filter(s -> !s.isEmpty())
@@ -71,15 +71,15 @@ public class SensitivityRuleApplier implements TreatmentRuleApplier {
                 .map(SanitizeUtils::normalize)
                 .filter(s -> !s.isEmpty())
                 .toList();
-        //  Проверяем совпадения между протоколом и данными пациента
+        //  Check совпадения между protocolом и данными patient
         boolean hasMatch = ruleSensitivities.stream().anyMatch(normalizedPatientSens::contains);
 
         if (hasMatch) {
-            //  Безопасно извлекаем имена препаратов (избегаем NPE)
+            //  Безопасно Extract имена drugов (избегаем NPE)
             String mainDrugName = SafeValueUtils.safeValue(recommendation.getDrugs().getFirst());
             String altMoiety = SafeValueUtils.safeValue(recommendation.getDrugs().get(1));
 
-            //  Формируем причину исключения рекомендации (system reason)
+            //  Format причину исключения recommendation (system reason)
             String reasonText = String.format(
                     "[%s] Avoid recommendation with drugs (%s and %s) triggered by sensitivity match. Rule=%s, Patient=%s",
                     getClass().getSimpleName(),
@@ -91,7 +91,7 @@ public class SensitivityRuleApplier implements TreatmentRuleApplier {
 
             rejectionReasons.add(reasonText);
 
-            // Полностью очищаем препараты (avoid)
+            // Полностью очищаем drugы (avoid)
             recommendation.getDrugs().forEach(DrugUtils::clearDrug);
 
             log.warn("Avoid triggered by sensitivity rule: patient={}, sensitivities={}, rule={}",

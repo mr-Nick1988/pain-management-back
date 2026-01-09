@@ -1,4 +1,4 @@
-package pain_helper_back.treatment_protocol.service;
+﻿package pain_helper_back.treatment_protocol.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,11 +17,11 @@ import java.util.List;
 
 
 /**
- * Главный оркестратор применения протокола лечения (TreatmentProtocolService):
- * 1. Фильтрует протоколы по уровню боли.
- * 2. Для каждого создаёт Recommendation с MAIN и ALTERNATIVE препаратами.
+ * Главный оркестратор применения protocolа лечения (TreatmentProtocolService):
+ * 1. Фильтрует protocolы по уровню боли.
+ * 2. Для каждого создаёт Recommendation с MAIN и ALTERNATIVE drugами.
  * 3. Последовательно применяет все TreatmentRuleApplier (9 фильтров).
- * 4. Если хотя бы один препарат остался активным, добавляет рекомендацию в результат.
+ * 4. Если хотя бы один drug остался активным, добавляет рекомендацию в результат.
  * 5. Добавляет противопоказания (contraindications) в комментарии.
  */
 
@@ -60,7 +60,7 @@ public class TreatmentProtocolService {
 
 
         List<Recommendation> recommendations = new ArrayList<>();
-        Recommendation recommendationFailed = new Recommendation(); // на случай есл все рекомендации отвергнуты
+        Recommendation recommendationFailed = new Recommendation(); // на случай есл все recommendation отвергнуты
         List<String> rejectionReasons = new ArrayList<>();  // причины отказов этих рекомендаций
 
         for (TreatmentProtocol tp : painRageFilter) {
@@ -76,21 +76,21 @@ public class TreatmentProtocolService {
             altDrug.setRecommendation(recommendation);
             recommendation.getDrugs().add(mainDrug);
             recommendation.getDrugs().add(altDrug);
-            // Заполняем общие поля (route, полевые служебные данные) можно здесь или в апликаторах
+            // Заполняем общие поля (route, полевые служебные data) можно здесь или в апликаторах
             mainDrug.setRoute(DrugRoute.valueOf(tp.getRoute()));
             altDrug.setRoute(DrugRoute.valueOf(tp.getRoute()));
             for (TreatmentRuleApplier ruleApplier : ruleAppliers) {
-                // Динамика боли (VAS). Анализирует последние жалобы пациента (ухудшения или инверсия).
-                // Применяем возрастные правила(<=18 or >75)
-                // Contraindications — это список состояний (обычно в виде ICD-10 кодов), участвуют в фильтрации и исключают рекомендацию при наличии заболевания у пациента.
-                // Применяем корректировку на чувствительность к препаратам (Sensitivity)
-                // Применяем корректировку по тромбоцитам (PLT)
-                // Применяем корректировку по лейкоцитам (WBC)
-                // Применяем корректировку по сатурации (SAT)
-                // Применяем корректировку по натрию (Sodium)
-                // Применяем печёночную корректировку (ChildPugh)
-                // Применяем почечную корректировку (GFR)
-                // Применяем весовые правила (только если вес < 50 — по протоколу)
+                // Динамика боли (VAS). Анализирует последние жалобы patient (ухудшения или инверсия).
+                // Apply возрастные правила(<=18 or >75)
+                // Contraindications — это list состояний (обычно в виде ICD-10 кодов), участвуют в фильтрации и исключают рекомендацию при наличии заболевания у patient.
+                // Apply корректировку на чувствительность к drugам (Sensitivity)
+                // Apply корректировку по тромбоцитам (PLT)
+                // Apply корректировку по лейкоцитам (WBC)
+                // Apply корректировку по сатурации (SAT)
+                // Apply корректировку по натрию (Sodium)
+                // Apply печёночную корректировку (ChildPugh)
+                // Apply почечную корректировку (GFR)
+                // Apply весовые правила (only if вес < 50 — по protocolу)
                 try {
                     ruleApplier.apply(mainDrug, recommendation, tp, patient, rejectionReasons);
                     ruleApplier.apply(altDrug, recommendation, tp, patient, rejectionReasons);
@@ -101,11 +101,11 @@ public class TreatmentProtocolService {
                 }
 
             }
-            //  применяем финальные корректировки по дозам и интервалам к каждому препарату, если таких накопилось несколько
+            //  Apply финальные корректировки по дозам и интервалам к каждому drugу, если таких накопилось несколько
             for (DrugRecommendation drug : recommendation.getDrugs()) {
                 correctionAggregator.applyFinalAdjustments(drug);
             }
-            // очищаем агрегатор, чтобы не перетянул данные на следующего пациента
+            // очищаем агрегатор, чтобы не перетянул data на следующего patient
             correctionAggregator.clear();
             boolean allCleared = recommendation.getDrugs().stream()
                     .allMatch(dr ->
@@ -115,13 +115,13 @@ public class TreatmentProtocolService {
                     );
 
             if (allCleared) {
-                // все препараты очищены — отклоняем рекомендацию
+                // все drugы очищены — отклоняем рекомендацию
                 recommendationFailed.setGenerationFailed(true);
                 recommendationFailed.setStatus(RecommendationStatus.ESCALATED);
                 recommendationFailed.getRejectionReasonsSummary().addAll(rejectionReasons);
                 log.warn(" All drugs cleared for protocol id={}, reasons={}", tp.getId(), rejectionReasons);
             } else {
-                // есть хотя бы один живой препарат — сохраняем
+                // есть хотя бы один живой drug — Save
                 recommendation.setGenerationFailed(false);
                 recommendations.add(recommendation);
                 log.info(" Recommendation kept: protocol id={} (some drugs active)", tp.getId());
@@ -133,7 +133,7 @@ public class TreatmentProtocolService {
                     [SUMMARY] Patient {} — all recommendations rejected.
                     Reasons: {}
                     """, patient.getMrn(), rejectionReasons);
-            // Удаляем дубликаты, т.к. PainTrendRuleApplier добавляет одну и ту же причину для всех протоколов
+            // Delete дубликаты, т.к. PainTrendRuleApplier добавляет одну и ту же причину для всех protocolов
             recommendationFailed.setRejectionReasonsSummary(recommendationFailed.getRejectionReasonsSummary().stream().distinct().toList());
             return recommendationFailed;
         } else {
@@ -146,7 +146,7 @@ public class TreatmentProtocolService {
 
     private int[] parsePainLevel(String painLevel) {
         if (painLevel == null) return new int[]{0, 0};
-        painLevel = painLevel.replaceAll("[^0-9\\-]", "").trim(); // удаляем мусор
+        painLevel = painLevel.replaceAll("[^0-9\\-]", "").trim(); // Delete мусор
         if (painLevel.isEmpty()) return new int[]{0, 0};
 
         String[] parts = painLevel.split("-");
@@ -180,7 +180,7 @@ public class TreatmentProtocolService {
 //                }).toList();
 //        Integer patientAge = patient.getAge();
 //        Double patientWeight = patient.getWeight();
-//        List<Recommendation> recommendations = painRageFilter.stream()    // создали после фильтрации строк таблицы по боли сразу объекты рекомендации и далее будем инициализировать поля
+//        List<Recommendation> recommendations = painRageFilter.stream()    // создали после фильтрации строк таблицы по боли сразу объекты recommendation и далее будем инициализировать поля
 //                .map(tp -> {
 //                    Recommendation recommendation = new Recommendation();
 //                    recommendation.setStatus("PENDING");

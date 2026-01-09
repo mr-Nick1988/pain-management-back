@@ -1,4 +1,4 @@
-package pain_helper_back.treatment_protocol.service;
+﻿package pain_helper_back.treatment_protocol.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -19,21 +19,21 @@ public class CorrectionAggregator {
     private final Map<String, List<Integer>> doseCorrections = new HashMap<>();
     private final Map<String, List<Integer>> intervalCorrections = new HashMap<>();
 
-    /* Добавляем корректировку дозировки от любого фильтра */
+    /* Add корректировку дозировки от любого фильтра */
     public void addDoseCorrection(DrugRecommendation drug, int dose) {
         String key = drug.getActiveMoiety();
         doseCorrections.computeIfAbsent(key, k -> new ArrayList<>()).add(dose);
         log.debug("Added dose correction for drug {} -> {}", key, dose);
     }
 
-    /* Добавляем корректировку интервала от любого фильтра */
+    /* Add корректировку интервала от любого фильтра */
     public void addIntervalCorrection(DrugRecommendation drug, int interval) {
         String key = drug.getActiveMoiety();
         intervalCorrections.computeIfAbsent(key, k -> new ArrayList<>()).add(interval);
         log.debug("Added interval correction for drug {} -> {}", key, interval);
     }
 
-    /* Применяем итоговые корректировки: минимальная доза, максимальный интервал */
+    /* Apply итоговые корректировки: минимальная доза, максимальный интервал */
     public void applyFinalAdjustments(DrugRecommendation drug) {
         if (drug.getActiveMoiety() == null || drug.getActiveMoiety().isBlank()) {
             log.debug("Skipping final adjustments for cleared drug (no active moiety)");
@@ -57,7 +57,7 @@ public class CorrectionAggregator {
         }
     }
 
-    /* Очищаем агрегатор после завершения генерации рекомендации */
+    /* Очищаем агрегатор после завершения генерации recommendation */
     public void clear() {
         doseCorrections.clear();
         intervalCorrections.clear();

@@ -1,4 +1,4 @@
-package pain_helper_back.common.patients.entity;
+﻿package pain_helper_back.common.patients.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import pain_helper_back.enums.PatientsGenders;
@@ -55,7 +55,7 @@ public class Patient {
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
-        // Устанавливаем createdBy только если не задан явно
+        // Set createdBy only if не задан явно
         if (this.createdBy == null) {
             this.createdBy = "system";
         }
@@ -63,7 +63,7 @@ public class Patient {
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
-        // Устанавливаем updatedBy только если не задан явно
+        // Set updatedBy only if не задан явно
         if (this.updatedBy == null) {
             this.updatedBy = "system";
         }

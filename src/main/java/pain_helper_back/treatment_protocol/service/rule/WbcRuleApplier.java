@@ -1,4 +1,4 @@
-package pain_helper_back.treatment_protocol.service.rule;
+﻿package pain_helper_back.treatment_protocol.service.rule;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
  * WBC (White Blood Cells) — лейкоциты, белые кровяные клетки.
  * Измеряются в 10³ клеток на микролитр крови (10³/µL).
  * Норма у взрослых: 4.0 – 10.0 ×10³/µL.
- * Если WBC < 4.0 или ≥ 10.0 — риск инфекций / воспалений, препараты следует избегать (avoid).
+ * Если WBC < 4.0 или ≥ 10.0 — риск инфекций / воспалений, drugы следует избегать (avoid).
  */
 
 @Component
@@ -39,14 +39,14 @@ public class WbcRuleApplier implements TreatmentRuleApplier {
 
         log.info("=== [START] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
 
-        // 1 Пропускаем, если препарат уже отклонён или пустой
+        // 1 Пропускаем, если drug уже отклонён или пустой
         if (!DrugUtils.hasInfo(drug)) {
             log.debug("Skipping {} — drug already rejected or empty", getClass().getSimpleName());
             log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
             return;
         }
 
-        // 2 Извлекаем данные
+        // 2 Extract data
         String rule = tp.getWbc(); // например, "<4.0 - avoid"
         if (rule == null || rule.trim().isEmpty() || rule.equalsIgnoreCase("NA")) {
             log.debug("WBC rule empty or NA for protocol {}", tp.getId());
@@ -61,7 +61,7 @@ public class WbcRuleApplier implements TreatmentRuleApplier {
             return;
         }
 
-        // 3 Извлекаем числовой порог и оператор из правила
+        // 3 Extract числовой порог и оператор из правила
         Matcher m = WBC_PATTERN.matcher(rule);
         if (!m.find()) {
             log.warn("Could not extract numeric limit from WBC rule '{}'", rule);
@@ -75,14 +75,14 @@ public class WbcRuleApplier implements TreatmentRuleApplier {
         boolean below = operator.contains("<") && patientWbc < limit;
         boolean above = operator.contains(">") && patientWbc > limit;
 
-        // 4 Безопасно извлекаем имена препаратов
+        // 4 Безопасно Extract имена drugов
         String mainDrugName = SafeValueUtils.safeValue(recommendation.getDrugs().getFirst());
         String altMoiety = SafeValueUtils.safeValue(recommendation.getDrugs().get(1));
 
         log.warn("[WBC CHECK] value={} | belowLimit={} | aboveLimit={} | triggered={}",
                 patientWbc, below, above, (below || above));
 
-        // 5 Проверяем условие avoid и отклоняем
+        // 5 Check условие avoid и отклоняем
         if ((below || above) && rule.toLowerCase().contains("avoid")) {
 
             String reasonText = String.format(
@@ -98,7 +98,7 @@ public class WbcRuleApplier implements TreatmentRuleApplier {
 
             rejectionReasons.add(reasonText);
 
-            // Обнуляем препараты, чтобы рекомендация исключалась
+            // Обнуляем drugы, чтобы recommendation исключалась
             for (DrugRecommendation d : recommendation.getDrugs()) {
                 DrugUtils.clearDrug(d);
             }

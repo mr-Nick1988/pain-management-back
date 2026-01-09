@@ -1,4 +1,4 @@
-package pain_helper_back.anesthesiologist.controller;
+﻿package pain_helper_back.anesthesiologist.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -58,7 +58,7 @@ public class AnesthesiologistController {
     }
 
     //// Позволяет анестезиологу откорректировать существующую рекомендацию (например, дозу или интервал)
-    //// без полного её отклонения. После апдейта рекомендация снова становится APPROVED.
+    //// без полного её отклонения. После апдейта recommendation снова становится APPROVED.
     @PutMapping("/recommendations/{id}/update")
     public RecommendationDTO updateRecommendation(
             @PathVariable Long id,
@@ -86,7 +86,7 @@ public class AnesthesiologistController {
         return anesthesiologistService.getRecommendationsWithVasByPatientMrn(mrn);
     }
 
-    //TODO (A) Fallback #1 — восстановление контекста рекомендации
+    //TODO (A) Fallback #1 — восстановление контекста recommendation
 
 
 }

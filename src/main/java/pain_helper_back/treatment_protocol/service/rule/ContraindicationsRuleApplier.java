@@ -1,4 +1,4 @@
-package pain_helper_back.treatment_protocol.service.rule;
+﻿package pain_helper_back.treatment_protocol.service.rule;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
@@ -40,7 +40,7 @@ public class ContraindicationsRuleApplier implements TreatmentRuleApplier {
         log.info("=== [START] {} for Patient ID={} ===",
                 getClass().getSimpleName(), patient.getId());
 
-        //  Проверяем: есть ли смысл обрабатывать
+        //  Check: есть ли смысл обрабатывать
         if (!DrugUtils.hasInfo(drug)
                 || patient.getEmr().isEmpty()
                 || patient.getEmr().getLast().getDiagnoses().isEmpty()
@@ -52,23 +52,23 @@ public class ContraindicationsRuleApplier implements TreatmentRuleApplier {
             return;
         }
 
-        // Получаем диагнозы пациента и очищаем строку противопоказаний
+        // Get diagnosisы patient и очищаем строку противопоказаний
         Set<Diagnosis> patientDiagnoses = patient.getEmr().getLast().getDiagnoses();
         String raw = tp.getContraindications();
         String contraindications = SanitizeUtils.clean(raw);
 
-        //  Извлекаем ICD-коды из строки
+        //  Extract ICD-коды из строки
         Set<String> contraindicationsSet = extractICDCodes(contraindications);
 
         log.info("Patient ICDs: {}", patientDiagnoses.stream().map(Diagnosis::getIcdCode).toList());
         log.info("Contra raw: {}", raw);
         log.info("Contra parsed: {}", contraindicationsSet);
 
-        //  Безопасно извлекаем имена препаратов (избегаем NPE)
+        //  Безопасно Extract имена drugов (избегаем NPE)
         String mainDrugName = SafeValueUtils.safeValue(recommendation.getDrugs().getFirst());
         String altMoiety = SafeValueUtils.safeValue(recommendation.getDrugs().get(1));
 
-        //  Проверяем каждый диагноз пациента
+        //  Check каждый diagnosis patient
         for (Diagnosis diagnosis : patientDiagnoses) {
             String code = normalizeCode(diagnosis.getIcdCode());
             if (code.isEmpty()) continue;
@@ -78,7 +78,7 @@ public class ContraindicationsRuleApplier implements TreatmentRuleApplier {
                     .anyMatch(contra -> contra.startsWith(code) || code.startsWith(contra));
 
             if (matchFound) {
-                // Добавляем только причину отказа (comments не трогаем, т.к. рекомендация будет исключена)
+                // Add только причину отказа (comments не трогаем, т.к. recommendation будет исключена)
                 String reasonText = String.format(
                         "[%s] Avoid recommendation with drugs (%s and %s) triggered by contraindications (ICD match): %s (%s)",
                         getClass().getSimpleName(),
@@ -90,7 +90,7 @@ public class ContraindicationsRuleApplier implements TreatmentRuleApplier {
 
                 rejectionReasons.add(reasonText);
 
-                //  Обнуляем все препараты — рекомендация исключается полностью
+                //  Обнуляем все drugы — recommendation исключается полностью
                 recommendation.getDrugs().forEach(DrugUtils::clearDrug);
 
                 log.warn("Avoid triggered by contraindications: patient={}, code={}, desc={}",
@@ -103,7 +103,7 @@ public class ContraindicationsRuleApplier implements TreatmentRuleApplier {
                 getClass().getSimpleName(), patient.getId());
     }
 
-    /*Нормализует код диагноза (удаляет пробелы, делает верхний регистр)*/
+    /*Нормализует код diagnosisа (удаляет пробелы, делает верхний регистр)*/
     private String normalizeCode(String code) {
         return code == null ? "" : code.trim().replace("\u00A0", "").toUpperCase();
     }

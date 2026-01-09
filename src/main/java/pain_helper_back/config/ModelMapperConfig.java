@@ -1,4 +1,4 @@
-package pain_helper_back.config;
+﻿package pain_helper_back.config;
 
 import org.modelmapper.ModelMapper;
 import org.modelmapper.convention.MatchingStrategies;
@@ -36,7 +36,7 @@ public class ModelMapperConfig {
                 .addMappings(m -> m.map(Patient::getCreatedBy, PatientDTO::setCreatedBy));
 
         //  Кастомная карта для DiagnosisDTO → Diagnosis
-        // Это ключевой маппинг, без него ModelMapper не мапил бы коллекцию диагнозов внутри EMR
+        // Это ключевой маппинг, без него ModelMapper не мапил бы коллекцию diagnosisов внутри EMR
         mapper.createTypeMap(DiagnosisDTO.class, Diagnosis.class)
                 .addMappings(m -> {
                     // Маппинг кода болезни (ICD)
@@ -55,7 +55,7 @@ public class ModelMapperConfig {
         // После подключения Spring Security можно добавить маппинг для аудита:
         // например, брать логин текущего пользователя и писать его в createdBy.
 
-        // Возвращаем готовый, полностью настроенный экземпляр
+        // Return готовый, полностью настроенный экземпляр
         return mapper;
     }
 }

@@ -1,4 +1,4 @@
-package pain_helper_back.treatment_protocol.icd_diagnosis.icd_csv_loader;
+﻿package pain_helper_back.treatment_protocol.icd_diagnosis.icd_csv_loader;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,11 +57,11 @@ public class IcdDictionaryLoader implements CommandLineRunner {
                 String desc = SanitizeUtils.clean(parts[1]);
                 if (code.isEmpty() || desc.isEmpty()) continue; // пропускаем пустые значения
 
-                // создаём объект ICD и добавляем в батч
+                // создаём объект ICD и Add в батч
                 batch.add(new IcdDictionary(code.toUpperCase(), desc));
                 total++;
 
-                // каждые 1000 строк сохраняем в БД и очищаем буфер
+                // каждые 1000 строк Save в БД и очищаем буфер
                 if (batch.size() >= 1000) {
                     repo.saveAll(batch);
                     batch.clear();
@@ -69,7 +69,7 @@ public class IcdDictionaryLoader implements CommandLineRunner {
                 }
             }
 
-            // сохраняем остаток, если он есть
+            // Save остаток, если он есть
             if (!batch.isEmpty()) repo.saveAll(batch);
 
             log.info(" ICD dictionary loaded successfully, total {}", total);

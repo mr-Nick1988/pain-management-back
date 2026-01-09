@@ -1,4 +1,4 @@
-package pain_helper_back.common.patients.dto;
+﻿package pain_helper_back.common.patients.dto;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -15,17 +15,17 @@ public class RecommendationDTO {
 
     @NotNull(message = "Regimen hierarchy is required")
     private int regimenHierarchy; // первая линия лекарства, вторая, если не помогло и т.д.
-    private RecommendationStatus status;     // Статус рекомендации: pending, approved, rejected
+    private RecommendationStatus status;     // Статус recommendation: pending, approved, rejected
     private String rejectedReason;
 
-    private List<DrugRecommendationDTO> drugs; // Здесь будут 1-е, 2-е и т.д. препараты
+    private List<DrugRecommendationDTO> drugs; // Здесь будут 1-е, 2-е и т.д. drugы
     private List<String> contraindications;    // противопоказания
 
 
     private List<String> comments;      // свободные комментарии
 
-    private Boolean generationFailed;   // если ни одна рекомендация не подошла
-    List<String> rejectionReasonsSummary;     // список всех причин отказа (system)
+    private Boolean generationFailed;   // если ни одна recommendation не подошла
+    List<String> rejectionReasonsSummary;     // list всех причин отказа (system)
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

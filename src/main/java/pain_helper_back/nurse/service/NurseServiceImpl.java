@@ -324,7 +324,7 @@ public class NurseServiceImpl implements NurseService {
         Recommendation recommendation = treatmentProtocolService.generateRecommendation(vas, patient);
         vas.setResolved(true);
 
-        // Проверка на существование рекомендации со статусом PENDING
+        // Проверка на существование recommendation со статусом PENDING
         List<Recommendation> recommendations = patient.getRecommendations();
         if (!recommendations.isEmpty()) {
             Recommendation last = recommendations.getLast();
@@ -342,7 +342,7 @@ public class NurseServiceImpl implements NurseService {
         List<String> diagnosisCodes = emr.getDiagnoses() != null ?
                 emr.getDiagnoses().stream().map(Diagnosis::getIcdCode).toList() : new ArrayList<>();
 
-        // Извлекаем названия препаратов и дозировки из списка drugs
+        // Extract названия drugов и дозировки из списка drugs
         List<String> drugNames = recommendation.getDrugs() != null ?
                 recommendation.getDrugs().stream().map(DrugRecommendation::getDrugName).toList() : new ArrayList<>();
         List<String> dosages = recommendation.getDrugs() != null ?
@@ -351,7 +351,7 @@ public class NurseServiceImpl implements NurseService {
                 recommendation.getDrugs().getFirst().getRoute() != null ?
                 recommendation.getDrugs().getFirst().getRoute().name() : "UNKNOWN";
 
-        // Публикация события создания рекомендации
+        // Публикация события создания recommendation
         eventPublisher.publishEvent(new RecommendationCreatedEvent(
                 this,
                 recommendation.getId(),
