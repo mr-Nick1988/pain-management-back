@@ -3,7 +3,6 @@ package pain_helper_back.common.patients.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import pain_helper_back.enums.RecommendationStatus;
-import pain_helper_back.pain_escalation_tracking.entity.DoseAdministration;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;

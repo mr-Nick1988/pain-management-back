@@ -19,7 +19,7 @@ import pain_helper_back.common.patients.repository.EmrRepository;
 import pain_helper_back.common.patients.repository.PatientRepository;
 import pain_helper_back.common.patients.repository.RecommendationRepository;
 import pain_helper_back.enums.RecommendationStatus;
-import pain_helper_back.pain_escalation_tracking.service.PainEscalationService;
+
 import pain_helper_back.treatment_protocol.service.TreatmentProtocolService;
 
 import java.time.LocalDate;
@@ -43,7 +43,7 @@ public class NurseServiceImpl implements NurseService {
     private final ModelMapper modelMapper;
     private final ApplicationEventPublisher eventPublisher;
     private final RecommendationRepository recommendationRepository;
-    private final PainEscalationService painEscalationService;
+
 
 
     private Patient findPatientOrThrow(String mrn) {
@@ -257,8 +257,7 @@ public class NurseServiceImpl implements NurseService {
                 null  //deviceId - не применимо для внутреннего ввода
         ));
 
-        //!! АВТОМАТИЧЕСКАЯ ПРОВЕРКА ЭСКАЛАЦИИ БОЛИ (Блок pain_escalation_tracking)
-        painEscalationService.handleNewVasRecord(mrn, vas.getPainLevel());
+        // REMOVED: Pain escalation now handled by Pain Escalation microservice via Kafka
         return modelMapper.map(vas, VasDTO.class);
     }
 
