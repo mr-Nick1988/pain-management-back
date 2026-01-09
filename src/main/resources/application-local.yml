@@ -1,19 +1,38 @@
+# ============================================================================
+# Local Development Profile - application-local.yml
+# ============================================================================
+# Этот профиль используется для локальной разработки:
+# - Запуск: mvn spring-boot:run -Dspring-boot.run.profiles=local
+# - Все зависимые сервисы (Kafka, PostgreSQL) должны быть запущены локально
+# - См. docker-compose.dev.yml для быстрого старта инфраструктуры
+# ============================================================================
+
 server:
-  port: 8080
+  port: 8080  # Монолит - главный сервис
 
 spring:
   application:
     name: pain_helper_back
+
+  # ============================================================================
+  # Local PostgreSQL Database
+  # ============================================================================
+  # Запустить: docker-compose -f docker-compose.dev.yml up postgres
+  # Или использовать локальную установку PostgreSQL
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/pain_management_db}
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:postgres}
+
+  # ============================================================================
+  # JPA/Hibernate - Development Mode
+  # ============================================================================
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: false
+      ddl-auto: update  # Автоматическое обновление схемы БД
+    show-sql: false     # Включить для отладки SQL запросов
     properties:
       hibernate:
-        format_sql: true
+        format_sql: true   # Красивый вывод SQL в консоль
         type:
-          preferred_enum_type: string
+          preferred_enum_type: string  # Enum сохраняются как VARCHAR

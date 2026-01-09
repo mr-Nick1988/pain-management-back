@@ -1,23 +1,57 @@
+# ============================================================================
+# Pain Management Monolith - Main Configuration
+# ============================================================================
+# Монолит управляет основной бизнес-логикой:
+# - Управление пациентами (admin, doctor, nurse, anesthesiologist)
+# - Протоколы лечения боли
+# - VAS записи и EMR данные
+# - Интеграция с микросервисами через REST API и Kafka
+# ============================================================================
+
 spring:
   application:
     name: pain_helper_back
+
+  # ============================================================================
+  # DATABASE: PostgreSQL
+  # ============================================================================
+  # Основная БД для всех бизнес-сущностей:
+  # - patients, emr, vas, recommendations
+  # - treatment_protocols, escalations
+  # - user roles and permissions
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/pain_management_db}
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
+
+  # ============================================================================
+  # JPA/Hibernate Configuration
+  # ============================================================================
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: false
+      ddl-auto: update  # Режим: update (dev), validate (prod)
+    show-sql: false     # SQL логи (включить для отладки)
     properties:
       hibernate:
-        format_sql: true
+        format_sql: true  # Форматирование SQL в логах
         type:
-          preferred_enum_type: string
+          preferred_enum_type: string  # Enum как VARCHAR вместо ORDINAL
+
+  # ============================================================================
+  # Liquibase - Database Migrations
+  # ============================================================================
+  # Миграции применяются автоматически при старте
+  # Changelog: src/main/resources/db/changelog/
   liquibase:
     enabled: true
     change-log: classpath:db/changelog/db.changelog-master.xml
+
+  # ============================================================================
+  # Email Configuration (для уведомлений)
+  # ============================================================================
+  # В production используется Notification Service (порт 8087)
+  # Эта конфигурация для fallback/legacy функционала
   mail:
     host: ${MAIL_HOST:localhost}
     port: ${MAIL_PORT:25}
@@ -28,51 +62,87 @@ spring:
           auth: false
           starttls:
             enable: false
+
+  # ============================================================================
+  # Apache Kafka - Event Streaming
+  # ============================================================================
+  # Монолит публикует события и подписывается на топики микросервисов
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    
+    # Consumer configuration (подписка на события микросервисов)
     consumer:
       group-id: pain-monolith-emr-group
-      auto-offset-reset: earliest
+      auto-offset-reset: earliest  # Читать с начала при первом подключении
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.trusted.packages: "*"
+        spring.json.trusted.packages: "*"  # Доверять всем пакетам для десериализации
 
-# JWT конфигурация (должен совпадать с Authentication Service)
+# ============================================================================
+# JWT Configuration
+# ============================================================================
+# JWT токены создаются и валидируются Authentication Service (порт 8082)
+# Монолит проверяет подпись токенов с тем же секретом
+# ВАЖНО: В production использовать переменную окружения JWT_SECRET!
 jwt:
   secret: ${JWT_SECRET:pain-management-secret-key-change-in-production-min-256-bits-required-for-hs256-algorithm-security}
 
-# Authentication Service интеграция
+# ============================================================================
+# Microservices Integration - Authentication Service
+# ============================================================================
+# Сервис аутентификации и авторизации
+# Порт: 8082
+# Endpoints: /api/auth/login, /api/auth/validate
 auth:
   service:
     url: ${AUTH_SERVICE_URL:http://localhost:8082}
-    timeout: ${AUTH_SERVICE_TIMEOUT:5000}
+    timeout: ${AUTH_SERVICE_TIMEOUT:5000}  # Таймаут HTTP запросов (мс)
 
-# Reporting Service интеграция
+# ============================================================================
+# Microservices Integration - Reporting Service
+# ============================================================================
+# Сервис генерации отчетов и аналитики
+# Порт: 8091
+# Endpoints: /api/reports/
 reporting:
   service:
     url: ${REPORTING_SERVICE_URL:http://localhost:8091}
-    timeout: ${REPORTING_SERVICE_TIMEOUT:10000}
+    timeout: ${REPORTING_SERVICE_TIMEOUT:10000}  # Таймаут для тяжелых отчетов
 
-# Kafka topics configuration
+# ============================================================================
+# Kafka Topics Configuration
+# ============================================================================
+# Топики для взаимодействия с микросервисами
 kafka:
   topic:
+    # Команды для Reporting Service
     reporting-commands: ${KAFKA_TOPIC_REPORTING_COMMANDS:reporting-commands}
+    
+    # События для бизнес-аналитики
+    # Публикует: patient.registered, vas.recorded, emr.created, recommendation.created
     analytics-events: ${KAFKA_TOPIC_ANALYTICS_EVENTS:analytics-events}
 
-# Resilience4j Circuit Breaker для микросервисов
+# ============================================================================
+# Resilience4j - Circuit Breaker Pattern
+# ============================================================================
+# Защита от каскадных падений при недоступности микросервисов
+# Паттерны: Circuit Breaker + Retry + Timeout
 resilience4j:
   circuitbreaker:
     instances:
+      # Circuit Breaker для Authentication Service
       authService:
         registerHealthIndicator: true
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
+        slidingWindowSize: 10              # Окно последних 10 вызовов
+        minimumNumberOfCalls: 5            # Минимум вызовов для расчета
         permittedNumberOfCallsInHalfOpenState: 3
         automaticTransitionFromOpenToHalfOpenEnabled: true
-        waitDurationInOpenState: 10s
-        failureRateThreshold: 50
+        waitDurationInOpenState: 10s       # Ожидание перед переходом в half-open
+        failureRateThreshold: 50           # 50% ошибок = OPEN
         eventConsumerBufferSize: 10
+      
+      # Circuit Breaker для Reporting Service
       reportingService:
         registerHealthIndicator: true
         slidingWindowSize: 10
