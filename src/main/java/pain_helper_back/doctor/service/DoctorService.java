@@ -23,7 +23,7 @@ import java.util.List;
         PatientDTO createPatient(PatientDTO patientDto);
 
         /*
-         * Получение patient по MRN (Medical Record Number)
+         * retrieval patient по MRN (Medical Record Number)
          * @param mrn уникальный number медицинской карты
          * @return data patient
          * @throws NotFoundException if patient not found
@@ -31,7 +31,7 @@ import java.util.List;
         PatientDTO getPatientByMrn(String mrn);
 
         /*
-         * Получение patient по email
+         * retrieval patient по email
          * @param email email patient
          * @return data patient
          * @throws NotFoundException if patient not found
@@ -39,7 +39,7 @@ import java.util.List;
         PatientDTO getPatientByEmail(String email);
 
         /*
-         * Получение patient по numberу телефона
+         * retrieval patient по numberу телефона
          * @param phoneNumber number телефона patient
          * @return data patient
          * @throws NotFoundException if patient not found
@@ -47,7 +47,7 @@ import java.util.List;
         PatientDTO getPatientByPhoneNumber(String phoneNumber);
 
         /*
-         * Поиск patientов по различным критериям
+         * search patientов по различным критериям
          * all Parameters опциональны, can комбинировать
          * @param firstName name (частичное совпадение, without учета регистра)
          * @param lastName фамorя (частичное совпадение, without учета регистра)
@@ -79,7 +79,7 @@ import java.util.List;
         void deletePatient(String mrn);
 
         /*
-         * Обновление yesнных patient
+         * update yesнных patient
          * Обновляются only переdata (не null) поля
          * @param mrn уникальный number медицинской карты
          * @param patientUpdateDto DTO с Updateыми полями
@@ -94,31 +94,31 @@ import java.util.List;
          * Созyesние новой медицинской карты for patient
          * @param mrn уникальный number медицинской карты patient
          * @param emrDto DTO с медицинскими yesнными
-         * @return созyesнная медицинская карта
+         * @return созyesнная медицинская map
          * @throws NotFoundException if patient not found
          */
         EmrDTO createEmr(String mrn, EmrDTO emrDto);
 
         /*
-         * Получение afterдней медицинской карты patient
+         * retrieval afterдней медицинской карты patient
          * @param mrn уникальный number медицинской карты patient
-         * @return afterдняя медицинская карта
+         * @return afterдняя медицинская map
          * @throws NotFoundException if patient not found
          */
         EmrDTO getLastEmrByPatientMrn(String mrn);
 
         /*
-         * Обновление afterдней медицинской карты patient
+         * update afterдней медицинской карты patient
          * Обновляются only переdata (не null) поля
          * @param mrn уникальный number медицинской карты patient
          * @param emrUpdateDto DTO с Updateыми полями
-         * @return обновленная медицинская карта
+         * @return обновленная медицинская map
          * @throws NotFoundException if patient not found
          */
         EmrDTO updateEmr(String mrn, EmrUpdateDTO emrUpdateDto);
 
         /*
-         * Получение allх медицинских карт patient (история)
+         * retrieval allх медицинских карт patient (история)
          * @param mrn уникальный number медицинской карты patient
          * @return list allх медицинских карт patient
          * @throws NotFoundException if patient not found
@@ -128,14 +128,14 @@ import java.util.List;
         // ================= RECOMMENDATIONS (recommendation) ================= //
 
         /*
-         * Получение allх рекоменyesций со statusом PENDING
+         * retrieval allх рекоменyesций со statusом PENDING
          * Returns recommendation вместе с VAS (level pain)
          * @return list рекоменyesций, ожиyesющих одобрения doctorа
          */
         List<RecommendationWithVasDTO> getAllPendingRecommendations();
 
         /*
-         * Получение afterдней recommendation for patient
+         * retrieval afterдней recommendation for patient
          * Returns рекоменyesцию вместе с VAS (level pain)
          * @param mrn уникальный number медицинской карты patient
          * @return afterдняя recommendation с VAS

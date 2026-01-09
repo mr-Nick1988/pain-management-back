@@ -79,6 +79,6 @@ public class TreatmentProtocolLoader implements CommandLineRunner {
 //Workbook – Interface, представляющий всю книгу Excel.
 //XSSFWorkbook – реалfromация for формата XLSX.
 //Что происходит внутри: POI разбирает ZIP/XML структуру XLSX и строит objectы Sheet, Row, Cell в памяти.
-//Т.е. сразу в памяти создаётся objectная модель allй книги, но не массив байтов, а именно objectная структура.
-// Sheet сам по себе не массив, а object, который умеет возвращать строки (Row) и ячейки (Cell).
+//Т.е. сразу в памяти создаётся objectная модель allй книги, но не array байтов, а именно objectная структура.
+// Sheet сам по себе не array, а object, который умеет возвращать строки (Row) и ячейки (Cell).
 

@@ -17,7 +17,7 @@ public class Diagnosis {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // связь с EMR
+    // relationship с EMR
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "emr_id")
     private Emr emr;

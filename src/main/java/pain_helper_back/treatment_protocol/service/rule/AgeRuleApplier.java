@@ -20,7 +20,7 @@ public class AgeRuleApplier implements TreatmentRuleApplier {
     /**
      * Применяет возрастное правило к конкретной прописке drugа.
      * if drug разрешён — заполняет data from TP.
-     * if противопоказан — добавляет запись в rejectionReasons и comments.
+     * if противопоказан — добавляет record в rejectionReasons и comments.
      */
     @Override
     public void apply(DrugRecommendation drug,

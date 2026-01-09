@@ -29,13 +29,13 @@ public class ModelMapperConfig {
                 // поля должны полностью совпаyesть по имени и typeу, иначе будут проигнорированы
                 .setMatchingStrategy(MatchingStrategies.STRICT);
 
-        //  Кастомная карта for Patient → PatientDTO
+        //  Кастомная map for Patient → PatientDTO
         // Используется при возврате DTO наружу, whatбы скопировать нужные поля вручную
         mapper.createTypeMap(Patient.class, PatientDTO.class)
                 // Example явного маппинга (if имена не совпаyesют, ModelMapper without этого их бы не увидел)
                 .addMappings(m -> m.map(Patient::getCreatedBy, PatientDTO::setCreatedBy));
 
-        //  Кастомная карта for DiagnosisDTO → Diagnosis
+        //  Кастомная map for DiagnosisDTO → Diagnosis
         // Это ключевой маппинг, without него ModelMapper не мапил бы коллекцию diagnosisов внутри EMR
         mapper.createTypeMap(DiagnosisDTO.class, Diagnosis.class)
                 .addMappings(m -> {
@@ -44,7 +44,7 @@ public class ModelMapperConfig {
                     // Маппинг описания болезни
                     m.map(DiagnosisDTO::getDescription, Diagnosis::setDescription);
                 });
-        //  Кастомная карта for Recommendation → RecommendationDTO
+        //  Кастомная map for Recommendation → RecommendationDTO
         mapper.createTypeMap(Recommendation.class, RecommendationDTO.class)
                 .addMappings(m -> {
                     m.map(Recommendation::getGenerationFailed, RecommendationDTO::setGenerationFailed);

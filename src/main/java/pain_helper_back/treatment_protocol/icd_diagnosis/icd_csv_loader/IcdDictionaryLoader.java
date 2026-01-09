@@ -24,7 +24,7 @@ public class IcdDictionaryLoader implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
 
-        //  if таблица уже не пуста — загрузка не выполняется
+        //  if table уже не пуста — загрузка не выполняется
         if (repo.count() > 0) {
             log.info("ICD dictionary already loaded");
             return;
