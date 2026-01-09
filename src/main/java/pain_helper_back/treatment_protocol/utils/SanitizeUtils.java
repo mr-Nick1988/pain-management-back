@@ -84,7 +84,7 @@ public class TreatmentSanitizer {
     public static String cleanContraindications(String value) {
         value = SanitizeUtils.clean(value);
         if (value == null) return "NA";
-        // Заменяем знаки-разделители на OR, как в Sensitivity
+        // Заменяем знаки-разделители на OR, how в Sensitivity
         return value.replaceAll("(?i)\\s*(,|;|/|\\||and|or)\\s*", " OR ")
                     .replaceAll("\\s+", " ")
                     .trim()

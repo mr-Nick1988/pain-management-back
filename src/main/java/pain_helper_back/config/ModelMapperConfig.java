@@ -16,23 +16,23 @@ public class ModelMapperConfig {
 
     @Bean
     ModelMapper getModelMapper() {
-        // 🔧 Создаём new экземпляр ModelMapper
+        // 🔧 Созyesём new экземпляр ModelMapper
         ModelMapper mapper = new ModelMapper();
 
         // ⚙ Базовые настройки маппера
         mapper.getConfiguration()
-                // Позволяет ModelMapper работать напрямую с полями Classа (а не только с геттерами/сеттерами)
+                // Позволяет ModelMapper работать напрямую с полями Classа (а не only с геттерами/сеттерами)
                 .setFieldMatchingEnabled(true)
                 // Разрешает доступ к приватным полям via reflection
                 .setFieldAccessLevel(org.modelmapper.config.Configuration.AccessLevel.PRIVATE)
                 // Устанавливает максимально строгую стратегию сопоставления:
-                // поля должны полностью совпадать по имени и typeу, иначе будут проигнорированы
+                // поля должны полностью совпаyesть по имени и typeу, иначе будут проигнорированы
                 .setMatchingStrategy(MatchingStrategies.STRICT);
 
         //  Кастомная карта for Patient → PatientDTO
-        // Используется при возврате DTO наружу, чтобы скопировать нужные поля вручную
+        // Используется при возврате DTO наружу, whatбы скопировать нужные поля вручную
         mapper.createTypeMap(Patient.class, PatientDTO.class)
-                // Example явного маппинга (if имена не совпадают, ModelMapper without этого их бы не увидел)
+                // Example явного маппинга (if имена не совпаyesют, ModelMapper without этого их бы не увидел)
                 .addMappings(m -> m.map(Patient::getCreatedBy, PatientDTO::setCreatedBy));
 
         //  Кастомная карта for DiagnosisDTO → Diagnosis
@@ -52,7 +52,7 @@ public class ModelMapperConfig {
                 });
 
         // TODO (будущее улучшение):
-        // after подключения Spring Security можно добавить маппинг for аудита:
+        // after подключения Spring Security can добавить маппинг for аудита:
         // наExample, брать логин текущего пользователя и писать его в createdBy.
 
         // Return готовый, полностью настроенный экземпляр

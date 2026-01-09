@@ -33,7 +33,7 @@ public class CorrectionAggregator {
         log.debug("Added interval correction for drug {} -> {}", key, interval);
     }
 
-    /* Apply итоговые корректировки: минимальная доза, максимальный интервал */
+    /* Apply итоговые корректировки: минимальная dose, максимальный интервал */
     public void applyFinalAdjustments(DrugRecommendation drug) {
         if (drug.getActiveMoiety() == null || drug.getActiveMoiety().isBlank()) {
             log.debug("Skipping final adjustments for cleared drug (no active moiety)");

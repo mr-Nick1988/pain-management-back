@@ -1,6 +1,6 @@
 ﻿package pain_helper_back.enums;
 
-//система должна определить, усorлась ли боль, и if да — уведомить врача/анестезиолога.
+//система должна определить, усorлась ли pain, и if да — уведомить doctorа/anesthesiologistа.
 //никакого разделения по приоритетам or состояниям (Pending, In Review, и т.д.) нет
 //То есть в SRS не упомянуты приоритеты и statusы эскалации.
 //Вся логика реакции описана via status recommendation (RecommendationStatus.ESCALATED) — и этого достаточно.

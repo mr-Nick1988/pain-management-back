@@ -8,7 +8,7 @@ import pain_helper_back.anesthesiologist.dto.AnesthesiologistRecommendationUpdat
 import java.util.List;
 
 /*
- * Service for работы анестезиолога с эскалациями и protocolами
+ * Service for работы anesthesiologistа с эскалациями и protocolами
  * Обновлен под new workflow: Doctor → Anesthesiologist
  */
 public interface AnesthesiologistServiceInterface {

@@ -1,7 +1,7 @@
 ﻿package pain_helper_back.enums;
 
 /**
- * Уровень уверенности при сопоставлении patient from внешней системы с существующим patientом.
+ * level уверенности при сопоставлении patient from внешней системы с существующим patientом.
  * Используется в Patient Master Index for определения качества совпадения.
  */
 public enum MatchConfidence {

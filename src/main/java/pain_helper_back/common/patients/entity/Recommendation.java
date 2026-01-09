@@ -50,7 +50,7 @@ public class Recommendation {
 
     // ========== NON-PERSISTENT (transient) FIELDS ========== //
     @Column(name = "generation_failed")
-    private Boolean generationFailed; // не сохраняется в БД, используется только на уровне логики
+    private Boolean generationFailed; // не сохраняется в БД, используется only на уровне логики
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
             name = "recommendation_rejection_reasons",
@@ -80,7 +80,7 @@ public class Recommendation {
     @Column(name = "replaced_at")
     private LocalDateTime replacedAt; // Отследить жfromн. цикл after reject старой рек. заменяется на новую
     @Column(name = "replacement_id")
-    private Long replacementId; // ID новой recommendation, которая заменяет старую
+    private Long replacementId; // ID новой recommendation, which заменяет старую
 
     // ========== WORKFLOW: FINAL APPROVAL ========== //
     @Column(name = "final_approved_by", length = 50)

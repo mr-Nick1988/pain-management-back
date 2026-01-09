@@ -11,7 +11,7 @@ import java.util.List;
  * но иногда нужны выборки по allм patientм.
  *
  * Exampleы кастомных requestов:
- * - Найти all жалобы, где painLevel > 7 (сильная боль).
+ * - Найти all жалобы, где painLevel > 7 (сильная pain).
  * - Найти afterдние жалобы по mrn (ORDER BY createdAt DESC).
  */
 public interface VasRepository extends JpaRepository<Vas, Long> {

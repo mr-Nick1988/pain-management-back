@@ -18,8 +18,8 @@ import java.util.List;
 Sodium (Na⁺) — концентрация натрия в крови.
 fromмеряется в миллиэквивалентах на литр (mEq/L).
 Нормальный диапазон: 135–145 mEq/L.
-if уровень Na⁺ <130 mEq/L — это гипонатриемия (пониженный натрий),
-при которой рекомендуется fromбегать большинства drugов (avoid).
+if level Na⁺ <130 mEq/L — это гипонатриемия (пониженный натрий),
+при которой рекомендуется fromбегать painшинства drugов (avoid).
 */
 
 @Component
@@ -69,7 +69,7 @@ public class SodiumRuleApplier implements TreatmentRuleApplier {
 
         double limitDouble = limit.doubleValue();
 
-        // 4 Check, ниже ли уровень натрия порога
+        // 4 Check, ниже ли level натрия порога
         if (patientSodium < limitDouble) {
 
             //  withoutопасно Extract имена drugов

@@ -1,8 +1,8 @@
 ﻿package pain_helper_back.enums;
 
 /**
- * typeы источников данных EMR (Electronic Medical Records).
- * Используется for отслеживания происхождения медицинских данных patient.
+ * typeы источников yesнных EMR (Electronic Medical Records).
+ * Используется for отслеживания происхождения медицинских yesнных patient.
  */
 public enum EmrSourceType {
     /**
@@ -16,7 +16,7 @@ public enum EmrSourceType {
     MOCK_GENERATOR,
 
     /**
-     * data from реальной внешней больницы (будущая функциональность).
+     * data from реальной внешней painницы (будущая функциональность).
      */
     EXTERNAL_HOSPITAL,
 
@@ -28,8 +28,8 @@ public enum EmrSourceType {
     /*
      * Проверяет, является ли источник автоматическим (не ручной ввод).
      *
-     * ЗАЧЕМ: for автоматических источников нужна дополнительная валидация,
-     * так как data могут быть неполными or некорректными.
+     * why: for автоматических источников нужна дополнительная валиyesция,
+     * так how data могут быть неполными or некорректными.
      *
      * @return true if источник автоматический (FHIR, MOCK, EXTERNAL_HOSPITAL)
      */
@@ -38,10 +38,10 @@ public enum EmrSourceType {
     }
 
     /*
-     * Проверяет, требуется ли дополнительная проверка данных.
+     * Проверяет, требуется ли дополнительная проверка yesнных.
      *
-     * ЗАЧЕМ: data from внешних больниц и моковые data требуют
-     * более тщательной проверки before использованием в PMA.
+     * why: data from внешних painниц и моковые data требуют
+     * more тщательной проверки before использованием в PMA.
      *
      * @return true if требуется дополнительная проверка
      */
@@ -54,7 +54,7 @@ public enum EmrSourceType {
      *
      * ПРИМЕНЕНИЕ: for отображения в UI, логах, отчетах.
      *
-     * @return Description источника данных
+     * @return Description источника yesнных
      */
     public String getDisplayName() {
         return switch (this) {

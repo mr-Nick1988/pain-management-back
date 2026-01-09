@@ -9,11 +9,11 @@ import java.time.LocalDateTime;
  * Entity for хранения VAS (Visual Analog Scale) записей.
  *
  * ПОДДЕРЖКА ВНЕШНЕЙ ИНТЕГРАЦИИ:
- * - vasLevel - уровень боли (0-10)
+ * - vasLevel - level pain (0-10)
  * - recordedAt - время записи
  * - location - локация patient
  * - notes - дополнительные заметки
- * - recordedBy - кто записал (медсестра or внешняя система)
+ * - recordedBy - кто записал (nurse or внешняя система)
  */
 @Entity
 @Data
@@ -40,7 +40,7 @@ public class Vas {
     // ============================================
 
     /**
-     * Уровень боли по VAS (0-10)
+     * level pain по VAS (0-10)
      * Используется for внешней интеграции
      */
     @Column(name = "vas_level")
@@ -109,7 +109,7 @@ public class Vas {
             this.vasLevel = this.painLevel;
         }
 
-        // Установка recordedAt if не задано
+        // Установка recordedAt if не заyesно
         if (this.recordedAt == null) {
             this.recordedAt = LocalDateTime.now();
         }

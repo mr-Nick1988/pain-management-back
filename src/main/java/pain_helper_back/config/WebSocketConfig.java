@@ -5,8 +5,8 @@
  * - /ws - основной endpoint for allх WebSocket подключений
  * 
  * TOPICS:
- * - /topic/escalations/anesthesiologists - эскалации for анестезиологов
- * - /topic/escalations/doctors - эскалации for врачей
+ * - /topic/escalations/anesthesiologists - эскалации for anesthesiologistов
+ * - /topic/escalations/doctors - эскалации for doctorей
  * - /topic/escalations/critical - критические эскалации
  * - /topic/escalations/dashboard - мониторинг эскалаций
  * - /topic/emr-alerts - критические fromменения в EMR

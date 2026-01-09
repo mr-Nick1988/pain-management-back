@@ -252,7 +252,7 @@ public class NurseServiceImpl implements NurseService {
                 LocalDateTime.now(),
                 vas.getPainLevel(),
                 vas.getPainPlace(),
-                vas.getPainLevel() >= 8,  // isCritical if боль >= 8
+                vas.getPainLevel() >= 8,  // isCritical if pain >= 8
                 "INTERNAL",  // vasSource - внутренний ввод медсестрой
                 null  //deviceId - не применимо for внутреннего ввода
         ));

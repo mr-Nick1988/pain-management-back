@@ -10,7 +10,7 @@ import java.util.Map;
 /*
  * REST Controller for тестирования WebSocket уведомлений.
  * 
- * ЗАЧЕМ НУЖЕН:
+ * why НalreadyН:
  * - Позволяет вручную отправить тестовые уведомления
  * - Проверка работоспособности WebSocket соединения
  * - Отладка подписок на топики
@@ -19,7 +19,7 @@ import java.util.Map;
  * ENDPOINTS:
  * 1. POST /api/websocket/test - отправить тестовое уведомление
  * 2. POST /api/websocket/test/emr-alert - тестовый EMR алерт
- * 3. POST /api/websocket/test/pain-escalation - тестовая эскалация боли
+ * 3. POST /api/websocket/test/pain-escalation - тестовая эскалация pain
  * 4. POST /api/websocket/test/critical - тестовое критическое уведомление
  * 5. GET /api/websocket/status - проверка statusа WebSocket
  * 
@@ -28,8 +28,8 @@ import java.util.Map;
  * curl -X POST http://localhost:8080/api/websocket/test/emr-alert
  * 
  * Important:
- * - Этот Controller только for тестирования
- * - В продакшене можно отключить or защитить
+ * - Этот Controller only for тестирования
+ * - В проyesкшене can отключить or защитить
  * - Реальные уведомления отправляются автоматически from Serviceов
  */
 @RestController
@@ -79,15 +79,15 @@ public class WebSocketTestController {
     }
 
     /*
-     * Отправить тестовую эскалацию боли
+     * Отправить тестовую эскалацию pain
      */
     @PostMapping("/test/pain-escalation")
     public ResponseEntity<Map<String, String>> sendTestPainEscalation() {
                 .patientMrn("TEST-12345")
                 .patientName("Тестовый")
-                .title("Эскалация боли")
+                .title("Эскалация pain")
                 .message("VAS увеличился с 5 до 9 via 2 часа after введения дозы")
-                .details("Значительный рост боли слишком рано after afterдней дозы. current protocol может быть недостаточным.")
+                .details("Значительный рост pain слишком рано after afterдней дозы. current protocol can быть недостаточным.")
                 .recommendations("Рассмотреть увеличение дозировки or смену drugа")
                 .targetRole("DOCTOR")
                 .requiresAction(true)
@@ -110,10 +110,10 @@ public class WebSocketTestController {
     public ResponseEntity<Map<String, String>> sendTestCriticalNotification() {
                 .patientMrn("TEST-12345")
                 .patientName("Тестовый patient")
-                .title("КРИТИЧЕСКИЙ уровень боли")
-                .message("VAS = 10 - максимальный уровень боли")
-                .details("patient испытывает невыносимую боль. Требуется немедленное вмешательство.")
-                .recommendations("ЭКСТРЕННО: Вызвать анестезиолога, рассмотреть IV анальгетики")
+                .title("КРИТИЧЕСКИЙ level pain")
+                .message("VAS = 10 - максимальный level pain")
+                .details("patient испытывает невыносимую pain. Требуется немедленное вмешательство.")
+                .recommendations("ЭКСТРЕННО: Вызвать anesthesiologistа, рассмотреть IV анальгетики")
                 .targetRole("DOCTOR")
                 .requiresAction(true)
                 .build();

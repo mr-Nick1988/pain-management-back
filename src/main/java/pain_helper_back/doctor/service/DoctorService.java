@@ -15,10 +15,10 @@ import java.util.List;
         // ================= PATIENTS ================= //
 
         /*
-         * Создание нового patient
-         * @param patientDto DTO с данными patient
-         * @return созданный patient
-         * @throws EntityExistsException if email or телефон уже существуют
+         * Созyesние нового patient
+         * @param patientDto DTO с yesнными patient
+         * @return созyesнный patient
+         * @throws EntityExistsException if email or телефон already существуют
          */
         PatientDTO createPatient(PatientDTO patientDto);
 
@@ -48,11 +48,11 @@ import java.util.List;
 
         /*
          * Поиск patientов по различным критериям
-         * all Parameters опциональны, можно комбинировать
+         * all Parameters опциональны, can комбинировать
          * @param firstName name (частичное совпадение, without учета регистра)
          * @param lastName фамorя (частичное совпадение, without учета регистра)
          * @param isActive status активности (true/false)
-         * @param birthDate дата рождения (точное совпадение)
+         * @param birthDate yesта рождения (точное совпадение)
          * @param gender пол (MALE/FEMALE/OTHER)
          * @param insurancePolicyNumber number страховки (частичное совпадение)
          * @param address адрес (частичное совпадение, without учета регистра)
@@ -73,14 +73,14 @@ import java.util.List;
         );
 
         /*
-         * Удаление patient по MRN
+         * Уyesление patient по MRN
          * @param mrn уникальный number медицинской карты
          */
         void deletePatient(String mrn);
 
         /*
-         * Обновление данных patient
-         * Обновляются только переdata (не null) поля
+         * Обновление yesнных patient
+         * Обновляются only переdata (не null) поля
          * @param mrn уникальный number медицинской карты
          * @param patientUpdateDto DTO с Updateыми полями
          * @return обновленные data patient
@@ -91,10 +91,10 @@ import java.util.List;
         // ================= EMR (Electronic Medical Records) ================= //
 
         /*
-         * Создание новой медицинской карты for patient
+         * Созyesние новой медицинской карты for patient
          * @param mrn уникальный number медицинской карты patient
-         * @param emrDto DTO с медицинскими данными
-         * @return созданная медицинская карта
+         * @param emrDto DTO с медицинскими yesнными
+         * @return созyesнная медицинская карта
          * @throws NotFoundException if patient not found
          */
         EmrDTO createEmr(String mrn, EmrDTO emrDto);
@@ -109,7 +109,7 @@ import java.util.List;
 
         /*
          * Обновление afterдней медицинской карты patient
-         * Обновляются только переdata (не null) поля
+         * Обновляются only переdata (не null) поля
          * @param mrn уникальный number медицинской карты patient
          * @param emrUpdateDto DTO с Updateыми полями
          * @return обновленная медицинская карта
@@ -128,15 +128,15 @@ import java.util.List;
         // ================= RECOMMENDATIONS (recommendation) ================= //
 
         /*
-         * Получение allх рекомендаций со statusом PENDING
-         * Returns recommendation вместе с VAS (уровень боли)
-         * @return list рекомендаций, ожидающих одобрения врача
+         * Получение allх рекоменyesций со statusом PENDING
+         * Returns recommendation вместе с VAS (level pain)
+         * @return list рекоменyesций, ожиyesющих одобрения doctorа
          */
         List<RecommendationWithVasDTO> getAllPendingRecommendations();
 
         /*
          * Получение afterдней recommendation for patient
-         * Returns рекомендацию вместе с VAS (уровень боли)
+         * Returns рекоменyesцию вместе с VAS (level pain)
          * @param mrn уникальный number медицинской карты patient
          * @return afterдняя recommendation с VAS
          * @throws NotFoundException if patient not found

@@ -19,7 +19,7 @@ public class DrugRecommendationDTO {
     private String ageAdjustment;           // Ограничения по возрасту
     private String weightAdjustment;
     private String childPugh;               // оценка влияния печёночной недостаточности
-    private DrugRole role;                // основное лекарство or альтернативное
+    private DrugRole role;                // основное medicine or альтернативное
 
     // пока опциональное field, не используется на фронте
     private String patientMrn; // пригодится for поисковых requestов without обёртки Patient,чтоб понять к кому относится

@@ -107,7 +107,7 @@ public class PainTrendRuleApplier implements TreatmentRuleApplier {
         return false;
     }
 
-    // Method проверки критичности колебаний afterдних показателей боли (1- не критично, 2 и более - критично)
+    // Method проверки критичности колебаний afterдних показателей pain (1- не критично, 2 и более - критично)
     private int getLastInversionAmplitude(List<Integer> vas) {
         if (vas.size() < 3) return 0;
         for (int i = vas.size() - 3; i >= 0; i--) {

@@ -18,10 +18,10 @@ import java.util.List;
 
 /**
  * Главный оркестратор применения protocolа лечения (TreatmentProtocolService):
- * 1. Фильтрует protocolы по уровню боли.
- * 2. for each создаёт Recommendation с MAIN и ALTERNATIVE drugами.
+ * 1. Фильтрует protocolы по уровню pain.
+ * 2. for each созyesёт Recommendation с MAIN и ALTERNATIVE drugами.
  * 3. afterдовательно применяет all TreatmentRuleApplier (9 фильтров).
- * 4. if хотя бы один drug остался активным, добавляет рекомендацию в result.
+ * 4. if хотя бы один drug остался активным, добавляет рекоменyesцию в result.
  * 5. Добавляет противопоказания (contraindications) в комментарии.
  */
 
@@ -46,7 +46,7 @@ public class TreatmentProtocolService {
 
     /**
      * Текущая сигнатура Returns single Recommendation (первую соresponseствующую).
-     * if нужно вернуть all, меняем сигнатуру на List<Recommendation>.
+     * if need вернуть all, меняем сигнатуру на List<Recommendation>.
      */
     public Recommendation generateRecommendation(Vas vas, Patient patient) {
         Integer painLevel = vas.getPainLevel();
@@ -61,13 +61,13 @@ public class TreatmentProtocolService {
 
         List<Recommendation> recommendations = new ArrayList<>();
         Recommendation recommendationFailed = new Recommendation(); // на случай есл all recommendation отвергнуты
-        List<String> rejectionReasons = new ArrayList<>();  // причины отказов этих рекомендаций
+        List<String> rejectionReasons = new ArrayList<>();  // причины отказов этих рекоменyesций
 
         for (TreatmentProtocol tp : painRageFilter) {
             Recommendation recommendation = new Recommendation();
             recommendation.setStatus(RecommendationStatus.PENDING);
             recommendation.setRegimenHierarchy(Integer.parseInt(tp.getRegimenHierarchy()));
-            // создаём две записи: основное и запасное (or просто две позиции)
+            // созyesём две записи: основное и запасное (or просто две позиции)
             DrugRecommendation mainDrug = new DrugRecommendation();
             mainDrug.setRole(DrugRole.MAIN);
             DrugRecommendation altDrug = new DrugRecommendation();
@@ -76,16 +76,16 @@ public class TreatmentProtocolService {
             altDrug.setRecommendation(recommendation);
             recommendation.getDrugs().add(mainDrug);
             recommendation.getDrugs().add(altDrug);
-            // Заполняем общие поля (route, fieldвые служебные data) можно здесь or в апликаторах
+            // Заполняем общие поля (route, fieldвые слalreadyбные data) can here or в апликаторах
             mainDrug.setRoute(DrugRoute.valueOf(tp.getRoute()));
             altDrug.setRoute(DrugRoute.valueOf(tp.getRoute()));
             for (TreatmentRuleApplier ruleApplier : ruleAppliers) {
-                // Динамика боли (VAS). Аналfromирует afterдние жалобы patient (ухудшения or инверсия).
+                // Динамика pain (VAS). Аналfromирует afterдние жалобы patient (ухудшения or инверсия).
                 // Apply возрастные правила(<=18 or >75)
-                // Contraindications — это list состояний (обычно в виде ICD-10 codeов), участвуют в фильтрации и исключают рекомендацию при наличии заболевания у patient.
+                // Contraindications — это list состояний (обычно в виде ICD-10 codeов), участвуют в фильтрации и исключают рекоменyesцию при наличии заболевания у patient.
                 // Apply корректировку на чувствительность к drugам (Sensitivity)
-                // Apply корректировку по тромбоцитам (PLT)
-                // Apply корректировку по лейкоцитам (WBC)
+                // Apply корректировку по тромбоциthere (PLT)
+                // Apply корректировку по лейкоциthere (WBC)
                 // Apply корректировку по сатурации (SAT)
                 // Apply корректировку по натрию (Sodium)
                 // Apply печёночную корректировку (ChildPugh)
@@ -97,15 +97,15 @@ public class TreatmentProtocolService {
                 } catch (StopRecommendationGenerationException e) {
                     log.warn("Recommendation generation stopped by {}: {}",
                             ruleApplier.getClass().getSimpleName(), e.getMessage());
-                    break;   // прерываем дальнейшие фильтры
+                    break;   // прерываем yesльнейшие фильтры
                 }
 
             }
-            //  Apply финальные корректировки по дозам и интервалам к каждому drugу, if таких накопилось несколько
+            //  Apply финальные корректировки по doseм и интервалам к каждому drugу, if таких накопилось неhow many
             for (DrugRecommendation drug : recommendation.getDrugs()) {
                 correctionAggregator.applyFinalAdjustments(drug);
             }
-            // очищаем агрегатор, чтобы не перетянул data на следующего patient
+            // очищаем агрегатор, whatбы не перетянул data на следующего patient
             correctionAggregator.clear();
             boolean allCleared = recommendation.getDrugs().stream()
                     .allMatch(dr ->
@@ -115,13 +115,13 @@ public class TreatmentProtocolService {
                     );
 
             if (allCleared) {
-                // all drugы очищены — отклоняем рекомендацию
+                // all drugы очищены — отклоняем рекоменyesцию
                 recommendationFailed.setGenerationFailed(true);
                 recommendationFailed.setStatus(RecommendationStatus.ESCALATED);
                 recommendationFailed.getRejectionReasonsSummary().addAll(rejectionReasons);
                 log.warn(" All drugs cleared for protocol id={}, reasons={}", tp.getId(), rejectionReasons);
             } else {
-                // есть хотя бы один живой drug — Save
+                // is хотя бы один живой drug — Save
                 recommendation.setGenerationFailed(false);
                 recommendations.add(recommendation);
                 log.info(" Recommendation kept: protocol id={} (some drugs active)", tp.getId());
@@ -138,7 +138,7 @@ public class TreatmentProtocolService {
             return recommendationFailed;
         } else {
             log.info("Generated {} valid recommendations for patient {}", recommendations.size(), patient.getMrn());
-            // Вернём первую рекомендацию (if их несколько). При желании вернуть all — меняем сигнатуру.
+            // Вернём первую рекоменyesцию (if их неhow many). При желании вернуть all — меняем сигнатуру.
             return recommendations.getFirst();
         }
     }
@@ -180,7 +180,7 @@ public class TreatmentProtocolService {
 //                }).toList();
 //        Integer patientAge = patient.getAge();
 //        Double patientWeight = patient.getWeight();
-//        List<Recommendation> recommendations = painRageFilter.stream()    // создали after фильтрации строк таблицы по боли сразу objectы recommendation и далее будем инициалfromировать поля
+//        List<Recommendation> recommendations = painRageFilter.stream()    // созyesли after фильтрации строк таблицы по pain сразу objectы recommendation и yesлее будем инициалfromировать поля
 //                .map(tp -> {
 //                    Recommendation recommendation = new Recommendation();
 //                    recommendation.setStatus("PENDING");

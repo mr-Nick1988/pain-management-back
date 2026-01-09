@@ -68,7 +68,7 @@ public class WeightRuleApplier implements TreatmentRuleApplier {
             return;
         }
 
-        // 3 Get правило from нужной колонки (первое or второе лекарство)
+        // 3 Get правило from нужной колонки (первое or второе medicine)
         String weightRule = (drug.getRole() == DrugRole.MAIN) ? tp.getWeightKg() : tp.getSecondWeightKg();
         if (weightRule == null || weightRule.trim().isEmpty() || weightRule.trim().toUpperCase().contains("NA")) {
             log.debug("Weight rule empty or NA for protocol {}", tp.getId());

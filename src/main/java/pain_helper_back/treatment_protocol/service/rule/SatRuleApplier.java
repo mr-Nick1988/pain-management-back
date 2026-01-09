@@ -16,10 +16,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /*
-SAT (oxygen saturation, SpO₂) — уровень насыщения крови кислородом.
+SAT (oxygen saturation, SpO₂) — level насыщения крови кислородом.
 fromмеряется в процентах (%).
 Нормальный диапазон: 95–100%.
-if сатурация <93%, рекомендуется fromбегать большинства drugов (avoid).
+if сатурация <93%, рекомендуется fromбегать painшинства drugов (avoid).
 */
 
 @Component
