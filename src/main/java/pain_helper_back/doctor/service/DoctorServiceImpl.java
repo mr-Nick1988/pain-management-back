@@ -1,14 +1,14 @@
-package pain_helper_back.doctor.service;
+﻿package pain_helper_back.doctor.service;
 
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.context.ApplicationEventPublisher;
+import pain_helper_back.kafka.producer.AnalyticsEventProducer;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import pain_helper_back.analytics.event.*;
+
 import pain_helper_back.common.patients.dto.*;
 import pain_helper_back.common.patients.dto.exceptions.EntityExistsException;
 import pain_helper_back.common.patients.dto.exceptions.NotFoundException;
@@ -37,13 +37,10 @@ public class DoctorServiceImpl implements DoctorService {
     private final RecommendationRepository recommendationRepository;
     private final PatientRepository patientRepository;
     private final ModelMapper modelMapper;
-    private final ApplicationEventPublisher eventPublisher;
+    private final AnalyticsEventProducer analyticsEventProducer;
     private final EmrRepository emrRepository;
 
-    /*
-     * Вспомогательный метод для поиска пациента по MRN
-     * @throws NotFoundException если пациент не найден
-     */
+    /* Helper method to find patient by MRN * @throws NotFoundException if patient not found */
     private Patient findPatientOrThrow(String mrn) {
         return patientRepository.findByMrn(mrn)
                 .orElseThrow(() -> new NotFoundException("Patient with this " + mrn + " not found"));
@@ -53,20 +50,20 @@ public class DoctorServiceImpl implements DoctorService {
 
     @Override
     public PatientDTO createPatient(PatientDTO patientDto) {
-        // Проверка уникальности email
+        // Check email uniqueness
         if (patientDto.getEmail() != null && patientRepository.existsByEmail(patientDto.getEmail())) {
             throw new EntityExistsException("Patient with this email already exists");
         }
-        // Проверка уникальности телефонаК
+        // Check phone number uniqueness
         if (patientRepository.existsByPhoneNumber(patientDto.getPhoneNumber())) {
             throw new EntityExistsException("Patient with this phone number already exists");
         }
 
-        // Создание пациента
+        // Create patient
         Patient patient = modelMapper.map(patientDto, Patient.class);
         patientRepository.save(patient);
 
-        // Генерация MRN на основе ID
+        // Generate MRN based on ID
         String mrn = String.format("%06d", patient.getId());
         patient.setMrn(mrn);
         patientRepository.save(patient);
@@ -75,7 +72,7 @@ public class DoctorServiceImpl implements DoctorService {
                 this,
                 patient.getId(),
                 mrn,
-                "doctor_id", // TODO: заменить на реальный ID из Security Context
+                "doctor_id", // TODO: replace with real ID from Security Context
                 "DOCTOR",
                 LocalDateTime.now(),
                 patient.getAge(),
@@ -97,54 +94,54 @@ public class DoctorServiceImpl implements DoctorService {
             String phoneNumber,
             String email
     ) {
-        // Создаем базовую спецификацию (пустой фильтр)
+        // Create base specification (empty filter)
         Specification<Patient> spec = (root, query, cb) -> cb.conjunction();
-        // Поиск по имени (частичное совпадение, без учета регистра)
+        // Search by first name (partial match, case insensitive)
         if (firstName != null && !firstName.trim().isEmpty()) {
             spec = spec.and((root, query, cb) ->
                     cb.like(cb.lower(root.get("firstName")), "%" + firstName.toLowerCase().trim() + "%"));
         }
-        // Поиск по фамилии (частичное совпадение, без учета регистра)
+        // Search by last name (partial match, case insensitive)
         if (lastName != null && !lastName.trim().isEmpty()) {
             spec = spec.and((root, query, cb) ->
                     cb.like(cb.lower(root.get("lastName")), "%" + lastName.toLowerCase().trim() + "%"));
         }
-        // Поиск по статусу активности
+        // Search by active status
         if (isActive != null) {
             spec = spec.and((root, query, cb) ->
                     cb.equal(root.get("isActive"), isActive));
         }
-        // Поиск по дате рождения (точное совпадение)
+        // Search by birth date (exact match)
         if (birthDate != null) {
             spec = spec.and((root, query, cb) ->
                     cb.equal(root.get("dateOfBirth"), birthDate));
         }
-        // Поиск по полу (точное совпадение)
+        // Search by gender (exact match)
         if (gender != null && !gender.trim().isEmpty()) {
             spec = spec.and((root, query, cb) ->
                     cb.equal(root.get("gender"), PatientsGenders.valueOf(gender.toUpperCase())));
         }
-        // Поиск по номеру страховки (частичное совпадение)
+        // Search by insurance policy number (partial match)
         if (insurancePolicyNumber != null && !insurancePolicyNumber.trim().isEmpty()) {
             spec = spec.and((root, query, cb) ->
                     cb.like(root.get("insurancePolicyNumber"), "%" + insurancePolicyNumber.trim() + "%"));
         }
-        // Поиск по адресу (частичное совпадение, без учета регистра)
+        // Search by address (partial match, case insensitive)
         if (address != null && !address.trim().isEmpty()) {
             spec = spec.and((root, query, cb) ->
                     cb.like(cb.lower(root.get("address")), "%" + address.toLowerCase().trim() + "%"));
         }
-        // Поиск по телефону (частичное совпадение)
+        // Search by phone (partial match)
         if (phoneNumber != null && !phoneNumber.trim().isEmpty()) {
             spec = spec.and((root, query, cb) ->
                     cb.like(root.get("phoneNumber"), "%" + phoneNumber.trim() + "%"));
         }
-        // Поиск по email (частичное совпадение, без учета регистра)
+        // Search by email (partial match, case insensitive)
         if (email != null && !email.trim().isEmpty()) {
             spec = spec.and((root, query, cb) ->
                     cb.like(cb.lower(root.get("email")), "%" + email.toLowerCase().trim() + "%"));
         }
-        // Выполняем поиск с комбинированными критериями
+        // Execute search with combined criteria
         List<Patient> patients = patientRepository.findAll(spec);
         return patients.stream()
                 .map(patient -> modelMapper.map(patient, PatientDTO.class))
@@ -182,7 +179,7 @@ public class DoctorServiceImpl implements DoctorService {
     public PatientDTO updatePatient(String mrn, PatientUpdateDTO patientUpdateDto) {
         Patient patient = findPatientOrThrow(mrn);
 
-        // Обновляем только переданные (не null) поля
+        // Update only provided (non-null) fields
         if (patientUpdateDto.getFirstName() != null) patient.setFirstName(patientUpdateDto.getFirstName());
         if (patientUpdateDto.getLastName() != null) patient.setLastName(patientUpdateDto.getLastName());
         if (patientUpdateDto.getGender() != null) patient.setGender(patientUpdateDto.getGender());
@@ -207,20 +204,20 @@ public class DoctorServiceImpl implements DoctorService {
         Patient patient = findPatientOrThrow(mrn);
         Emr emr = modelMapper.map(emrDto, Emr.class);
         emr.setPatient(patient);
-        //  ВАЖНО: для Hibernate создаём "обратную связь" у каждого Diagnosis
+        // IMPORTANT: for Hibernate create bidirectional relationship for each Diagnosis
         if (emr.getDiagnoses() != null) {
             emr.getDiagnoses().forEach(diagnosis -> diagnosis.setEmr(emr));
         }
         patient.getEmr().add(emr);
         emrRepository.save(emr);
 
-        // Извлекаем диагнозы для аналитики
+        // Extract diagnoses for analytics
         List<String> diagnosisCodes = emr.getDiagnoses() != null ?
                 emr.getDiagnoses().stream().map(Diagnosis::getIcdCode).toList() : new ArrayList<>();
         List<String> diagnosisDescriptions = emr.getDiagnoses() != null ?
                 emr.getDiagnoses().stream().map(Diagnosis::getDescription).toList() : new ArrayList<>();
 
-        // Публикация события
+        // Publish event
         eventPublisher.publishEvent(new EmrCreatedEvent(
                 this,
                 emr.getId(),
@@ -251,7 +248,7 @@ public class DoctorServiceImpl implements DoctorService {
         Patient patient = findPatientOrThrow(mrn);
         Emr emr = patient.getEmr().getLast();
 
-        // Обновляем только переданные (не null) поля
+        // Update only provided (non-null) fields
         if (emrUpdateDto.getHeight() != null) emr.setHeight(emrUpdateDto.getHeight());
         if (emrUpdateDto.getWeight() != null) emr.setWeight(emrUpdateDto.getWeight());
         if (emrUpdateDto.getGfr() != null) emr.setGfr(emrUpdateDto.getGfr());
@@ -261,8 +258,7 @@ public class DoctorServiceImpl implements DoctorService {
         if (emrUpdateDto.getSensitivities() != null) emr.setSensitivities(emrUpdateDto.getSensitivities());
         if (emrUpdateDto.getChildPughScore() != null) emr.setChildPughScore(emrUpdateDto.getChildPughScore());
         if (emrUpdateDto.getSodium() != null) emr.setSodium(emrUpdateDto.getSodium());
-        //Если в emrUpdateDto.getDiagnoses() ты планируешь обновлять список диагнозов (например, добавлять новые или удалять старые),
-        //тогда, придётся снова пройтись и обновить связь, как в create.
+        // If updating diagnoses list in emrUpdateDto.getDiagnoses(), need to update relationships as in create
         if (emrUpdateDto.getDiagnoses() != null) {
             emr.getDiagnoses().clear();
             Set<Diagnosis> updatedDiagnoses = emrUpdateDto.getDiagnoses().stream()
@@ -291,34 +287,33 @@ public class DoctorServiceImpl implements DoctorService {
     @Override
     @Transactional(readOnly = true)
     public List<RecommendationWithVasDTO> getAllPendingRecommendations() {
-        // 1. Достаём из базы все рекомендации, у которых статус = PENDING
+        // 1. Fetch all recommendations with PENDING status from database
         List<Recommendation> recommendations = recommendationRepository.findByStatus(RecommendationStatus.PENDING);
 
-        // 2. Пробегаемся по каждой найденной рекомендации и формируем комбинированный DTO
+        // 2. Iterate through each found recommendation and form combined DTO
         return recommendations.stream().map(recommendation -> {
-            // 2.1. Получаем MRN пациента, которому принадлежит эта рекомендация
+            // 2.1. Get MRN of patient who owns this recommendation
             String mrn = recommendation.getPatient().getMrn();
 
-            // 2.2. Создаем RecommendationWithVasDTO вручную
+            // 2.2. Create RecommendationWithVasDTO manually
             RecommendationWithVasDTO recommendationWithVasDTO = new RecommendationWithVasDTO();
 
-            // 2.3. Маппим Recommendation entity в RecommendationDTO
+            // 2.3. Map Recommendation entity to RecommendationDTO
             RecommendationDTO recommendationDTO = modelMapper.map(recommendation, RecommendationDTO.class);
 
-            // 2.4. Внутри RecommendationDTO есть опциональное поле patientMrn,
-            // которое мы вручную задаём — оно нужно фронту для идентификации пациента
+            // 2.4. RecommendationDTO has optional patientMrn field which we set manually - needed by frontend for patient identification
             recommendationDTO.setPatientMrn(mrn);
 
-            // 2.5. Устанавливаем recommendationDTO в наш комбинированный объект
+            // 2.5. Set recommendationDTO in our combined object
             recommendationWithVasDTO.setRecommendation(recommendationDTO);
 
-            // 2.6. Берём у пациента последнюю VAS-жалобу (getLast()) и тоже маппим в VasDTO
+            // 2.6. Get patient last VAS record (getLast()) and map to VasDTO
             VasDTO vasDTO = modelMapper.map(recommendation.getPatient().getVas().getLast(), VasDTO.class);
 
-            // 2.7. Подшиваем VasDTO внутрь нашего комбинированного RecommendationWithVasDTO
+            // 2.7. Attach VasDTO inside our combined RecommendationWithVasDTO
             recommendationWithVasDTO.setVas(vasDTO);
 
-            // 2.8. Возвращаем готовый объект
+            // 2.8. Return ready object
             return recommendationWithVasDTO;
         }).toList();
     }
@@ -334,8 +329,7 @@ public class DoctorServiceImpl implements DoctorService {
         dto.setVas(modelMapper.map(vas, VasDTO.class));
         dto.getRecommendation().setPatientMrn(patient.getMrn());
 
-        // Если status == PENDING, фронт рисует кнопки Approve/Reject.
-        // Если status == APPROVED или REJECTED, кнопок нет — чисто просмотр.
+        // If status == PENDING, frontend shows Approve/Reject buttons. If status == APPROVED or REJECTED, no buttons - view only.
         return dto;
     }
 
@@ -353,7 +347,7 @@ public class DoctorServiceImpl implements DoctorService {
         }
 
         recommendation.setStatus(RecommendationStatus.APPROVED);
-        recommendation.setDoctorId("doctor_id"); // TODO: взять из SecurityContext
+        recommendation.setDoctorId("doctor_id"); // TODO: get from SecurityContext
         recommendation.setDoctorActionAt(LocalDateTime.now());
         recommendation.setDoctorComment(dto.getComment());
         recommendation.setFinalApprovedBy(recommendation.getDoctorId());
@@ -402,7 +396,7 @@ public class DoctorServiceImpl implements DoctorService {
         }
 
         recommendation.setStatus(RecommendationStatus.ESCALATED);
-        recommendation.setDoctorId("doctor_id"); // TODO: взять из SecurityContext
+        recommendation.setDoctorId("doctor_id"); // TODO: get from SecurityContext
         recommendation.setDoctorActionAt(LocalDateTime.now());
         recommendation.setDoctorComment(dto.getComment());
         recommendation.setRejectedReason(dto.getRejectedReason());
@@ -438,7 +432,7 @@ public class DoctorServiceImpl implements DoctorService {
         List<Recommendation> recs = patient.getRecommendations();
         List<Vas> vasList = patient.getVas();
 
-        int size = Math.min(recs.size(), vasList.size()); // чтобы избежать IndexOutOfBounds
+        int size = Math.min(recs.size(), vasList.size()); // To avoid IndexOutOfBounds
         List<RecommendationWithVasDTO> result = new ArrayList<>(size);
 
         for (int i = 0; i < size; i++) {
@@ -452,7 +446,7 @@ public class DoctorServiceImpl implements DoctorService {
 
             result.add(dto);
         }
-        // От новых к старым
+        // From newest to oldest
         result.sort(Comparator.comparing(dto -> dto.getRecommendation().getCreatedAt(), Comparator.reverseOrder()));
 
         return result;

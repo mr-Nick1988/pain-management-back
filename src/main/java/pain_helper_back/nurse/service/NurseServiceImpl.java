@@ -1,16 +1,16 @@
-package pain_helper_back.nurse.service;
+﻿package pain_helper_back.nurse.service;
 
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.context.ApplicationEventPublisher;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import pain_helper_back.analytics.event.EmrCreatedEvent;
-import pain_helper_back.analytics.event.PatientRegisteredEvent;
-import pain_helper_back.analytics.event.RecommendationCreatedEvent;
-import pain_helper_back.analytics.event.VasRecordedEvent;
+
+
+
+
 import pain_helper_back.common.patients.dto.*;
 import pain_helper_back.common.patients.dto.exceptions.EntityExistsException;
 import pain_helper_back.common.patients.dto.exceptions.NotFoundException;
@@ -41,7 +41,7 @@ public class NurseServiceImpl implements NurseService {
     private final TreatmentProtocolService treatmentProtocolService;
     private final EmrRepository emrRepository;
     private final ModelMapper modelMapper;
-    private final ApplicationEventPublisher eventPublisher;
+    private final pain_helper_back.kafka.producer.AnalyticsEventProducer analyticsEventProducer;
     private final RecommendationRepository recommendationRepository;
 
 
@@ -70,7 +70,7 @@ public class NurseServiceImpl implements NurseService {
                 this,
                 patient.getId(),
                 mrn,
-                "nurse_id", // TODO: заменить на реальный ID из Security Context
+                "nurse_id", // TODO: replace with real ID from Security Context
                 "NURSE",
                 LocalDateTime.now(),
                 patient.getAge(),
@@ -158,23 +158,23 @@ public class NurseServiceImpl implements NurseService {
     @Override
     @Transactional
     public EmrDTO createEmr(String mrn, EmrDTO emrDto) {
-        // 1 Находим пациента
+        // 1 Find patient
         Patient patient = findPatientOrThrow(mrn);
-        // 2 Маппим DTO → Entity
+        // 2 Map DTO → Entity
         Emr emr = modelMapper.map(emrDto, Emr.class);
         emr.setPatient(patient);
         Set<Diagnosis> diagnoses;
 
-        // 3 ВАЖНО: для Hibernate создаём "обратную связь" у каждого Diagnosis
+        // 3 IMPORTANT: for Hibernate create bidirectional relationship for each Diagnosis
         if (emr.getDiagnoses() != null) {
             emr.getDiagnoses().forEach(diagnosis -> diagnosis.setEmr(emr));
         }
 
 
-        // 4 Добавляем EMR в коллекцию пациента
+        // 4 Add EMR to patient collection
         patient.getEmr().add(emr);
         emrRepository.save(emr);
-        // Извлекаем диагнозы для аналитики
+        // Extract diagnoses for analytics
         List<String> diagnosisCodes = emr.getDiagnoses() != null ?
                 emr.getDiagnoses().stream().map(Diagnosis::getIcdCode).toList() : new ArrayList<>();
         List<String> diagnosisDescriptions = emr.getDiagnoses() != null ?
@@ -184,7 +184,7 @@ public class NurseServiceImpl implements NurseService {
                 this,
                 emr.getId(),
                 mrn,
-                "nurse_id", // TODO: заменить на реальный ID
+                "nurse_id", // TODO: replace with real ID
                 "NURSE",
                 LocalDateTime.now(),
                 emr.getGfr(),
@@ -194,7 +194,7 @@ public class NurseServiceImpl implements NurseService {
                 diagnosisCodes,
                 diagnosisDescriptions
         ));
-        // 5 Hibernate сам сохранит всё (EMR + Diagnosis) в конце транзакции
+        // 5 Hibernate will save everything (EMR + Diagnosis) at end of transaction
         return modelMapper.map(emr, EmrDTO.class);
     }
 
@@ -222,14 +222,14 @@ public class NurseServiceImpl implements NurseService {
             emr.setSensitivities(emrUpdateDto.getSensitivities());  // new filed that we missed
         if (emrUpdateDto.getSodium() != null) emr.setSodium(emrUpdateDto.getSodium());
         if (emrUpdateDto.getDiagnoses() != null) {
-            // полностью чистим старые диагнозы
+            // Completely clear old diagnoses
             emr.getDiagnoses().clear();
 
-            // добавляем новые в ту же коллекцию (не создаём новый Set!)
+            // Add new ones to same collection (don not create new Set!)
             emrUpdateDto.getDiagnoses().forEach(dto -> {
                 Diagnosis d = modelMapper.map(dto, Diagnosis.class);
-                d.setEmr(emr); // обратная связь
-                emr.getDiagnoses().add(d); // добавляем прямо в старый Set
+                d.setEmr(emr); // Bidirectional relationship
+                emr.getDiagnoses().add(d); // Add directly to old Set
             });
         }
         return modelMapper.map(emr, EmrDTO.class);
@@ -243,12 +243,12 @@ public class NurseServiceImpl implements NurseService {
         vas.setPatient(patient);
         patient.getVas().add(vas);
 
-        // Публикация события VAS (INTERNAL источник - медсестра)
+        // Publish VAS event (INTERNAL source - nurse)
         eventPublisher.publishEvent(new VasRecordedEvent(
                 this,
                 vas.getId(),
                 mrn,
-                "nurse_id", // TODO: заменить на реальный ID из Security Context
+                "nurse_id", // TODO: replace with real ID from Security Context
                 LocalDateTime.now(),
                 vas.getPainLevel(),
                 vas.getPainPlace(),
@@ -294,16 +294,15 @@ public class NurseServiceImpl implements NurseService {
     @Override
     @Transactional(readOnly = true)
     public List<RecommendationDTO> getAllApprovedRecommendations() {
-        // 1. Достаём из базы все рекомендации, у которых статус = PENDING
+        // 1. Fetch all recommendations with PENDING status from database
         List<Recommendation> recommendations = recommendationRepository.findByStatus(RecommendationStatus.APPROVED);
-        // 2. Пробегаемся по каждой найденной рекомендации и формируем комбинированный DTO
+        // 2. Iterate through each found recommendation and form combined DTO
         return recommendations.stream().map(recommendation -> {
-            // 2.1. Получаем MRN пациента, которому принадлежит эта рекомендация
+            // 2.1. Get MRN of patient who owns this recommendation
             String mrn = recommendation.getPatient().getMrn();
-            // 2.2. Маппим Recommendation entity в RecommendationDTO
+            // 2.2. Map Recommendation entity to RecommendationDTO
             RecommendationDTO recommendationDTO = modelMapper.map(recommendation, RecommendationDTO.class);
-            // 2.3. Внутри RecommendationDTO есть опциональное поле patientMrn,
-            // которое мы вручную задаём — оно нужно фронту для идентификации пациента
+            // 2.3. RecommendationDTO has optional patientMrn field which we set manually - needed by frontend for patient identification
             recommendationDTO.setPatientMrn(mrn);
             return recommendationDTO;
         }).toList();
@@ -339,7 +338,7 @@ public class NurseServiceImpl implements NurseService {
 
         long processingTime = System.currentTimeMillis() - startTime;
 
-        // Извлекаем диагнозы для аналитики
+        // Extract diagnoses for analytics
         List<String> diagnosisCodes = emr.getDiagnoses() != null ?
                 emr.getDiagnoses().stream().map(Diagnosis::getIcdCode).toList() : new ArrayList<>();
 
@@ -361,7 +360,7 @@ public class NurseServiceImpl implements NurseService {
                 dosages,
                 route,
                 vas.getPainLevel(),
-                "nurse_id", // TODO: заменить на реальный ID из Security Context
+                "nurse_id", // TODO: replace with real ID from Security Context
                 LocalDateTime.now(),
                 processingTime,
                 diagnosisCodes
@@ -373,14 +372,14 @@ public class NurseServiceImpl implements NurseService {
     @Override
     @Transactional
     public RecommendationDTO executeRecommendation(String mrn) {
-        //  Находим пациента и его последнюю рекомендацию
+        // Find patient and their last recommendation
         Patient patient = findPatientOrThrow(mrn);
         Recommendation recommendation = patient.getRecommendations().getLast();
-        //  Проверяем, что её можно исполнить
+        // Check that it can be executed
         if (recommendation.getStatus() != RecommendationStatus.APPROVED) {
             throw new IllegalStateException("Only approved recommendations can be executed.");
         }
-        //  Получаем список препаратов для комментария
+        // Get drug list for comment
         List<String> drugNames = recommendation.getDrugs()
                 .stream()
                 .map(drugRecommendation -> drugRecommendation.getDrugName() != null && drugRecommendation.getDrugName().isBlank()
@@ -388,9 +387,9 @@ public class NurseServiceImpl implements NurseService {
                         : drugRecommendation.getActiveMoiety()
                 )
                 .toList();
-        //  Идентификатор текущей медсестры (временно — заглушка)
-        String nurseId = "NurseId"; // TODO: заменить на SecurityContextHolder.getContext().getAuthentication().getName()
-        //  Формируем красивое системное сообщение
+        // Current nurse identifier (temporary - stub)
+        String nurseId = "NurseId"; // TODO: replace with SecurityContextHolder.getContext().getAuthentication().getName()
+        // Format nice system message
         String comment = String.format("""
                         [SYSTEM]  Recommendation executed by Nurse: %s
                         Patient MRN: %s
@@ -402,14 +401,14 @@ public class NurseServiceImpl implements NurseService {
                 LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
                 String.join(", ", drugNames)
         );
-        // Добавляем комментарий и обновляем статус
+        // Add comment and update status
         recommendation.getComments().add(comment);
         recommendation.setStatus(RecommendationStatus.EXECUTED);
         recommendation.setUpdatedBy(nurseId);
         recommendation.setUpdatedAt(LocalDateTime.now());
-        // Сохраняем (каскадное сохранение драг-ов произойдёт автоматически)
+        // Save (cascade save of drugs will happen automatically)
         recommendationRepository.save(recommendation);
-        // (в будущем) публикуем Event для аналитики
+        // (in future) publish Event for analytics
         //TODO eventPublisher.publishEvent(new RecommendationExecutedEvent(...));
         return modelMapper.map(recommendation, RecommendationDTO.class);
     }
