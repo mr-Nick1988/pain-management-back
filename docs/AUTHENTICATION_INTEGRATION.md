@@ -1,4 +1,4 @@
-# Authentication Service Integration Guide
+н# Authentication Service Integration Guide
 
 **Version:** 1.0  
 **Date:** 2026-01-08  

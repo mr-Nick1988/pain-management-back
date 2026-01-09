@@ -1,4 +1,4 @@
-﻿package pain_helper_back.doctor.service;
+package pain_helper_back.doctor.service;
 
 
 import pain_helper_back.common.patients.dto.*;
@@ -15,50 +15,50 @@ import java.util.List;
         // ================= PATIENTS ================= //
 
         /*
-         * Созyesние нового patient
-         * @param patientDto DTO с yesнными patient
-         * @return созyesнный patient
-         * @throws EntityExistsException if email or телефон already существуют
+         * Create new patient
+         * @param patientDto DTO with patient data
+         * @return created patient
+         * @throws EntityExistsException if email or phone already exist
          */
         PatientDTO createPatient(PatientDTO patientDto);
 
         /*
-         * retrieval patient по MRN (Medical Record Number)
-         * @param mrn уникальный number медицинской карты
-         * @return data patient
+         * Get patient by MRN (Medical Record Number)
+         * @param mrn unique medical record number
+         * @return patient data
          * @throws NotFoundException if patient not found
          */
         PatientDTO getPatientByMrn(String mrn);
 
         /*
-         * retrieval patient по email
-         * @param email email patient
-         * @return data patient
+         * Get patient by email
+         * @param email patient email
+         * @return patient data
          * @throws NotFoundException if patient not found
          */
         PatientDTO getPatientByEmail(String email);
 
         /*
-         * retrieval patient по numberу телефона
-         * @param phoneNumber number телефона patient
-         * @return data patient
+         * Get patient by phone number
+         * @param phoneNumber patient phone number
+         * @return patient data
          * @throws NotFoundException if patient not found
          */
         PatientDTO getPatientByPhoneNumber(String phoneNumber);
 
         /*
-         * search patientов по различным критериям
-         * all Parameters опциональны, can комбинировать
-         * @param firstName name (частичное совпадение, without учета регистра)
-         * @param lastName фамorя (частичное совпадение, without учета регистра)
-         * @param isActive status активности (true/false)
-         * @param birthDate yesта рождения (точное совпадение)
-         * @param gender пол (MALE/FEMALE/OTHER)
-         * @param insurancePolicyNumber number страховки (частичное совпадение)
-         * @param address адрес (частичное совпадение, without учета регистра)
-         * @param phoneNumber телефон (частичное совпадение)
-         * @param email email (частичное совпадение, without учета регистра)
-         * @return list найденных patientов
+         * Search patients by various criteria
+         * All parameters are optional and can be combined
+         * @param firstName first name (partial match, case insensitive)
+         * @param lastName last name (partial match, case insensitive)
+         * @param isActive activity status (true/false)
+         * @param birthDate birth date (exact match)
+         * @param gender gender (MALE/FEMALE/OTHER)
+         * @param insurancePolicyNumber insurance policy number (partial match)
+         * @param address address (partial match, case insensitive)
+         * @param phoneNumber phone number (partial match)
+         * @param email email (partial match, case insensitive)
+         * @return list of found patients
          */
         List<PatientDTO> searchPatients(
                 String firstName,
@@ -73,17 +73,17 @@ import java.util.List;
         );
 
         /*
-         * Уyesление patient по MRN
-         * @param mrn уникальный number медицинской карты
+         * Delete patient by MRN
+         * @param mrn unique medical record number
          */
         void deletePatient(String mrn);
 
         /*
-         * update yesнных patient
-         * Обновляются only переdata (не null) поля
-         * @param mrn уникальный number медицинской карты
-         * @param patientUpdateDto DTO с Updateыми полями
-         * @return обновленные data patient
+         * Update patient data
+         * Only provided (non-null) fields are updated
+         * @param mrn unique medical record number
+         * @param patientUpdateDto DTO with updated fields
+         * @return updated patient data
          * @throws NotFoundException if patient not found
          */
         PatientDTO updatePatient(String mrn, PatientUpdateDTO patientUpdateDto);
@@ -91,54 +91,54 @@ import java.util.List;
         // ================= EMR (Electronic Medical Records) ================= //
 
         /*
-         * Созyesние новой медицинской карты for patient
-         * @param mrn уникальный number медицинской карты patient
-         * @param emrDto DTO с медицинскими yesнными
-         * @return созyesнная медицинская map
+         * Create new medical record for patient
+         * @param mrn unique patient medical record number
+         * @param emrDto DTO with medical data
+         * @return created medical record
          * @throws NotFoundException if patient not found
          */
         EmrDTO createEmr(String mrn, EmrDTO emrDto);
 
         /*
-         * retrieval afterдней медицинской карты patient
-         * @param mrn уникальный number медицинской карты patient
-         * @return afterдняя медицинская map
+         * Get last medical record of patient
+         * @param mrn unique patient medical record number
+         * @return last medical record
          * @throws NotFoundException if patient not found
          */
         EmrDTO getLastEmrByPatientMrn(String mrn);
 
         /*
-         * update afterдней медицинской карты patient
-         * Обновляются only переdata (не null) поля
-         * @param mrn уникальный number медицинской карты patient
-         * @param emrUpdateDto DTO с Updateыми полями
-         * @return обновленная медицинская map
+         * Update last medical record of patient
+         * Only provided (non-null) fields are updated
+         * @param mrn unique patient medical record number
+         * @param emrUpdateDto DTO with updated fields
+         * @return updated medical record
          * @throws NotFoundException if patient not found
          */
         EmrDTO updateEmr(String mrn, EmrUpdateDTO emrUpdateDto);
 
         /*
-         * retrieval allх медицинских карт patient (история)
-         * @param mrn уникальный number медицинской карты patient
-         * @return list allх медицинских карт patient
+         * Get all medical records of patient (history)
+         * @param mrn unique patient medical record number
+         * @return list of all patient medical records
          * @throws NotFoundException if patient not found
          */
         List<EmrDTO> getAllEmrByPatientMrn(String mrn);
 
-        // ================= RECOMMENDATIONS (recommendation) ================= //
+        // ================= RECOMMENDATIONS ================= //
 
         /*
-         * retrieval allх рекоменyesций со statusом PENDING
-         * Returns recommendation вместе с VAS (level pain)
-         * @return list рекоменyesций, ожиyesющих одобрения doctorа
+         * Get all recommendations with PENDING status
+         * Returns recommendations together with VAS (pain level)
+         * @return list of recommendations awaiting doctor approval
          */
         List<RecommendationWithVasDTO> getAllPendingRecommendations();
 
         /*
-         * retrieval afterдней recommendation for patient
-         * Returns рекоменyesцию вместе с VAS (level pain)
-         * @param mrn уникальный number медицинской карты patient
-         * @return afterдняя recommendation с VAS
+         * Get last recommendation for patient
+         * Returns recommendation together with VAS (pain level)
+         * @param mrn unique patient medical record number
+         * @return last recommendation with VAS
          * @throws NotFoundException if patient not found
          */
         RecommendationWithVasDTO getLastRecommendationByMrn(String mrn);
