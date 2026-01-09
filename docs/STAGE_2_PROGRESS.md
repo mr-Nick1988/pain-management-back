@@ -137,22 +137,25 @@
 
 ---
 
-## 🔄 STAGE 2.3: Analytics & Monitoring Service (Next)
+## ❌ STAGE 2.3: Analytics & Monitoring Service - CANCELLED
+
+**Decision:** Using Prometheus + Grafana for technical monitoring instead  
+**Reason:** Industry standard approach, no need for custom microservice  
+**See:** Observability Stack in STAGE 4
+
+---
+
+## 🔄 STAGE 2.3: Pain Escalation Tracking Service (In Progress)
 
 **Planned features:**
-- Performance metrics collection
-- MongoDB for time-series data
-- Kafka consumer for analytics events
-- SLA monitoring
+- Escalation workflow management
+- Dose administration tracking
+- Integration with treatment protocols
+- Kafka producers for escalation events
 
 ---
 
 ## ⏳ Remaining Services
-
-### STAGE 2.3: Analytics & Monitoring Service
-- Performance metrics collection
-- MongoDB for time-series data
-- Kafka consumer for analytics events
 
 ### STAGE 2.4: Pain Escalation Tracking Service
 - Escalation workflow management
@@ -178,9 +181,14 @@
 **Summary:**
 - ✅ EMR Integration Service - 20 files, 1,136 lines
 - ✅ Notification Service - 28 files, 1,979 lines
-- 🔄 Analytics & Monitoring Service - In Progress
-- ⏳ Pain Escalation Tracking Service
+- 🔄 Pain Escalation Tracking Service - In Progress
 - ⏳ External VAS Integration Service
+- ❌ Analytics & Monitoring Service - CANCELLED (using Prometheus/Grafana instead)
+
+**Important Notes:**
+- **Logging Service** renamed to **Business Analytics Service** (port 8083)
+- **Technical Monitoring:** Prometheus + Grafana (STAGE 4)
+- **Business Analytics:** PostgreSQL + REST API for reports
 
 ---
 
