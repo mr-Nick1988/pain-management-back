@@ -1,33 +1,64 @@
+# ============================================================================
+# Pain Management Platform - Local Development Stack
+# ============================================================================
+# ЦЕЛЬ: Запуск всей инфраструктуры и микросервисов для локальной разработки
+#
+# АРХИТЕКТУРА:
+# - Монолит (port 8080) - основная бизнес-логика
+# - 6 микросервисов (8082-8089, 8091) - специализированные функции
+# - Kafka - event streaming
+# - PostgreSQL - основная БД (MongoDB удалена!)
+#
+# ИСПОЛЬЗОВАНИЕ ПРОФИЛЕЙ:
+# docker-compose up                     # Только инфраструктура (Kafka, Postgres)
+# docker-compose --profile all up       # Всё (инфраструктура + все микросервисы)
+# docker-compose --profile core up      # Только критичные сервисы
+# docker-compose --profile tools up     # Инфраструктура + инструменты (Kafdrop)
+#
+# ЛЕГКОВЕСНЫЕ ОБРАЗЫ:
+# - postgres:16-alpine (~80MB вместо ~150MB)
+# - Kafka на базе Confluent Platform
+# - Все микросервисы с multi-stage builds
+# ============================================================================
+
 name: painmgmt-dev
 
-# Unified local development stack for Pain Management
-# - Default brings up infrastructure (Kafka KRaft, Postgres, MongoDB)
-# - Optional microservices can be enabled via compose profiles: analytics, auth, logging
-
 services:
+  # ==========================================================================
+  # INFRASTRUCTURE: Apache Kafka (KRaft mode - без Zookeeper)
+  # ==========================================================================
+  # Event streaming платформа для асинхронного взаимодействия
+  # Порт: 9092 (localhost), 29092 (внутри Docker сети)
+  # KRaft = упрощенная архитектура без Zookeeper
   kafka:
     image: confluentinc/cp-kafka:7.6.1
     container_name: dev_kafka
-    profiles: ["infra"]
+    hostname: kafka
     ports:
-      - "9092:9092"   # host access (PLAINTEXT_HOST)
+      - "9092:9092"   # Доступ с хоста (монолит, IDE)
     environment:
+      # KRaft configuration (без Zookeeper)
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
-      # Dual listeners: inside docker network and from host, plus controller listener
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk  # Уникальный ID кластера
+      
+      # Listeners: внутри Docker (29092) + с хоста (9092) + controller (9093)
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
-      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      
+      # Performance settings для dev окружения
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"  # Автоматическое создание топиков
+      
+      # Log settings
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
     healthcheck:
       test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
       interval: 10s
@@ -37,243 +68,411 @@ services:
     networks:
       - dev-net
 
-  # Optional job to ensure topics exist (will exit after creation)
-  kafka-create-topics:
-    image: confluentinc/cp-kafka:7.6.1
-    profiles: ["infra"]
-    depends_on:
-      kafka:
-        condition: service_healthy
-    entrypoint: ["bash", "-lc", "\
-      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic analytics-events --replication-factor 1 --partitions 1 && \
-      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic logging-events --replication-factor 1 --partitions 1 && \
-      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic emr.changes --replication-factor 1 --partitions 1 && \
-      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic emr.upserted --replication-factor 1 --partitions 1 && \
-      kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --topic reporting-commands --replication-factor 1 --partitions 1 && \
-      echo 'Kafka topics ensured' "]
-    networks:
-      - dev-net
-
-  # =========================
-  # Postgres (monolith + auth)
-  # =========================
-  postgres-main:
-    image: postgres:16-alpine
-    container_name: dev_postgres_main
+  # ==========================================================================
+  # INFRASTRUCTURE: PostgreSQL 16 (Alpine - легковесный образ ~80MB)
+  # ==========================================================================
+  # Основная БД для монолита и некоторых микросервисов
+  # База: pain_management_db
+  # Порт: 5432
+  postgres:
+    image: postgres:16-alpine  # Alpine = ~80MB вместо ~150MB обычного образа
+    container_name: dev_postgres
+    hostname: postgres
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_DB: pain_management_db
-      POSTGRES_USER: ${PG_AUTH_USER:-postgres}
-      POSTGRES_PASSWORD: ${PG_AUTH_PASSWORD:-postgres}
-    ports:
-      - "5432:5432"   # monolith connects to localhost:5432
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      # Производительность для dev окружения
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
     volumes:
-      - pg-main-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pain_management_db"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
     networks:
       - dev-net
 
-  backup-restore:
-    build:
-      context: ../microservices/backup_restore
-      dockerfile: Dockerfile
-    container_name: backup-restore
-    profiles: ["ops"]
-    ports:
-      - "8085:8085"
-    environment:
-      # JPA-хранилище истории (Postgres)
-      SPRING_DATASOURCE_URL: ${BACKUP_DS_URL:-jdbc:postgresql://postgres-main:5432/backup_service}
-      SPRING_DATASOURCE_USERNAME: ${BACKUP_DS_USER:-postgres}
-      SPRING_DATASOURCE_PASSWORD: ${BACKUP_DS_PASS:-postgres}
-
-      # Целевой Postgres для бэкапа/рестора
-      PG_HOST: ${PG_HOST:-postgres-main}
-      PG_PORT: ${PG_PORT:-5432}
-      PG_DB: ${PG_DB:-pain_management_db}
-      PG_USER: ${PG_USER:-postgres}
-      PG_PASSWORD: ${PG_PASSWORD:-postgres}
-
-      # Целевой Mongo для бэкапа/рестора
-      # Если у вас контейнер mongo в compose, используйте: mongodb://mongo:27017/painmanagement
-      MONGODB_BACKUP_URI: ${MONGODB_BACKUP_URI:-mongodb://host.docker.internal:27017/painmanagement}
-
-      # Пути к CLI (в Dockerfile уже установлены; оставьте по умолчанию)
-      PG_DUMP_PATH: ${PG_DUMP_PATH:-pg_dump}
-      PG_RESTORE_PATH: ${PG_RESTORE_PATH:-pg_restore}
-      MONGO_DUMP_PATH: ${MONGO_DUMP_PATH:-mongodump}
-      MONGO_RESTORE_PATH: ${MONGO_RESTORE_PATH:-mongorestore}
-
-      # Директории и ретеншн
-      BACKUP_BASE_DIR: ${BACKUP_BASE_DIR:-/app/backups}
-      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
-
-      # Планировщик (по умолчанию выкл)
-      BACKUP_SCHEDULER_ENABLED: ${BACKUP_SCHEDULER_ENABLED:-false}
-    volumes:
-      - ./backups/backup_restore:/app/backups
-    depends_on:
-      postgres-main:
-        condition: service_started
-    restart: unless-stopped
-    networks:
-      - dev-net
-
+  # ==========================================================================
+  # INFRASTRUCTURE: PostgreSQL для Reporting Service
+  # ==========================================================================
+  # Отдельная БД для аналитики и отчетов
+  # База: analytics_reporting
+  # Порт: 5433
   postgres-analytics:
     image: postgres:16-alpine
     container_name: dev_postgres_analytics
-    profiles: ["reporting"]
-    environment:
-      POSTGRES_DB: analytics_reporting
-      POSTGRES_USER: ${PG_USER:-analytics}
-      POSTGRES_PASSWORD: ${PG_PASSWORD:-analytics}
+    hostname: postgres-analytics
+    profiles: ["reporting", "all", "core"]
     ports:
       - "5433:5432"
+    environment:
+      POSTGRES_DB: analytics_reporting
+      POSTGRES_USER: ${POSTGRES_ANALYTICS_USER:-analytics}
+      POSTGRES_PASSWORD: ${POSTGRES_ANALYTICS_PASSWORD:-analytics}
     volumes:
-      - pg-analytics-data:/var/lib/postgresql/data
+      - postgres-analytics-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test: ["CMD-SHELL", "pg_isready -U analytics -d analytics_reporting"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
     networks:
       - dev-net
 
-  # =========================
-  # Optional microservices (enable via profiles)
-  # =========================
-  external-emr:
-    image: external-emr:dev
+  # ==========================================================================
+  # MICROSERVICE: Authentication Service (порт 8082)
+  # ==========================================================================
+  # JWT аутентификация и управление пользователями
+  # База данных: auth_db (на host.docker.internal:5432)
+  # Kafka: публикует события аутентификации
+  auth-service:
     build:
-      context: C:/backend_projects/microservices/external_emr
-    container_name: dev_external_emr
-    profiles: ["emr"]
+      context: C:/backend_projects/microservices/authentication-service
+      dockerfile: Dockerfile
+    image: pain-mgmt/auth-service:dev
+    container_name: dev_auth
+    profiles: ["auth", "all", "core"]
+    ports:
+      - "8082:8082"
     environment:
-      SPRING_PROFILES_ACTIVE: local
+      # Database (на хосте, не в Docker)
+      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/auth_db
+      SPRING_DATASOURCE_USERNAME: ${AUTH_DB_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${AUTH_DB_PASSWORD:-newpassword}
+      
+      # JWT Secret (должен совпадать с монолитом!)
+      JWT_SECRET: ${JWT_SECRET:-pain-management-secret-key-change-in-production-min-256-bits-required-for-hs256-algorithm-security}
+      
+      # CORS
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
+    depends_on:
+      - postgres
+    networks:
+      - dev-net
+
+  # ==========================================================================
+  # MICROSERVICE: EMR Integration Service (порт 8086)
+  # ==========================================================================
+  # Интеграция с внешними EMR системами через FHIR R4
+  # База данных: emr_integration_db
+  # Kafka: публикует emr.changes, emr.created
+  emr-service:
+    build:
+      context: C:/backend_projects/microservices/emr-integration-service
+      dockerfile: Dockerfile
+    image: pain-mgmt/emr-service:dev
+    container_name: dev_emr
+    profiles: ["emr", "all", "core"]
+    ports:
+      - "8086:8086"
+    environment:
+      # Database
+      DB_URL: jdbc:postgresql://postgres:5432/emr_integration_db
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      
+      # Kafka
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      SPRING_KAFKA_PRODUCER_KEY_SERIALIZER: org.apache.kafka.common.serialization.StringSerializer
-      SPRING_KAFKA_PRODUCER_VALUE_SERIALIZER: org.springframework.kafka.support.serializer.JsonSerializer
-      EMR_CHANGES_TOPIC: ${EMR_CHANGES_TOPIC:-emr.changes}
-      EMR_UPSERTED_TOPIC: ${EMR_UPSERTED_TOPIC:-emr.upserted}
-      EMR_SYNC_ENABLED: ${EMR_SYNC_ENABLED:-false}
+      
+      # FHIR Server
       FHIR_SERVER_URL: ${FHIR_SERVER_URL:-http://hapi.fhir.org/baseR4}
-      FHIR_CONNECTION_TIMEOUT: ${FHIR_CONNECTION_TIMEOUT:-10000}
-      FHIR_SOCKET_TIMEOUT: ${FHIR_SOCKET_TIMEOUT:-10000}
-      SERVER_PORT: 8086
+      FHIR_CONNECTION_TIMEOUT: 10000
+      FHIR_SOCKET_TIMEOUT: 10000
+      
+      # Sync settings
+      EMR_SYNC_ENABLED: ${EMR_SYNC_ENABLED:-false}
     depends_on:
       kafka:
         condition: service_healthy
-    ports:
-      - "8086:8086"
+      postgres:
+        condition: service_healthy
     networks:
       - dev-net
+
+  # ==========================================================================
+  # MICROSERVICE: Notification Service (порт 8087)
+  # ==========================================================================
+  # Email, WebSocket, Push уведомления
+  # База данных: notification_db
+  # Kafka consumer: pain.escalated, dose.administered и др.
+  notification-service:
+    build:
+      context: C:/backend_projects/microservices/notification-service
+      dockerfile: Dockerfile
+    image: pain-mgmt/notification-service:dev
+    container_name: dev_notification
+    profiles: ["notification", "all", "core"]
+    ports:
+      - "8087:8087"
+    environment:
+      # Database
+      DB_URL: jdbc:postgresql://postgres:5432/notification_db
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      
+      # Kafka
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      
+      # Email (для dev можно использовать MailHog)
+      MAIL_HOST: ${MAIL_HOST:-localhost}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - dev-net
+
+  # ==========================================================================
+  # MICROSERVICE: Pain Escalation Service (порт 8088)
+  # ==========================================================================
+  # Автоматическое отслеживание эскалации боли
+  # База данных: pain_escalation_db
+  # Kafka: публикует pain.escalated, dose.administered, vas.recorded
+  pain-escalation-service:
+    build:
+      context: C:/backend_projects/microservices/pain-escalation-service
+      dockerfile: Dockerfile
+    image: pain-mgmt/pain-escalation:dev
+    container_name: dev_pain_escalation
+    profiles: ["escalation", "all", "core"]
+    ports:
+      - "8088:8088"
+    environment:
+      # Database
+      DB_URL: jdbc:postgresql://postgres:5432/pain_escalation_db
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      
+      # Kafka
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      
+      # Escalation settings
+      PAIN_ESCALATION_THRESHOLD: 2    # VAS increase to trigger escalation
+      PAIN_ANALYSIS_WINDOW: 24         # Hours
+      PAIN_CRITICAL_VAS: 7             # Critical pain level
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - dev-net
+
+  # ==========================================================================
+  # MICROSERVICE: External VAS Integration Service (порт 8089)
+  # ==========================================================================
+  # Интеграция с внешними VAS устройствами (JSON/XML/CSV)
+  # База данных: external_vas_db
+  # Kafka: публикует vas.external.recorded
+  external-vas-service:
+    build:
+      context: C:/backend_projects/microservices/external-vas-integration-service
+      dockerfile: Dockerfile
+    image: pain-mgmt/external-vas:dev
+    container_name: dev_external_vas
+    profiles: ["vas", "all"]
+    ports:
+      - "8089:8089"
+    environment:
+      # Database
+      DB_URL: jdbc:postgresql://postgres:5432/external_vas_db
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      
+      # Kafka
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      
+      # VAS settings
+      VAS_AUTO_RECOMMENDATION: 4       # VAS level to trigger auto-recommendation
+      VAS_HIGH_PAIN: 7                 # High pain threshold
+      API_KEY_LENGTH: 64               # API key length
+      API_KEY_DEFAULT_RATE_LIMIT: 100  # Requests per minute
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - dev-net
+
+  # ==========================================================================
+  # MICROSERVICE: Reporting Service (порт 8091)
+  # ==========================================================================
+  # Генерация отчетов и аналитика
+  # База данных: analytics_reporting (отдельный PostgreSQL)
+  # Kafka consumer: reporting-commands
   reporting-service:
-    image: reporting-service:dev
     build:
       context: C:/backend_projects/microservices/reporting_service
+      dockerfile: Dockerfile
+    image: pain-mgmt/reporting:dev
     container_name: dev_reporting
-    profiles: ["reporting"]
+    profiles: ["reporting", "all", "core"]
+    ports:
+      - "8091:8091"
     environment:
-      SPRING_PROFILES_ACTIVE: local
-      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      KAFKA_TOPIC_REPORTING_COMMANDS: ${KAFKA_TOPIC_REPORTING_COMMANDS:-reporting-commands}
-      KAFKA_TOPICS_REPORTING_COMMANDS: ${KAFKA_TOPICS_REPORTING_COMMANDS:-reporting-commands}
-      SPRING_KAFKA_CONSUMER_GROUP_ID: analytics-reporting-group
-      SERVER_PORT: 8091
+      # Database
       PG_JDBC_URL: jdbc:postgresql://postgres-analytics:5432/analytics_reporting
-      PG_USER: ${PG_USER:-analytics}
-      PG_PASSWORD: ${PG_PASSWORD:-analytics}
+      PG_USER: ${POSTGRES_ANALYTICS_USER:-analytics}
+      PG_PASSWORD: ${POSTGRES_ANALYTICS_PASSWORD:-analytics}
+      
+      # Kafka
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_TOPIC_REPORTING_COMMANDS: reporting-commands
     depends_on:
       kafka:
         condition: service_healthy
       postgres-analytics:
-        condition: service_started
-    ports:
-      - "8091:8091"
-    networks:
-      - dev-net
-
-  authentication-service:
-    image: authentication-service:dev
-    build:
-      context: C:/backend_projects/microservices/authentication-service
-    container_name: dev_authentication
-    profiles: ["auth"]
-    environment:
-      SPRING_PROFILES_ACTIVE: local
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://host.docker.internal:5432/auth_db}
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-postgres}
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-newpassword}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: none
-      JWT_SECRET: your-256-bit-secret-key-change-this-in-production-please-make-it-long-enough
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
-    ports:
-      - "8082:8082"
-    networks:
-      - dev-net
-
-  logging-service:
-    image: logging-service:dev
-    build:
-      context: C:/backend_projects/microservices/logging-service
-    container_name: dev_logging
-    profiles: ["logging"]
-    environment:
-      SPRING_PROFILES_ACTIVE: local
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      SPRING_DATA_MONGODB_URI: ${LOGGING_MONGODB_URI:-mongodb://mongo:27017/logging_db}
-      KAFKA_TOPIC_LOGGING_EVENTS: ${KAFKA_TOPIC_LOGGING_EVENTS:-logging-events}
-      SPRING_KAFKA_CONSUMER_GROUP_ID: logging-service-group
-      SERVER_PORT: 8083
-    depends_on:
-      kafka:
         condition: service_healthy
-      mongo:
-        condition: service_started
-    ports:
-      - "8081:8083"
     networks:
       - dev-net
 
-  mongo:
-    image: mongo:7.0
-    container_name: dev_mongo
-    profiles: ["logging"]
+  # ==========================================================================
+  # OPERATIONS: Backup & Restore Service (порт 8085)
+  # ==========================================================================
+  # Резервное копирование и восстановление баз данных
+  # ВНИМАНИЕ: MongoDB удалена! Только PostgreSQL бэкапы
+  backup-restore:
+    build:
+      context: C:/backend_projects/microservices/backup_restore
+      dockerfile: Dockerfile
+    image: pain-mgmt/backup-restore:dev
+    container_name: dev_backup
+    profiles: ["ops", "all"]
     ports:
-      - "27017:27017"
+      - "8085:8085"
+    environment:
+      # JPA store (история бэкапов)
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/backup_service
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      
+      # PostgreSQL target
+      PG_HOST: postgres
+      PG_PORT: 5432
+      PG_DB: pain_management_db
+      PG_USER: ${POSTGRES_USER:-postgres}
+      PG_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      
+      # MongoDB REMOVED - больше не поддерживается!
+      
+      # Backup settings
+      BACKUP_BASE_DIR: /app/backups
+      BACKUP_RETENTION_DAYS: 30
+      BACKUP_SCHEDULER_ENABLED: ${BACKUP_SCHEDULER_ENABLED:-false}
     volumes:
-      - mongo-data:/data/db
+      - ./backups:/app/backups
+    depends_on:
+      - postgres
     networks:
       - dev-net
 
-  # =========================
-  # Optional tools
-  # =========================
+  # ==========================================================================
+  # TOOLS: Kafdrop - Kafka UI (порт 9000)
+  # ==========================================================================
+  # Web UI для просмотра топиков, сообщений, consumer groups
+  # Доступ: http://localhost:9000
   kafdrop:
     image: obsidiandynamics/kafdrop:latest
     container_name: dev_kafdrop
-    profiles: ["tools"]
+    profiles: ["tools", "all"]
+    ports:
+      - "9000:9000"
     environment:
       KAFKA_BROKERCONNECT: kafka:29092
-      JVM_OPTS: -Xms32M -Xmx64M
+      JVM_OPTS: "-Xms32M -Xmx64M"  # Легковесный для dev окружения
     depends_on:
       kafka:
         condition: service_healthy
-    ports:
-      - "9000:9000"
     networks:
       - dev-net
 
+# ============================================================================
+# NETWORKS
+# ============================================================================
 networks:
   dev-net:
     driver: bridge
+    name: painmgmt-dev-network
 
+# ============================================================================
+# VOLUMES (Persistent Data)
+# ============================================================================
 volumes:
-  pg-main-data:
-  pg-analytics-data:
-  mongo-data:
+  postgres-data:
+    name: painmgmt-postgres-data
+  postgres-analytics-data:
+    name: painmgmt-analytics-data
+  # MongoDB volume УДАЛЕН - больше не используется!
+
+# ============================================================================
+# USAGE EXAMPLES
+# ============================================================================
+# 
+# 1. Запустить только инфраструктуру (Kafka + PostgreSQL):
+#    docker-compose up
+#
+# 2. Запустить всё (инфраструктура + все микросервисы):
+#    docker-compose --profile all up
+#
+# 3. Запустить критичные сервисы (инфраструктура + auth + emr + notification + reporting + escalation):
+#    docker-compose --profile core up
+#
+# 4. Запустить с инструментами разработки (Kafdrop):
+#    docker-compose --profile tools up
+#
+# 5. Запустить конкретный микросервис:
+#    docker-compose --profile emr up
+#
+# 6. Остановить всё:
+#    docker-compose --profile all down
+#
+# 7. Остановить и удалить volumes (ВНИМАНИЕ: удалит данные!):
+#    docker-compose --profile all down -v
+#
+# 8. Пересобрать образы:
+#    docker-compose --profile all build
+#
+# 9. Проверить конфигурацию:
+#    docker-compose config
+#
+# ============================================================================
+# KAFKA TOPICS (автоматически создаются)
+# ============================================================================
+# - analytics-events          # Бизнес-события от монолита
+# - reporting-commands        # Команды для Reporting Service
+# - emr.changes              # Изменения EMR от EMR Integration Service
+# - emr.created              # Создание EMR записей
+# - pain.escalated           # События эскалации боли
+# - dose.administered        # Администрирование доз
+# - vas.recorded             # Запись VAS (внутренняя)
+# - vas.external.recorded    # Запись VAS (внешние устройства)
+#
+# ============================================================================
+# PORTS SUMMARY
+# ============================================================================
+# Infrastructure:
+#   5432  - PostgreSQL (монолит)
+#   5433  - PostgreSQL Analytics
+#   9092  - Kafka
+#   9000  - Kafdrop (Kafka UI)
+#
+# Microservices:
+#   8080  - Монолит (запускать отдельно через IDE или mvn spring-boot:run)
+#   8082  - Authentication Service
+#   8085  - Backup & Restore Service
+#   8086  - EMR Integration Service
+#   8087  - Notification Service
+#   8088  - Pain Escalation Service
+#   8089  - External VAS Integration Service
+#   8091  - Reporting Service
+#
+# ============================================================================
