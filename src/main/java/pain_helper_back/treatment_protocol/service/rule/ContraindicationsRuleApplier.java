@@ -25,7 +25,7 @@ import java.util.regex.Pattern;
 public class ContraindicationsRuleApplier implements TreatmentRuleApplier {
 
     /**
-     * Регулярное выражение для извлечения ICD-кодов (например: 571.201, V45.1103, E11.9 и т.п.)
+     * Регулярное выражение for fromвлечения ICD-codeов (наExample: 571.201, V45.1103, E11.9 и т.п.)
      */
     private static final Pattern ICD_PATTERN =
             Pattern.compile("[A-Z]?[0-9]{2,3}(?:\\.[0-9A-Z]{1,4})?");
@@ -57,18 +57,18 @@ public class ContraindicationsRuleApplier implements TreatmentRuleApplier {
         String raw = tp.getContraindications();
         String contraindications = SanitizeUtils.clean(raw);
 
-        //  Extract ICD-коды из строки
+        //  Extract ICD-codeы from строки
         Set<String> contraindicationsSet = extractICDCodes(contraindications);
 
         log.info("Patient ICDs: {}", patientDiagnoses.stream().map(Diagnosis::getIcdCode).toList());
         log.info("Contra raw: {}", raw);
         log.info("Contra parsed: {}", contraindicationsSet);
 
-        //  Безопасно Extract имена drugов (избегаем NPE)
+        //  withoutопасно Extract имена drugов (fromбегаем NPE)
         String mainDrugName = SafeValueUtils.safeValue(recommendation.getDrugs().getFirst());
         String altMoiety = SafeValueUtils.safeValue(recommendation.getDrugs().get(1));
 
-        //  Check каждый diagnosis patient
+        //  Check each diagnosis patient
         for (Diagnosis diagnosis : patientDiagnoses) {
             String code = normalizeCode(diagnosis.getIcdCode());
             if (code.isEmpty()) continue;
@@ -90,7 +90,7 @@ public class ContraindicationsRuleApplier implements TreatmentRuleApplier {
 
                 rejectionReasons.add(reasonText);
 
-                //  Обнуляем все drugы — recommendation исключается полностью
+                //  Обнуляем all drugы — recommendation исключается полностью
                 recommendation.getDrugs().forEach(DrugUtils::clearDrug);
 
                 log.warn("Avoid triggered by contraindications: patient={}, code={}, desc={}",
@@ -103,12 +103,12 @@ public class ContraindicationsRuleApplier implements TreatmentRuleApplier {
                 getClass().getSimpleName(), patient.getId());
     }
 
-    /*Нормализует код diagnosisа (удаляет пробелы, делает верхний регистр)*/
+    /*Нормалfromует code diagnosisа (удаляет пробелы, делает верхний регистр)*/
     private String normalizeCode(String code) {
         return code == null ? "" : code.trim().replace("\u00A0", "").toUpperCase();
     }
 
-    /* Извлекает все ICD-коды из длинной строки (например: "571.201 OR 571.901").*/
+    /* fromвлекает all ICD-codeы from длинной строки (наExample: "571.201 OR 571.901").*/
     private Set<String> extractICDCodes(String contraindications) {
         Set<String> codes = new HashSet<>();
         Matcher matcher = ICD_PATTERN.matcher(contraindications);

@@ -7,8 +7,8 @@ import pain_helper_back.common.patients.entity.DrugRecommendation;
 import java.util.*;
 
 /**
- * Агрегатор корректировок доз и интервалов, проходящий через все RuleApplier.
- * Сохраняет все изменения от фильтров и в конце вычисляет:
+ * Агрегатор корректировок доз и интервалов, проходящий via all RuleApplier.
+ * Сохраняет all fromменения от фильтров и в конце вычисляет:
  *  - минимальную дозу
  *  - максимальный интервал
  */
@@ -57,7 +57,7 @@ public class CorrectionAggregator {
         }
     }
 
-    /* Очищаем агрегатор после завершения генерации recommendation */
+    /* Очищаем агрегатор after завершения генерации recommendation */
     public void clear() {
         doseCorrections.clear();
         intervalCorrections.clear();

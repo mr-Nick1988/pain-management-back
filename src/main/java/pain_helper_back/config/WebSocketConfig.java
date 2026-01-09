@@ -1,15 +1,15 @@
-/*
+﻿/*
  * UNIFIED WebSocket Configuration
  * 
  * ENDPOINTS:
- * - /ws - основной endpoint для всех WebSocket подключений
+ * - /ws - основной endpoint for allх WebSocket подключений
  * 
  * TOPICS:
- * - /topic/escalations/anesthesiologists - эскалации для анестезиологов
- * - /topic/escalations/doctors - эскалации для врачей
+ * - /topic/escalations/anesthesiologists - эскалации for анестезиологов
+ * - /topic/escalations/doctors - эскалации for врачей
  * - /topic/escalations/critical - критические эскалации
  * - /topic/escalations/dashboard - мониторинг эскалаций
- * - /topic/emr-alerts - критические изменения в EMR
+ * - /topic/emr-alerts - критические fromменения в EMR
  * 
  * FRONTEND CONNECTION:
  * const socket = new SockJS('http://localhost:8080/ws');
@@ -33,15 +33,15 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void configureMessageBroker(MessageBrokerRegistry config) {
         // Настройка брокера сообщений (куда фронт будет подписываться)
         config.enableSimpleBroker("/topic", "/queue");
-        // Префикс, через который фронт шлёт запросы на бэк (например, если ты делаешь send из React)
+        // Префикс, via который фронт шлёт requestы на бэк (наExample, if ты делаешь send from React)
         config.setApplicationDestinationPrefixes("/app");
-        // Префикс для персональных сообщений
+        // Префикс for персональных сообщений
         config.setUserDestinationPrefix("/user");
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // Основной endpoint для всех WebSocket подключений
+        // Основной endpoint for allх WebSocket подключений
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("*")
                 .withSockJS();

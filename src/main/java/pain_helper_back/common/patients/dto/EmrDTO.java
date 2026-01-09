@@ -1,4 +1,4 @@
-package pain_helper_back.common.patients.dto;
+﻿package pain_helper_back.common.patients.dto;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
@@ -58,8 +58,8 @@ public class EmrDTO {
     private LocalDateTime createdAt;
     private String createdBy;
 
-    // пока опциональное поле, не используется на фронте
-    private String patientMrn; // пригодится для поисковых запросов без обёртки Patient,чтоб понять к кому относится
-    // создать нужный метод в сервисе и не забыть присвоить это поле (поиск всех EMR с gfr<60)
+    // пока опциональное field, не используется на фронте
+    private String patientMrn; // пригодится for поисковых requestов without обёртки Patient,чтоб понять к кому относится
+    // создать нужный Method в Serviceе и не забыть присвоить это field (поиск allх EMR с gfr<60)
     // emrDto.setPatientMrn(emr.getPatient().getMrn());
 }

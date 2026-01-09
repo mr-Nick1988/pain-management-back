@@ -27,7 +27,7 @@ public class Recommendation {
     @Column(name = "regimen_hierarchy")
     private int regimenHierarchy;
     @Column(name = "status")
-    @Enumerated(EnumType.STRING)   // by default, если не поставить аннотацию @Enumerated, то JPA сохранит числовой индекс enum-а (ORDINAL).
+    @Enumerated(EnumType.STRING)   // by default, if не поставить аннотацию @Enumerated, то JPA сохранит числовой индекс enum-а (ORDINAL).
     private RecommendationStatus status;
     @Column(name = "rejected_reason")
     private String rejectedReason;
@@ -78,7 +78,7 @@ public class Recommendation {
     private String anesthesiologistComment;
 
     @Column(name = "replaced_at")
-    private LocalDateTime replacedAt; // Отследить жизн. цикл после reject старой рек. заменяется на новую
+    private LocalDateTime replacedAt; // Отследить жfromн. цикл after reject старой рек. заменяется на новую
     @Column(name = "replacement_id")
     private Long replacementId; // ID новой recommendation, которая заменяет старую
 
@@ -112,16 +112,16 @@ public class Recommendation {
     private String reviewReason;  // Причина необходимости пересмотра
     
     @Column(name = "review_requested_at")
-    private LocalDateTime reviewRequestedAt;  // Когда запрошен пересмотр
+    private LocalDateTime reviewRequestedAt;  // when запрошен пересмотр
     
     @Column(name = "reviewed_by", length = 50)
     private String reviewedBy;  // Кто пересмотрел
     
     @Column(name = "reviewed_at")
-    private LocalDateTime reviewedAt;  // Когда пересмотрено
+    private LocalDateTime reviewedAt;  // when пересмотрено
     
     @Column(name = "description", length = 5000, columnDefinition = "TEXT")
-    private String description;  // Описание recommendation
+    private String description;  // Description recommendation
     
     @Column(name = "justification", length = 5000, columnDefinition = "TEXT")
     private String justification;  // Обоснование recommendation

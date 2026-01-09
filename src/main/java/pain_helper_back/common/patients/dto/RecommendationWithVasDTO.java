@@ -1,8 +1,8 @@
-package pain_helper_back.common.patients.dto;
+﻿package pain_helper_back.common.patients.dto;
 
 import lombok.Data;
 /**
- * Универсальный DTO для действий Doctor / Anesthesiologist при запросе Recommendations.
+ * Универсальный DTO for действий Doctor / Anesthesiologist при requestе Recommendations.
  */
 
 @Data

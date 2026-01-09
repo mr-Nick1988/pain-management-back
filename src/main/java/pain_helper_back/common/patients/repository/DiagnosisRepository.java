@@ -8,7 +8,7 @@ import pain_helper_back.common.patients.entity.Diagnosis;
 public interface DiagnosisRepository extends JpaRepository<Diagnosis, Long> {
     
 //    /**
-//     * Находит все diagnosisы для конкретной медицинской карты (EMR).
+//     * Находит all diagnosisы for конкретной медицинской карты (EMR).
 //     *
 //     * @param emrId ID медицинской карты
 //     * @return list diagnosisов
@@ -16,10 +16,10 @@ public interface DiagnosisRepository extends JpaRepository<Diagnosis, Long> {
 //    List<Diagnosis> findByEmrId(Long emrId);
 //
 //    /**
-//     * Находит diagnosisы по ICD коду.
+//     * Находит diagnosisы по ICD codeу.
 //     *
-//     * @param IcdCode ICD код diagnosisа
-//     * @return list diagnosisов с данным кодом
+//     * @param IcdCode ICD code diagnosisа
+//     * @return list diagnosisов с данным codeом
 //     */
 //    List<Diagnosis> findByICdCode(String IcdCode);
 }

@@ -6,14 +6,14 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /*
- * Entity для хранения VAS (Visual Analog Scale) записей.
+ * Entity for хранения VAS (Visual Analog Scale) записей.
  *
  * ПОДДЕРЖКА ВНЕШНЕЙ ИНТЕГРАЦИИ:
  * - vasLevel - уровень боли (0-10)
  * - recordedAt - время записи
  * - location - локация patient
  * - notes - дополнительные заметки
- * - recordedBy - кто записал (медсестра или внешняя система)
+ * - recordedBy - кто записал (медсестра or внешняя система)
  */
 @Entity
 @Data
@@ -36,25 +36,25 @@ public class Vas {
 
 
     // ============================================
-    // НОВЫЕ ПОЛЯ ДЛЯ ВНЕШНЕЙ ИНТЕГРАЦИИ
+    // НОВЫЕ ПОЛЯ for ВНЕШНЕЙ ИНТЕГРАЦИИ
     // ============================================
 
     /**
      * Уровень боли по VAS (0-10)
-     * Используется для внешней интеграции
+     * Используется for внешней интеграции
      */
     @Column(name = "vas_level")
     private Integer vasLevel;
 
     /**
-     * Время записи VAS (из внешней системы или текущее)
+     * Время записи VAS (from внешней системы or текущее)
      */
     @Column(name = "recorded_at")
     private LocalDateTime recordedAt;
 
     /**
      * Локация patient
-     * Примеры: "Ward A, Bed 12", "ICU-3", "ER-Room-5"
+     * Exampleы: "Ward A, Bed 12", "ICU-3", "ER-Room-5"
      */
     @Column(name = "location", length = 255)
     private String location;
@@ -67,7 +67,7 @@ public class Vas {
 
     /**
      * Кто записал VAS
-     * Примеры: "nurse_maria", "EXTERNAL_JSON_IMPORT", "EXTERNAL_FHIR_R4_IMPORT"
+     * Exampleы: "nurse_maria", "EXTERNAL_JSON_IMPORT", "EXTERNAL_FHIR_R4_IMPORT"
      */
     @Column(name = "recorded_by", length = 100)
     private String recordedBy;
@@ -102,14 +102,14 @@ public class Vas {
             this.createdBy = "system";
         }
 
-        // Синхронизация vasLevel и painLevel
+        // Синхронfromация vasLevel и painLevel
         if (this.vasLevel != null && this.painLevel == null) {
             this.painLevel = this.vasLevel;
         } else if (this.painLevel != null && this.vasLevel == null) {
             this.vasLevel = this.painLevel;
         }
 
-        // Установка recordedAt если не задано
+        // Установка recordedAt if не задано
         if (this.recordedAt == null) {
             this.recordedAt = LocalDateTime.now();
         }

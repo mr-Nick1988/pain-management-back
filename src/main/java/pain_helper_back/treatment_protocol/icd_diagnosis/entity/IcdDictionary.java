@@ -18,7 +18,7 @@ import lombok.Setter;
 public class IcdDictionary {
 
     @Id
-    @JsonProperty("icdCode")   // 👈 Add JSON-алиас для соответствия с фронтом
+    @JsonProperty("icdCode")   // 👈 Add JSON-алиас for соresponseствия с фронтом
     private String code;        // "E11.9"
 
     private String description; // "Type 2 diabetes mellitus..."

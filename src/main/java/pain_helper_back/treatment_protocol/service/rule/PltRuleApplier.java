@@ -22,12 +22,12 @@ public class PltRuleApplier implements TreatmentRuleApplier {
 
     /*
      * PLT (platelet count) — количество тромбоцитов в крови.
-     * Измеряется в тысячах на микролитр крови: 1K/µL = 1000 тромбоцитов/µL
+     * fromмеряется в тысячах на микролитр крови: 1K/µL = 1000 тромбоцитов/µL
      * Норма: 150K–450K/µL
-     * <100K/µL → риск кровотечения, нужно избегать некоторых drugов
+     * <100K/µL → риск кровотечения, нужно fromбегать некоторых drugов
      */
 
-    // Пример формата правила: "<100K/µL - avoid"
+    // Example формата правила: "<100K/µL - avoid"
     private static final Pattern PLT_PATTERN = Pattern.compile("([<>]=?)\\s*(\\d+)\\s*[Kk]?/?µ?[lL]");
 
     @Override
@@ -39,21 +39,21 @@ public class PltRuleApplier implements TreatmentRuleApplier {
 
         log.info("=== [START] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
 
-        //  Пропускаем, если drug уже отклонён или пустой
+        //  Пропускаем, if drug уже отклонён or пустой
         if (!DrugUtils.hasInfo(drug)) {
             log.debug("Skipping {} — drug already rejected or empty", getClass().getSimpleName());
             log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
             return;
         }
 
-        String rule = tp.getPlt();  // например, "<100K/µL - avoid"
+        String rule = tp.getPlt();  // наExample, "<100K/µL - avoid"
         if (rule == null || rule.trim().isEmpty() || rule.equalsIgnoreCase("NA")) {
             log.debug("PLT rule empty or NA for protocol {}", tp.getId());
             log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
             return;
         }
 
-        Double patientPlt = patient.getEmr().getLast().getPlt(); // например, 92 или 120
+        Double patientPlt = patient.getEmr().getLast().getPlt(); // наExample, 92 or 120
         if (patientPlt == null) {
             log.warn("Patient PLT is null — cannot apply {}", getClass().getSimpleName());
             log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
@@ -67,16 +67,16 @@ public class PltRuleApplier implements TreatmentRuleApplier {
             return;
         }
 
-        String operator = m.group(1); // "<" или ">"
+        String operator = m.group(1); // "<" or ">"
         double limit = Double.parseDouble(m.group(2));
         boolean below = operator.contains("<") && patientPlt < limit;
         boolean above = operator.contains(">") && patientPlt > limit;
 
-        //  Безопасно Extract имена drugов (избегаем NPE)
+        //  withoutопасно Extract имена drugов (fromбегаем NPE)
         String mainDrugName = SafeValueUtils.safeValue(recommendation.getDrugs().getFirst());
         String altMoiety = SafeValueUtils.safeValue(recommendation.getDrugs().get(1));
 
-        // Если правило содержит "avoid" — отклоняем все drugы и Add причину отказа
+        // if правило Contains "avoid" — отклоняем all drugы и Add причину отказа
         if ((below || above) && rule.toLowerCase().contains("avoid")) {
 
             String reasonText = String.format(
@@ -89,10 +89,10 @@ public class PltRuleApplier implements TreatmentRuleApplier {
                     patientPlt
             );
 
-            // Add причину в общий list отказов (для аналитики и UI "No automatic recommendation found")
+            // Add причину в общий list отказов (for аналитики и UI "No automatic recommendation found")
             rejectionReasons.add(reasonText);
 
-            // Обнуляем все drugы, чтобы recommendation была исключена
+            // Обнуляем all drugы, чтобы recommendation была исключена
             for (DrugRecommendation d : recommendation.getDrugs()) {
                 DrugUtils.clearDrug(d);
             }

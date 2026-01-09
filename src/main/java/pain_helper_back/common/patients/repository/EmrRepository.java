@@ -6,13 +6,13 @@ import pain_helper_back.common.patients.entity.Emr;
 import java.util.List;
 
 /**
- * Репозиторий для медицинских карт (EMR).
- * Обычно все EMR тянутся через patient,
+ * Repository for медицинских карт (EMR).
+ * Обычно all EMR тянутся via patient,
  * но иногда может понадобиться прямой доступ к ним.
  *
- * Примеры кастомных запросов:
- * - Найти все EMR, где GFR < 60 (почечная недостаточность).
- * - Найти все EMR, где Child-Pugh = 'C' (тяжёлая печёночная недостаточность).
+ * Exampleы кастомных requestов:
+ * - Найти all EMR, где GFR < 60 (почечная недостаточность).
+ * - Найти all EMR, где Child-Pugh = 'C' (тяжёлая печёночная недостаточность).
  * - Найти EMR patient по MRN.
  */
 public interface EmrRepository extends JpaRepository<Emr, Long> {
@@ -21,9 +21,9 @@ public interface EmrRepository extends JpaRepository<Emr, Long> {
     List<Emr> findByGfrLessThan(String threshold);
     List<Emr> findByChildPughScore(String score);
 
-    // доступ к EMR по бизнес-идентификатору patient (MRN)
+    // доступ к EMR по бfromнес-identifierу patient (MRN)
     List<Emr> findByPatientMrn(String mrn);
 
-    // вариант с сортировкой по дате создания (чтобы брать последние значения)
+    // вариант с сортировкой по дате создания (чтобы брать afterдние значения)
     List<Emr> findByPatientMrnOrderByCreatedAtDesc(String mrn);
 }

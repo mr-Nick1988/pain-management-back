@@ -6,13 +6,13 @@ import pain_helper_back.common.patients.entity.Vas;
 import java.util.List;
 
 /**
- * Репозиторий для жалоб patient (VAS – pain score).
- * Через Patient можно получить все жалобы,
- * но иногда нужны выборки по всем patientм.
+ * Repository for жалоб patient (VAS – pain score).
+ * via Patient можно получить all жалобы,
+ * но иногда нужны выборки по allм patientм.
  *
- * Примеры кастомных запросов:
- * - Найти все жалобы, где painLevel > 7 (сильная боль).
- * - Найти последние жалобы по mrn (ORDER BY createdAt DESC).
+ * Exampleы кастомных requestов:
+ * - Найти all жалобы, где painLevel > 7 (сильная боль).
+ * - Найти afterдние жалобы по mrn (ORDER BY createdAt DESC).
  */
 public interface VasRepository extends JpaRepository<Vas, Long> {
     List<Vas> findByPainLevelGreaterThan(int threshold);

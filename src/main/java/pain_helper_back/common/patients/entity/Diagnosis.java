@@ -1,4 +1,4 @@
-package pain_helper_back.common.patients.entity;
+﻿package pain_helper_back.common.patients.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -22,7 +22,7 @@ public class Diagnosis {
     @JoinColumn(name = "emr_id")
     private Emr emr;
 
-    //  код и описание болезни
+    //  code и Description болезни
     private String icdCode;        // E11.9
     private String description; // Type 2 diabetes mellitus
 }

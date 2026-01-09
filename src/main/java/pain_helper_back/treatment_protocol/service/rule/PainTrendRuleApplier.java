@@ -1,4 +1,4 @@
-package pain_helper_back.treatment_protocol.service.rule;
+﻿package pain_helper_back.treatment_protocol.service.rule;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
@@ -76,7 +76,7 @@ public class PainTrendRuleApplier implements TreatmentRuleApplier {
 
     }
 
-    // ========= ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ =========
+    // ========= ВСПОМОГАТЕЛЬНЫЕ MethodЫ =========
 
     private void clearRecommendation(Recommendation recommendation,
                                      List<String> rejectionReasons,
@@ -95,7 +95,7 @@ public class PainTrendRuleApplier implements TreatmentRuleApplier {
         recommendation.getComments().add(String.format("[SYSTEM] %s. VAS history: %s", message, vasHistory));
     }
 
-    // [7,6,7] или [5,6,5]
+    // [7,6,7] or [5,6,5]
     private boolean isInversion(List<Integer> vasHistory) {
         if (vasHistory.size() < 3) return false;
         for (int i = 0; i < vasHistory.size() - 2; i++) {
@@ -107,7 +107,7 @@ public class PainTrendRuleApplier implements TreatmentRuleApplier {
         return false;
     }
 
-    // метод проверки критичности колебаний последних показателей боли (1- не критично, 2 и более - критично)
+    // Method проверки критичности колебаний afterдних показателей боли (1- не критично, 2 и более - критично)
     private int getLastInversionAmplitude(List<Integer> vas) {
         if (vas.size() < 3) return 0;
         for (int i = vas.size() - 3; i >= 0; i--) {

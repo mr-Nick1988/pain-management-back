@@ -1,4 +1,4 @@
-package pain_helper_back.common.patients.dto;
+﻿package pain_helper_back.common.patients.dto;
 
 
 import lombok.Data;
@@ -15,14 +15,14 @@ public class DrugRecommendationDTO {
 
     private String interval;
 
-    private DrugRoute route;                  // Путь введения, например "oral", "IV"
+    private DrugRoute route;                  // Путь введения, наExample "oral", "IV"
     private String ageAdjustment;           // Ограничения по возрасту
     private String weightAdjustment;
     private String childPugh;               // оценка влияния печёночной недостаточности
-    private DrugRole role;                // основное лекарство или альтернативное
+    private DrugRole role;                // основное лекарство or альтернативное
 
-    // пока опциональное поле, не используется на фронте
-    private String patientMrn; // пригодится для поисковых запросов без обёртки Patient,чтоб понять к кому относится
-    // создать нужный метод в сервисе и не забыть присвоить это поле (поиск всех Paracetamol)
+    // пока опциональное field, не используется на фронте
+    private String patientMrn; // пригодится for поисковых requestов without обёртки Patient,чтоб понять к кому относится
+    // создать нужный Method в Serviceе и не забыть присвоить это field (поиск allх Paracetamol)
     // emrDto.setPatientMrn(emr.getPatient().getMrn());
 }

@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Основной репозиторий для работы с patientми.
- * Через него можно добраться до всех связанных сущностей (EMR, VAS, Recommendations).
+ * Основной Repository for работы с patientми.
+ * via него можно добраться до allх связанных сущностей (EMR, VAS, Recommendations).
  */
 public interface PatientRepository extends JpaRepository<Patient, Long>, JpaSpecificationExecutor<Patient> {
 

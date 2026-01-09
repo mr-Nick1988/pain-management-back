@@ -16,35 +16,35 @@ public class ModelMapperConfig {
 
     @Bean
     ModelMapper getModelMapper() {
-        // 🔧 Создаём новый экземпляр ModelMapper
+        // 🔧 Создаём new экземпляр ModelMapper
         ModelMapper mapper = new ModelMapper();
 
         // ⚙ Базовые настройки маппера
         mapper.getConfiguration()
-                // Позволяет ModelMapper работать напрямую с полями класса (а не только с геттерами/сеттерами)
+                // Позволяет ModelMapper работать напрямую с полями Classа (а не только с геттерами/сеттерами)
                 .setFieldMatchingEnabled(true)
-                // Разрешает доступ к приватным полям через reflection
+                // Разрешает доступ к приватным полям via reflection
                 .setFieldAccessLevel(org.modelmapper.config.Configuration.AccessLevel.PRIVATE)
                 // Устанавливает максимально строгую стратегию сопоставления:
-                // поля должны полностью совпадать по имени и типу, иначе будут проигнорированы
+                // поля должны полностью совпадать по имени и typeу, иначе будут проигнорированы
                 .setMatchingStrategy(MatchingStrategies.STRICT);
 
-        //  Кастомная карта для Patient → PatientDTO
+        //  Кастомная карта for Patient → PatientDTO
         // Используется при возврате DTO наружу, чтобы скопировать нужные поля вручную
         mapper.createTypeMap(Patient.class, PatientDTO.class)
-                // Пример явного маппинга (если имена не совпадают, ModelMapper без этого их бы не увидел)
+                // Example явного маппинга (if имена не совпадают, ModelMapper without этого их бы не увидел)
                 .addMappings(m -> m.map(Patient::getCreatedBy, PatientDTO::setCreatedBy));
 
-        //  Кастомная карта для DiagnosisDTO → Diagnosis
-        // Это ключевой маппинг, без него ModelMapper не мапил бы коллекцию diagnosisов внутри EMR
+        //  Кастомная карта for DiagnosisDTO → Diagnosis
+        // Это ключевой маппинг, without него ModelMapper не мапил бы коллекцию diagnosisов внутри EMR
         mapper.createTypeMap(DiagnosisDTO.class, Diagnosis.class)
                 .addMappings(m -> {
-                    // Маппинг кода болезни (ICD)
+                    // Маппинг codeа болезни (ICD)
                     m.map(DiagnosisDTO::getIcdCode, Diagnosis::setIcdCode);
                     // Маппинг описания болезни
                     m.map(DiagnosisDTO::getDescription, Diagnosis::setDescription);
                 });
-        //  Кастомная карта для Recommendation → RecommendationDTO
+        //  Кастомная карта for Recommendation → RecommendationDTO
         mapper.createTypeMap(Recommendation.class, RecommendationDTO.class)
                 .addMappings(m -> {
                     m.map(Recommendation::getGenerationFailed, RecommendationDTO::setGenerationFailed);
@@ -52,8 +52,8 @@ public class ModelMapperConfig {
                 });
 
         // TODO (будущее улучшение):
-        // После подключения Spring Security можно добавить маппинг для аудита:
-        // например, брать логин текущего пользователя и писать его в createdBy.
+        // after подключения Spring Security можно добавить маппинг for аудита:
+        // наExample, брать логин текущего пользователя и писать его в createdBy.
 
         // Return готовый, полностью настроенный экземпляр
         return mapper;

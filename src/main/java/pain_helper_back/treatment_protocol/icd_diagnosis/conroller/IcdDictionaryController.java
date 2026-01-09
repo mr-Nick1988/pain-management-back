@@ -1,4 +1,4 @@
-package pain_helper_back.treatment_protocol.icd_diagnosis.conroller;
+﻿package pain_helper_back.treatment_protocol.icd_diagnosis.conroller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,7 +21,7 @@ public class IcdDictionaryController {
     public List<IcdDictionary> search(@RequestParam String query) {
         String q = query.trim();
 
-        // если похоже на код (буква + цифры, может быть точка)
+        // if похоже на code (буква + цифры, может быть точка)
         boolean looksLikeCode = q.matches("^[A-Za-z]?[0-9]{2,3}(\\.[0-9A-Za-z]{0,4})?$");
 
         if (looksLikeCode) {

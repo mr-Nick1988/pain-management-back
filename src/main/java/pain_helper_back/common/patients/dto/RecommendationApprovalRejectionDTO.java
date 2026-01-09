@@ -1,9 +1,9 @@
-package pain_helper_back.common.patients.dto;
+﻿package pain_helper_back.common.patients.dto;
 
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 /**
- * Универсальный DTO для действий Doctor / Anesthesiologist при работе с Recommendation.
+ * Универсальный DTO for действий Doctor / Anesthesiologist при работе с Recommendation.
  */
 @Data
 public class RecommendationApprovalRejectionDTO {

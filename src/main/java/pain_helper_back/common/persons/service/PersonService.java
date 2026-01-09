@@ -1,4 +1,4 @@
-package pain_helper_back.common.persons.service;
+﻿package pain_helper_back.common.persons.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -7,13 +7,13 @@ import pain_helper_back.admin.entity.Person;
 import pain_helper_back.admin.repository.PersonRepository;
 
 /**
- * PersonService - сервис для работы с профилями пользователей
+ * PersonService - Service for работы с профилями пользователей
  * 
- * NOTE: Методы login() и changeCredentials() удалены.
+ * NOTE: Methodы login() и changeCredentials() удалены.
  * Аутентификация и управление учетными данными теперь выполняются 
- * через Authentication Service (порт 8082).
+ * via Authentication Service (порт 8082).
  * 
- * Этот сервис оставлен для работы с профилями пользователей (если потребуется).
+ * Этот Service оставлен for работы с профилями пользователей (if потребуется).
  */
 @Service
 @RequiredArgsConstructor

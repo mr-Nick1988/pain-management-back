@@ -1,22 +1,22 @@
 ﻿package pain_helper_back.enums;
 
 /**
- * Типы источников данных EMR (Electronic Medical Records).
- * Используется для отслеживания происхождения медицинских данных patient.
+ * typeы источников данных EMR (Electronic Medical Records).
+ * Используется for отслеживания происхождения медицинских данных patient.
  */
 public enum EmrSourceType {
     /**
-     * data получены из FHIR-совместимой системы (HAPI FHIR test server).
+     * data получены from FHIR-совместимой системы (HAPI FHIR test server).
      */
     FHIR_SERVER,
 
     /**
-     * Моковые data, сгенерированные внутри системы для тестирования.
+     * Моковые data, сгенерированные внутри системы for тестирования.
      */
     MOCK_GENERATOR,
 
     /**
-     * data из реальной внешней больницы (будущая функциональность).
+     * data from реальной внешней больницы (будущая функциональность).
      */
     EXTERNAL_HOSPITAL,
 
@@ -28,10 +28,10 @@ public enum EmrSourceType {
     /*
      * Проверяет, является ли источник автоматическим (не ручной ввод).
      *
-     * ЗАЧЕМ: Для автоматических источников нужна дополнительная валидация,
-     * так как data могут быть неполными или некорректными.
+     * ЗАЧЕМ: for автоматических источников нужна дополнительная валидация,
+     * так как data могут быть неполными or некорректными.
      *
-     * @return true если источник автоматический (FHIR, MOCK, EXTERNAL_HOSPITAL)
+     * @return true if источник автоматический (FHIR, MOCK, EXTERNAL_HOSPITAL)
      */
     public boolean isAutomated() {
         return this != MANUAL_ENTRY;
@@ -40,21 +40,21 @@ public enum EmrSourceType {
     /*
      * Проверяет, требуется ли дополнительная проверка данных.
      *
-     * ЗАЧЕМ: data из внешних больниц и моковые data требуют
-     * более тщательной проверки перед использованием в PMA.
+     * ЗАЧЕМ: data from внешних больниц и моковые data требуют
+     * более тщательной проверки before использованием в PMA.
      *
-     * @return true если требуется дополнительная проверка
+     * @return true if требуется дополнительная проверка
      */
     public boolean requiresAdditionalValidation() {
         return this == EXTERNAL_HOSPITAL || this == MOCK_GENERATOR;
     }
 
     /*
-     * Возвращает человекочитаемое описание источника.
+     * Returns человекочитаемое Description источника.
      *
-     * ПРИМЕНЕНИЕ: Для отображения в UI, логах, отчетах.
+     * ПРИМЕНЕНИЕ: for отображения в UI, логах, отчетах.
      *
-     * @return описание источника данных
+     * @return Description источника данных
      */
     public String getDisplayName() {
         return switch (this) {

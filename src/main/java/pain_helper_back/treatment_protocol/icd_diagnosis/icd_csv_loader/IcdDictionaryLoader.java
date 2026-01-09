@@ -24,7 +24,7 @@ public class IcdDictionaryLoader implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
 
-        //  если таблица уже не пуста — загрузка не выполняется
+        //  if таблица уже не пуста — загрузка не выполняется
         if (repo.count() > 0) {
             log.info("ICD dictionary already loaded");
             return;
@@ -39,7 +39,7 @@ public class IcdDictionaryLoader implements CommandLineRunner {
         try (InputStream is = new ClassPathResource(path).getInputStream();
              BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
 
-            List<IcdDictionary> batch = new ArrayList<>(1000); // буфер для пакетной вставки
+            List<IcdDictionary> batch = new ArrayList<>(1000); // буфер for пакетной вставки
             String line;
             int total = 0;
 
@@ -49,7 +49,7 @@ public class IcdDictionaryLoader implements CommandLineRunner {
             //  читаем построчно весь CSV
             while ((line = reader.readLine()) != null) {
 
-                // делим строку на две части: код и всё остальное
+                // делим строку на две части: code и всё остальное
                 String[] parts = line.split(",", 2);
                 if (parts.length < 2) continue; // пропускаем битые строки
 
@@ -57,7 +57,7 @@ public class IcdDictionaryLoader implements CommandLineRunner {
                 String desc = SanitizeUtils.clean(parts[1]);
                 if (code.isEmpty() || desc.isEmpty()) continue; // пропускаем пустые значения
 
-                // создаём объект ICD и Add в батч
+                // создаём object ICD и Add в батч
                 batch.add(new IcdDictionary(code.toUpperCase(), desc));
                 total++;
 
@@ -69,7 +69,7 @@ public class IcdDictionaryLoader implements CommandLineRunner {
                 }
             }
 
-            // Save остаток, если он есть
+            // Save остаток, if он есть
             if (!batch.isEmpty()) repo.saveAll(batch);
 
             log.info(" ICD dictionary loaded successfully, total {}", total);

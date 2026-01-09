@@ -1,9 +1,9 @@
-package pain_helper_back.treatment_protocol.utils;
+﻿package pain_helper_back.treatment_protocol.utils;
 
 import java.util.Locale;
 
 public class SanitizeUtils {
-    //sanitize-метод
+    //sanitize-Method
    public static String clean(String value) {
         if (value == null) return null;
         return value
@@ -37,11 +37,11 @@ public class TreatmentSanitizer {
         value = SanitizeUtils.clean(value);
         if (value == null || value.isBlank()) return "NA";
 
-        // Убираем единицы измерения, пробелы и приводим к виду <число> или класс (A–F)
+        // Убираем единицы fromмерения, пробелы и приводим к виду <число> or Class (A–F)
         value = value.replaceAll("(?i)mL/?min", "")
                      .replaceAll("[^0-9A-F<>=\\-]", "")
                      .trim().toUpperCase();
-        // Пример: "< 30 mL/min" → "<30"
+        // Example: "< 30 mL/min" → "<30"
         return value;
     }
 
@@ -56,7 +56,7 @@ public class TreatmentSanitizer {
     public static String cleanWbc(String value) {
         value = SanitizeUtils.clean(value);
         if (value == null || value.isBlank()) return "NA";
-        // Убираем единицы измерения
+        // Убираем единицы fromмерения
         return value.replaceAll("(?i)10\\s*e3/?µ?L", "")
                     .replaceAll("[^0-9<>=\\-\\.]", "")
                     .trim();
@@ -65,7 +65,7 @@ public class TreatmentSanitizer {
     public static String cleanSodium(String value) {
         value = SanitizeUtils.clean(value);
         if (value == null || value.isBlank()) return "NA";
-        // Убираем "mmol/L" и все ненужные символы
+        // Убираем "mmol/L" и all ненужные символы
         return value.replaceAll("(?i)mmol/?l", "")
                     .replaceAll("[^0-9<>=\\-\\.]", "")
                     .trim();
@@ -74,8 +74,8 @@ public class TreatmentSanitizer {
     public static String cleanSensitivity(String value) {
         value = SanitizeUtils.clean(value);
         if (value == null) return "NA";
-        // Нормализуем пробелы и знаки OR
-        return value.replaceAll("(?i)\\s*(,|;|/|\\||and|или)\\s*", " OR ")
+        // Нормалfromуем пробелы и знаки OR
+        return value.replaceAll("(?i)\\s*(,|;|/|\\||and|or)\\s*", " OR ")
                     .replaceAll("\\s+", " ")
                     .trim()
                     .toUpperCase();
@@ -85,7 +85,7 @@ public class TreatmentSanitizer {
         value = SanitizeUtils.clean(value);
         if (value == null) return "NA";
         // Заменяем знаки-разделители на OR, как в Sensitivity
-        return value.replaceAll("(?i)\\s*(,|;|/|\\||and|или)\\s*", " OR ")
+        return value.replaceAll("(?i)\\s*(,|;|/|\\||and|or)\\s*", " OR ")
                     .replaceAll("\\s+", " ")
                     .trim()
                     .toUpperCase();

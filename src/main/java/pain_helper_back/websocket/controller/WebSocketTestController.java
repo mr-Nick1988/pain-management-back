@@ -8,29 +8,29 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 /*
- * REST контроллер для тестирования WebSocket уведомлений.
+ * REST Controller for тестирования WebSocket уведомлений.
  * 
  * ЗАЧЕМ НУЖЕН:
  * - Позволяет вручную отправить тестовые уведомления
  * - Проверка работоспособности WebSocket соединения
  * - Отладка подписок на топики
- * - Демонстрация различных типов уведомлений
+ * - Демонстрация различных typeов уведомлений
  * 
  * ENDPOINTS:
  * 1. POST /api/websocket/test - отправить тестовое уведомление
  * 2. POST /api/websocket/test/emr-alert - тестовый EMR алерт
  * 3. POST /api/websocket/test/pain-escalation - тестовая эскалация боли
  * 4. POST /api/websocket/test/critical - тестовое критическое уведомление
- * 5. GET /api/websocket/status - проверка статуса WebSocket
+ * 5. GET /api/websocket/status - проверка statusа WebSocket
  * 
- * ПРИМЕР ИСПОЛЬЗОВАНИЯ:
+ * Example ИСПОЛЬЗОВАНИЯ:
  * curl -X POST http://localhost:8080/api/websocket/test
  * curl -X POST http://localhost:8080/api/websocket/test/emr-alert
  * 
- * ВАЖНО:
- * - Этот контроллер только для тестирования
- * - В продакшене можно отключить или защитить
- * - Реальные уведомления отправляются автоматически из сервисов
+ * Important:
+ * - Этот Controller только for тестирования
+ * - В продакшене можно отключить or защитить
+ * - Реальные уведомления отправляются автоматически from Serviceов
  */
 @RestController
 @RequestMapping("/api/websocket")
@@ -62,8 +62,8 @@ public class WebSocketTestController {
                 .patientName("Тестовый patient")
                 .title("Критическое падение GFR")
                 .message("GFR упал с 45 до 25 - требуется коррекция дозировок")
-                .details("Тяжелая почечная недостаточность. Рекомендуется немедленный пересмотр всех назначений.")
-                .recommendations("СРОЧНО: Скорректировать дозировки всех drugов considering GFR < 30")
+                .details("Тяжелая почечная недостаточность. Рекомендуется немедленный пересмотр allх назначений.")
+                .recommendations("СРОЧНО: Скорректировать дозировки allх drugов considering GFR < 30")
                 .targetRole("DOCTOR")
                 .requiresAction(true)
                 .build();
@@ -86,9 +86,9 @@ public class WebSocketTestController {
                 .patientMrn("TEST-12345")
                 .patientName("Тестовый")
                 .title("Эскалация боли")
-                .message("VAS увеличился с 5 до 9 через 2 часа после введения дозы")
-                .details("Значительный рост боли слишком рано после последней дозы. Текущий protocol может быть недостаточным.")
-                .recommendations("Рассмотреть увеличение дозировки или смену drugа")
+                .message("VAS увеличился с 5 до 9 via 2 часа after введения дозы")
+                .details("Значительный рост боли слишком рано after afterдней дозы. current protocol может быть недостаточным.")
+                .recommendations("Рассмотреть увеличение дозировки or смену drugа")
                 .targetRole("DOCTOR")
                 .requiresAction(true)
                 .build();
@@ -104,7 +104,7 @@ public class WebSocketTestController {
     }
 
     /*
-     * Отправить тестовое критическое уведомление на все каналы
+     * Отправить тестовое критическое уведомление на all каналы
      */
     @PostMapping("/test/critical")
     public ResponseEntity<Map<String, String>> sendTestCriticalNotification() {
@@ -134,7 +134,7 @@ public class WebSocketTestController {
     @PostMapping("/test/personal/{userId}")
     public ResponseEntity<Map<String, String>> sendTestPersonalNotification(@PathVariable String userId) {
                 .title("Персональное уведомление")
-                .message("Это тестовое персональное уведомление для пользователя " + userId)
+                .message("Это тестовое персональное уведомление for пользователя " + userId)
                 .targetUserId(userId)
                 .build();
 
@@ -148,12 +148,12 @@ public class WebSocketTestController {
     }
 
     /*
-     * Отправить уведомление для конкретной роли
+     * Отправить уведомление for конкретной роли
      */
     @PostMapping("/test/role/{role}")
     public ResponseEntity<Map<String, String>> sendTestRoleNotification(@PathVariable String role) {
-                .title("Уведомление для роли " + role)
-                .message("Это тестовое уведомление для всех пользователей с ролью " + role)
+                .title("Уведомление for роли " + role)
+                .message("Это тестовое уведомление for allх пользователей с ролью " + role)
                 .targetRole(role)
                 .build();
 
@@ -167,7 +167,7 @@ public class WebSocketTestController {
     }
 
     /*
-     * Проверить статус WebSocket
+     * Проверить status WebSocket
      */
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getWebSocketStatus() {

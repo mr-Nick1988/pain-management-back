@@ -19,8 +19,8 @@ public class AgeRuleApplier implements TreatmentRuleApplier {
 
     /**
      * Применяет возрастное правило к конкретной прописке drugа.
-     * Если drug разрешён — заполняет data из TP.
-     * Если противопоказан — добавляет запись в rejectionReasons и comments.
+     * if drug разрешён — заполняет data from TP.
+     * if противопоказан — добавляет запись в rejectionReasons и comments.
      */
     @Override
     public void apply(DrugRecommendation drug,
@@ -36,7 +36,7 @@ public class AgeRuleApplier implements TreatmentRuleApplier {
                 ? tp.getFirstAgeAdjustments()
                 : tp.getSecondAgeAdjustments();
 
-        //  1 Проверка: если правило пустое или "NA" — ограничений нет
+        //  1 Проверка: if правило пустое or "NA" — ограничений нет
         if (ageAdjustment == null || ageAdjustment.trim().isEmpty() || ageAdjustment.equalsIgnoreCase("NA")) {
             fillDrugFromProtocol(drug, tp);
             log.debug("{}: No age restriction (NA)", getClass().getSimpleName());
@@ -44,7 +44,7 @@ public class AgeRuleApplier implements TreatmentRuleApplier {
             return;
         }
 
-        // 2 Extract числовой порог (например из ">75 years - avoid" → 75)
+        // 2 Extract числовой порог (наExample from ">75 years - avoid" → 75)
         Integer limit = PatternUtils.extractFirstInt(ageAdjustment);
         if (limit == null) {
             log.error("Invalid protocol config: '{}'", ageAdjustment);
@@ -101,7 +101,7 @@ public class AgeRuleApplier implements TreatmentRuleApplier {
     }
 
     /**
-     * Копирует data drugа из TreatmentProtocol.
+     * Копирует data drugа from TreatmentProtocol.
      */
     private void fillDrugFromProtocol(DrugRecommendation drug, TreatmentProtocol tp) {
         if (drug.getRole() == DrugRole.MAIN) {

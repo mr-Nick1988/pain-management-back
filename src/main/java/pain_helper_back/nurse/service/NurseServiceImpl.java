@@ -252,9 +252,9 @@ public class NurseServiceImpl implements NurseService {
                 LocalDateTime.now(),
                 vas.getPainLevel(),
                 vas.getPainPlace(),
-                vas.getPainLevel() >= 8,  // isCritical если боль >= 8
+                vas.getPainLevel() >= 8,  // isCritical if боль >= 8
                 "INTERNAL",  // vasSource - внутренний ввод медсестрой
-                null  //deviceId - не применимо для внутреннего ввода
+                null  //deviceId - не применимо for внутреннего ввода
         ));
 
         // REMOVED: Pain escalation now handled by Pain Escalation microservice via Kafka
@@ -324,7 +324,7 @@ public class NurseServiceImpl implements NurseService {
         Recommendation recommendation = treatmentProtocolService.generateRecommendation(vas, patient);
         vas.setResolved(true);
 
-        // Проверка на существование recommendation со статусом PENDING
+        // Проверка на существование recommendation со statusом PENDING
         List<Recommendation> recommendations = patient.getRecommendations();
         if (!recommendations.isEmpty()) {
             Recommendation last = recommendations.getLast();
@@ -342,7 +342,7 @@ public class NurseServiceImpl implements NurseService {
         List<String> diagnosisCodes = emr.getDiagnoses() != null ?
                 emr.getDiagnoses().stream().map(Diagnosis::getIcdCode).toList() : new ArrayList<>();
 
-        // Extract названия drugов и дозировки из списка drugs
+        // Extract названия drugов и дозировки from списка drugs
         List<String> drugNames = recommendation.getDrugs() != null ?
                 recommendation.getDrugs().stream().map(DrugRecommendation::getDrugName).toList() : new ArrayList<>();
         List<String> dosages = recommendation.getDrugs() != null ?

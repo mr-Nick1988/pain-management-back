@@ -1,4 +1,4 @@
-package pain_helper_back.treatment_protocol.excel_loader;
+﻿package pain_helper_back.treatment_protocol.excel_loader;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,8 +22,8 @@ import java.io.InputStream;
 public class TreatmentProtocolLoader implements CommandLineRunner {
     private final TreatmentProtocolRepository treatmentProtocolRepository;
 
-    //Apache POI строго типизирован, и если ячейка числовая, он не даст getStringCellValue() и наоборот
-    //DataFormatter — это встроенный класс Apache POI, который превращает любую ячейку в строку точно так, как она отображается в Excel
+    //Apache POI строго typefromирован, и if ячейка числовая, он не даст getStringCellValue() и наоборот
+    //DataFormatter — это встроенный Class Apache POI, который превращает любую ячейку в строку точно так, как она отображается в Excel
 
     @Override
     public void run(String... args) throws Exception {
@@ -76,9 +76,9 @@ public class TreatmentProtocolLoader implements CommandLineRunner {
 
 }
 
-//Workbook – интерфейс, представляющий всю книгу Excel.
-//XSSFWorkbook – реализация для формата XLSX.
-//Что происходит внутри: POI разбирает ZIP/XML структуру XLSX и строит объекты Sheet, Row, Cell в памяти.
-//Т.е. сразу в памяти создаётся объектная модель всей книги, но не массив байтов, а именно объектная структура.
-// Sheet сам по себе не массив, а объект, который умеет возвращать строки (Row) и ячейки (Cell).
+//Workbook – Interface, представляющий всю книгу Excel.
+//XSSFWorkbook – реалfromация for формата XLSX.
+//Что происходит внутри: POI разбирает ZIP/XML структуру XLSX и строит objectы Sheet, Row, Cell в памяти.
+//Т.е. сразу в памяти создаётся objectная модель allй книги, но не массив байтов, а именно objectная структура.
+// Sheet сам по себе не массив, а object, который умеет возвращать строки (Row) и ячейки (Cell).
 

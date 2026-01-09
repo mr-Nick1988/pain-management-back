@@ -17,8 +17,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /*
-WeightRuleApplier — корректировка дозировок или интервалов для patientов с низким весом (<50 кг).
-Если в protocolе указано "<50kg - 8h" или "<50kg - 50mg", применяется соответствующее правило.
+WeightRuleApplier — корректировка дозировок or интервалов for patientов с нfromким весом (<50 кг).
+if в protocolе указано "<50kg - 8h" or "<50kg - 50mg", применяется соresponseствующее правило.
 */
 
 @Component
@@ -26,7 +26,7 @@ WeightRuleApplier — корректировка дозировок или ин�
 @Slf4j
 public class WeightRuleApplier implements TreatmentRuleApplier {
 
-    // Паттерн для точного разбора действия по весу: "<50kg - 8h" или "<50kg - 50mg" извлекает после тире цифру(group 1) и меру (group 2)
+    // Паттерн for точного разбора действия по весу: "<50kg - 8h" or "<50kg - 50mg" fromвлекает after тире цифру(group 1) и меру (group 2)
     private static final Pattern WEIGHT_ACTION_PATTERN = Pattern.compile(
             "(?i)<\\s*50\\s*kg\\s*[-:]\\s*(\\d+(?:\\.\\d+)?)\\s*(mg|h)\\b"
     );
@@ -46,7 +46,7 @@ public class WeightRuleApplier implements TreatmentRuleApplier {
 
         log.info("=== [START] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
 
-        // 1 Если drug уже отклонён или пустой — выходим
+        // 1 if drug уже отклонён or пустой — выходим
         if (!DrugUtils.hasInfo(drug)) {
             log.debug("Skipping {} — drug already rejected or empty", getClass().getSimpleName());
             log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
@@ -68,7 +68,7 @@ public class WeightRuleApplier implements TreatmentRuleApplier {
             return;
         }
 
-        // 3 Get правило из нужной колонки (первое или второе лекарство)
+        // 3 Get правило from нужной колонки (первое or второе лекарство)
         String weightRule = (drug.getRole() == DrugRole.MAIN) ? tp.getWeightKg() : tp.getSecondWeightKg();
         if (weightRule == null || weightRule.trim().isEmpty() || weightRule.trim().toUpperCase().contains("NA")) {
             log.debug("Weight rule empty or NA for protocol {}", tp.getId());
@@ -76,7 +76,7 @@ public class WeightRuleApplier implements TreatmentRuleApplier {
             return;
         }
 
-        // 4 Чёткий парсинг действия вида "<50kg - 8h" или "<50kg - 50mg"
+        // 4 Чёткий парсинг действия вида "<50kg - 8h" or "<50kg - 50mg"
         Matcher m = WEIGHT_ACTION_PATTERN.matcher(weightRule);
         if (!m.find()) {
             log.warn("Weight rule didn't match expected pattern '<50kg - X[h|mg]': '{}'", weightRule);
@@ -84,13 +84,13 @@ public class WeightRuleApplier implements TreatmentRuleApplier {
             return;
         }
 
-        String number = m.group(1);            // "8" или "50"
-        String unit   = m.group(2).toLowerCase(); // "h" или "mg"
+        String number = m.group(1);            // "8" or "50"
+        String unit   = m.group(2).toLowerCase(); // "h" or "mg"
 
-        // 5 Apply корректировку по единице измерения
+        // 5 Apply корректировку по единице fromмерения
         String drugLabel = (drug.getDrugName() != null ? drug.getDrugName() : drug.getActiveMoiety());
         if ("mg".equals(unit)) {
-            // Корректировка дозы, например "<50kg - 50mg"
+            // Корректировка дозы, наExample "<50kg - 50mg"
             String newDose = number + " mg";
             drug.setDosing(newDose);
             correctionAggregator.addDoseCorrection(drug,Integer.parseInt(number));
@@ -103,7 +103,7 @@ public class WeightRuleApplier implements TreatmentRuleApplier {
                     patient.getId(), patientWeight, newDose, weightRule);
 
         } else { // "h"
-            // Корректировка интервала, например "<50kg - 8h"
+            // Корректировка интервала, наExample "<50kg - 8h"
             String newInterval = number + "h";
             drug.setInterval(newInterval);
             correctionAggregator.addIntervalCorrection(drug,Integer.parseInt(number));

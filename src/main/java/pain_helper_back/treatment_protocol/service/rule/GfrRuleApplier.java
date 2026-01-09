@@ -32,7 +32,7 @@ public class GfrRuleApplier implements TreatmentRuleApplier {
 
     private final CorrectionAggregator correctionAggregator;
 
-    // Диапазоны для категорий GFR (в мл/мин)
+    // Диапазоны for категорий GFR (в мл/мин)
     private static final Map<String, double[]> GFR_CLASSES = Map.of(
             "A", new double[]{90, Double.MAX_VALUE},
             "B", new double[]{60, 89},
@@ -55,7 +55,7 @@ public class GfrRuleApplier implements TreatmentRuleApplier {
 
         if (!DrugUtils.hasInfo(drug)) return;
 
-        String patientGfr = patient.getEmr().getLast().getGfr();  // буква или число
+        String patientGfr = patient.getEmr().getLast().getGfr();  // буква or число
         String normalizedGfr = normalizeGfrValue(patientGfr);
         String gfrRule = tp.getGfr();
 
@@ -63,7 +63,7 @@ public class GfrRuleApplier implements TreatmentRuleApplier {
 
         log.info("=== [START] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
 
-        // Разбор строки GFR из protocolа
+        // Разбор строки GFR from protocolа
         Map<String, String> rules = new LinkedHashMap<>();
         Matcher matcher = COMPLEX_PATTERN.matcher(gfrRule);
         while (matcher.find()) {
@@ -118,7 +118,7 @@ public class GfrRuleApplier implements TreatmentRuleApplier {
         log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
     }
 
-    // ---------------------- Вспомогательные методы ----------------------
+    // ---------------------- Вспомогательные Methodы ----------------------
 
     private String normalizeGfrValue(String rawGfr) {
         if (rawGfr == null || rawGfr.isBlank()) return null;
@@ -214,7 +214,7 @@ public class GfrRuleApplier implements TreatmentRuleApplier {
         }
     }
 
-    /* Применение изменения интервала (8h, 12h и т.п.) */
+    /* Применение fromменения интервала (8h, 12h и т.п.) */
     private void applyIntervalChange(DrugRecommendation drug, Recommendation rec, String rule, String gfrRule) {
         Matcher m = Pattern.compile("(\\d+)\\s*h").matcher(rule);
         if (m.find()) {

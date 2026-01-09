@@ -44,7 +44,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String login = jwtUtil.getLoginFromToken(token);
 
                 if (personId != null && role != null) {
-                    // Create Authentication объект
+                    // Create Authentication object
                     UsernamePasswordAuthenticationToken authentication = 
                         new UsernamePasswordAuthenticationToken(
                             personId, // principal
@@ -52,7 +52,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
                         );
                     
-                    // Add детали запроса
+                    // Add детали requestа
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     
                     // Set в SecurityContext

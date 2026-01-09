@@ -17,10 +17,10 @@ import java.util.List;
 import java.util.stream.Stream;
 
 /*
- * AVOID if sensitivity — правило исключения drugов при индивидуальной чувствительности (аллергии).
- * patient может иметь list чувствительных веществ (например, ["PARACETAMOL", "TRAMADOL"]).
- * Если в Treatment Protocol указано "PARACETAMOL OR TRAMADOL",
- * и одно из веществ совпадает с patientскими, drugы из recommendation исключаются (avoid).
+ * AVOID if sensitivity — правило Exceptions drugов при индивидуальной чувствительности (аллергии).
+ * patient может иметь list чувствительных веществ (наExample, ["PARACETAMOL", "TRAMADOL"]).
+ * if в Treatment Protocol указано "PARACETAMOL OR TRAMADOL",
+ * и одно from веществ совпадает с patientскими, drugы from recommendation исключаются (avoid).
  */
 
 @Component
@@ -37,7 +37,7 @@ public class SensitivityRuleApplier implements TreatmentRuleApplier {
 
         log.info("=== [START] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
 
-        //  Пропускаем, если drug уже отклонён или пустой
+        //  Пропускаем, if drug уже отклонён or пустой
         if (!DrugUtils.hasInfo(drug)) {
             log.debug("Skipping {} — drug already rejected or empty", getClass().getSimpleName());
             log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
@@ -57,8 +57,8 @@ public class SensitivityRuleApplier implements TreatmentRuleApplier {
             return;
         }
 
-        // Нормализуем data: приводим всё к верхнему регистру,
-        // игнорирует регистр, разделяет по любым типам разделителей: OR, запятая, слеш, точка с запятой, вертикальная черта, не боится лишних пробелов.
+        // Нормалfromуем data: приводим всё к верхнему регистру,
+        // игнорирует регистр, разделяет по любым typeам разделителей: OR, запятая, слеш, точка с запятой, вертикальная черта, не боится лишних пробелов.
         List<String> ruleSensitivities = Stream.of(
                         rule.split("(?i)(?:(?<=\\s)OR(?=\\s)|AND|[,;/|\\\\]+)") // OR — only if окружён пробелами
                 )
@@ -75,11 +75,11 @@ public class SensitivityRuleApplier implements TreatmentRuleApplier {
         boolean hasMatch = ruleSensitivities.stream().anyMatch(normalizedPatientSens::contains);
 
         if (hasMatch) {
-            //  Безопасно Extract имена drugов (избегаем NPE)
+            //  withoutопасно Extract имена drugов (fromбегаем NPE)
             String mainDrugName = SafeValueUtils.safeValue(recommendation.getDrugs().getFirst());
             String altMoiety = SafeValueUtils.safeValue(recommendation.getDrugs().get(1));
 
-            //  Format причину исключения recommendation (system reason)
+            //  Format причину Exceptions recommendation (system reason)
             String reasonText = String.format(
                     "[%s] Avoid recommendation with drugs (%s and %s) triggered by sensitivity match. Rule=%s, Patient=%s",
                     getClass().getSimpleName(),

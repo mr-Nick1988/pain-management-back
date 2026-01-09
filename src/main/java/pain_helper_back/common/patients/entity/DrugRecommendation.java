@@ -1,4 +1,4 @@
-package pain_helper_back.common.patients.entity;
+﻿package pain_helper_back.common.patients.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
@@ -33,7 +33,7 @@ public class DrugRecommendation {
     private String childPugh;
     @Column(name = "role")
     @Enumerated(EnumType.STRING)
-    private DrugRole role;                // основное лекарство или альтернативное
+    private DrugRole role;                // основное лекарство or альтернативное
     @ManyToOne
     @JoinColumn(name = "recommendation_id")
     private Recommendation recommendation;

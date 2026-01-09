@@ -17,9 +17,9 @@ import java.util.List;
 
 /*
 SAT (oxygen saturation, SpO₂) — уровень насыщения крови кислородом.
-Измеряется в процентах (%).
+fromмеряется в процентах (%).
 Нормальный диапазон: 95–100%.
-Если сатурация <93%, рекомендуется избегать большинства drugов (avoid).
+if сатурация <93%, рекомендуется fromбегать большинства drugов (avoid).
 */
 
 @Component
@@ -36,15 +36,15 @@ public class SatRuleApplier implements TreatmentRuleApplier {
 
         log.info("=== [START] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
 
-        // 1 Проверка, есть ли что анализировать
+        // 1 Проверка, есть ли что аналfromировать
         if (!DrugUtils.hasInfo(drug)) {
             log.debug("Skipping {} — drug already rejected or empty", getClass().getSimpleName());
             log.info("=== [END] {} for Patient ID={} ===", getClass().getSimpleName(), patient.getId());
             return;
         }
 
-        Double patientSat = patient.getEmr().getLast().getSat();  // Например: 91.0
-        String rule = tp.getSat();                                // Например: "<93 - avoid"
+        Double patientSat = patient.getEmr().getLast().getSat();  // НаExample: 91.0
+        String rule = tp.getSat();                                // НаExample: "<93 - avoid"
 
         if (rule == null || rule.trim().isEmpty() || rule.equalsIgnoreCase("NA")) {
             log.debug("SAT rule empty or NA for protocol {}", tp.getId());
@@ -58,7 +58,7 @@ public class SatRuleApplier implements TreatmentRuleApplier {
             return;
         }
 
-        // 2 Extract числовой лимит (например из "<93 - avoid" → 93)
+        // 2 Extract числовой лимит (наExample from "<93 - avoid" → 93)
         Integer limit = PatternUtils.extractFirstInt(rule);
         if (limit == null) {
             log.warn("Could not extract numeric limit from SAT rule '{}'", rule);
@@ -68,13 +68,13 @@ public class SatRuleApplier implements TreatmentRuleApplier {
 
         double limitDouble = limit.doubleValue();
 
-        // 3 Check условие (если сатурация ниже порога)
+        // 3 Check условие (if сатурация ниже порога)
         if (patientSat < limitDouble) {
 
             if (recommendation.getComments() == null)
                 recommendation.setComments(new ArrayList<>());
 
-            //  Безопасно Extract имена drugов
+            //  withoutопасно Extract имена drugов
             String mainDrugName = SafeValueUtils.safeValue(recommendation.getDrugs().getFirst());
             String altMoiety = SafeValueUtils.safeValue(recommendation.getDrugs().get(1));
 

@@ -1,4 +1,4 @@
-package pain_helper_back.config.security;
+﻿package pain_helper_back.config.security;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -39,11 +39,11 @@ public class SecurityConfig {
                         // Health check endpoints
                         .requestMatchers("/actuator/**").permitAll()
                         
-                        // Временно разрешаем все для существующих эндпоинтов
-                        // TODO: После завершения интеграции с Auth Service, включить полную защиту
+                        // Временно разрешаем all for существующих эндпоинтов
+                        // TODO: after завершения интеграции с Auth Service, включить полную защиту
                         .requestMatchers("/api/**").permitAll()
                         
-                        // Все остальные запросы требуют аутентификации
+                        // all остальные запросы требуют аутентификации
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

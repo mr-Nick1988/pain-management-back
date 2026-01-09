@@ -7,9 +7,9 @@ import java.util.Optional;
 
 public class SafeValueUtils {
 
-    //  Безопасно Extract имена drugов (избегаем NPE, если list пуст)
+    //  withoutопасно Extract имена drugов (fromбегаем NPE, if list пуст)
     //  Эти строки нужны, чтобы корректно вывести имена drugов в логах и причинах отказа.
-    // Если какой-то drug отсутствует, подставится "N/A", чтобы избежать NullPointerException.
+    // if какой-то drug отсутствует, подставится "N/A", чтобы fromбежать NullPointerException.
 
     public static String safeValue(DrugRecommendation drugRecommendation) {
         if (drugRecommendation == null) return "N/A";

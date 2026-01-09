@@ -10,31 +10,31 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Репозиторий для рекомендаций.
- * Обычно их тянут через patient,
+ * Repository for рекомендаций.
+ * Обычно их тянут via patient,
  * но иногда нужен прямой доступ.
  *
- * Примеры кастомных запросов:
- * - Найти все recommendation по MRN patient.
- * - Найти последние recommendation по MRN.
- * - Найти все recommendation по статусу (например, только PENDING).
+ * Exampleы кастомных requestов:
+ * - Найти all recommendation по MRN patient.
+ * - Найти afterдние recommendation по MRN.
+ * - Найти all recommendation по statusу (наExample, только PENDING).
  */
 public interface RecommendationRepository extends JpaRepository<Recommendation, Long> {
 
 
 
-    // по бизнес-идентификатору (MRN)
+    // по бfromнес-identifierу (MRN)
     List<Recommendation> findByPatientMrn(String mrn);
 
-    // сортировка по дате обновления (например, чтобы взять свежие recommendation)
+    // сортировка по дате обновления (наExample, чтобы взять свежие recommendation)
     List<Recommendation> findByPatientMrnOrderByUpdatedAtDesc(String mrn);
 
 
 
-    // поиск по статусу
+    // поиск по statusу
     List<Recommendation> findByStatus(RecommendationStatus status);
 
-    // поиск по MRN и статусу
+    // поиск по MRN и statusу
    List<Recommendation> findByPatientMrnAndStatus(String mrn, RecommendationStatus status);
 
 

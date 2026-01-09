@@ -57,8 +57,8 @@ public class AnesthesiologistController {
         return anesthesiologistService.createRecommendationAfterRejection(dto);
     }
 
-    //// Позволяет анестезиологу откорректировать существующую рекомендацию (например, дозу или интервал)
-    //// без полного её отклонения. После апдейта recommendation снова становится APPROVED.
+    //// Позволяет анестезиологу откорректировать существующую рекомендацию (наExample, дозу or интервал)
+    //// without полного её отклонения. after апдейта recommendation снова становится APPROVED.
     @PutMapping("/recommendations/{id}/update")
     public RecommendationDTO updateRecommendation(
             @PathVariable Long id,
