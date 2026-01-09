@@ -27,7 +27,7 @@ public class AuthenticationServiceClient {
     private int timeoutMs;
 
     /**
-     * Валидация access токена через Authentication Service
+     * Validate access token via Authentication Service
      */
     @CircuitBreaker(name = "authService", fallbackMethod = "validateTokenFallback")
     public AuthValidationResponse validateToken(String token) {
@@ -53,7 +53,7 @@ public class AuthenticationServiceClient {
     }
 
     /**
-     * Получение информации о пользователе по токену
+     * Get user information by token
      */
     @CircuitBreaker(name = "authService", fallbackMethod = "getUserInfoFallback")
     public UserInfoResponse getUserInfo(String token) {
@@ -79,7 +79,7 @@ public class AuthenticationServiceClient {
     }
 
     /**
-     * Fallback для validateToken - возвращаем invalid response
+     * Fallback for validateToken - return invalid response
      */
     public AuthValidationResponse validateTokenFallback(String token, Exception e) {
         log.error("Circuit breaker activated for validateToken: {}", e.getMessage());
@@ -90,7 +90,7 @@ public class AuthenticationServiceClient {
     }
 
     /**
-     * Fallback для getUserInfo
+     * Fallback for getUserInfo
      */
     public UserInfoResponse getUserInfoFallback(String token, Exception e) {
         log.error("Circuit breaker activated for getUserInfo: {}", e.getMessage());

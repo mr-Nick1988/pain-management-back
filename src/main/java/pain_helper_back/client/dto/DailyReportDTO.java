@@ -1,6 +1,7 @@
 package pain_helper_back.client.dto;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -8,7 +9,8 @@ import java.time.LocalDateTime;
 /**
  * DTO for daily report data from Reporting Service
  */
-@Data
+@Getter
+@Setter
 public class DailyReportDTO {
     private Long id;
     private LocalDate reportDate;
