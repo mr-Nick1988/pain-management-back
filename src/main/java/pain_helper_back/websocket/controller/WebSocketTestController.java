@@ -1,4 +1,4 @@
-﻿package pain_helper_back.websocket.controller;
+package pain_helper_back.websocket.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -8,29 +8,29 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 /*
- * REST Controller for тестирования WebSocket уведомлений.
+ * REST Controller for testing WebSocket notifications.
  * 
- * why НalreadyН:
- * - Позволяет вручную отправить тестовые уведомления
- * - Проверка работоспособности WebSocket соединения
- * - Отладка подписок на топики
- * - Демонстрация различных typeов уведомлений
+ * Purpose:
+ * - Allows manual sending of test notifications
+ * - Verify WebSocket connection functionality
+ * - Debug topic subscriptions
+ * - Demonstrate various notification types
  * 
  * ENDPOINTS:
- * 1. POST /api/websocket/test - отправить тестовое уведомление
- * 2. POST /api/websocket/test/emr-alert - тестовый EMR алерт
- * 3. POST /api/websocket/test/pain-escalation - тестовая эскалация pain
- * 4. POST /api/websocket/test/critical - тестовое критическое уведомление
- * 5. GET /api/websocket/status - проверка statusа WebSocket
+ * 1. POST /api/websocket/test - send test notification
+ * 2. POST /api/websocket/test/emr-alert - test EMR alert
+ * 3. POST /api/websocket/test/pain-escalation - test pain escalation
+ * 4. POST /api/websocket/test/critical - test critical notification
+ * 5. GET /api/websocket/status - check WebSocket status
  * 
- * Example ИСПОЛЬЗОВАНИЯ:
+ * Example USAGE:
  * curl -X POST http://localhost:8080/api/websocket/test
  * curl -X POST http://localhost:8080/api/websocket/test/emr-alert
  * 
  * Important:
- * - Этот Controller only for тестирования
- * - В проyesкшене can отключить or защитить
- * - Реальные уведомления отправляются автоматически from Serviceов
+ * - This Controller is for testing only
+ * - In production can be disabled or secured
+ * - Real notifications are sent automatically from Services
  */
 @RestController
 @RequestMapping("/api/websocket")
@@ -40,7 +40,7 @@ public class WebSocketTestController {
 
 
     /*
-     * Отправить простое тестовое уведомление
+     * Send simple test notification
      */
     @PostMapping("/test")
     public ResponseEntity<Map<String, String>> sendTestNotification() {
@@ -54,16 +54,16 @@ public class WebSocketTestController {
     }
 
     /*
-     * Отправить тестовый EMR алерт
+     * Send test EMR alert
      */
     @PostMapping("/test/emr-alert")
     public ResponseEntity<Map<String, String>> sendTestEmrAlert() {
                 .patientMrn("TEST-12345")
-                .patientName("Тестовый patient")
-                .title("Критическое падение GFR")
-                .message("GFR упал с 45 до 25 - требуется коррекция дозировок")
-                .details("Тяжелая почечная недостаточность. Рекомендуется немедленный пересмотр allх назначений.")
-                .recommendations("СРОЧНО: Скорректировать дозировки allх drugов considering GFR < 30")
+                .patientName("Test patient")
+                .title("Critical GFR drop")
+                .message("GFR dropped from 45 to 25 - dosage correction required")
+                .details("Severe renal failure. Immediate review of all prescriptions recommended.")
+                .recommendations("URGENT: Adjust dosages of all drugs considering GFR < 30")
                 .targetRole("DOCTOR")
                 .requiresAction(true)
                 .build();
@@ -79,16 +79,16 @@ public class WebSocketTestController {
     }
 
     /*
-     * Отправить тестовую эскалацию pain
+     * Send test pain escalation
      */
     @PostMapping("/test/pain-escalation")
     public ResponseEntity<Map<String, String>> sendTestPainEscalation() {
                 .patientMrn("TEST-12345")
-                .patientName("Тестовый")
-                .title("Эскалация pain")
-                .message("VAS увеличился с 5 до 9 via 2 часа after введения дозы")
-                .details("Значительный рост pain слишком рано after afterдней дозы. current protocol can быть недостаточным.")
-                .recommendations("Рассмотреть увеличение дозировки or смену drugа")
+                .patientName("Test patient")
+                .title("Pain escalation")
+                .message("VAS increased from 5 to 9 within 2 hours after dose administration")
+                .details("Significant pain increase too soon after last dose. Current protocol may be insufficient.")
+                .recommendations("Consider increasing dosage or changing drug")
                 .targetRole("DOCTOR")
                 .requiresAction(true)
                 .build();
@@ -104,86 +104,43 @@ public class WebSocketTestController {
     }
 
     /*
-     * Отправить тестовое критическое уведомление на all каналы
+     * Send test critical notification to all channels
      */
     @PostMapping("/test/critical")
     public ResponseEntity<Map<String, String>> sendTestCriticalNotification() {
-                .patientMrn("TEST-12345")
-                .patientName("Тестовый patient")
-                .title("КРИТИЧЕСКИЙ level pain")
-                .message("VAS = 10 - максимальный level pain")
-                .details("patient испытывает невыносимую pain. Требуется немедленное вмешательство.")
-                .recommendations("ЭКСТРЕННО: Вызвать anesthesiologistа, рассмотреть IV анальгетики")
-                .targetRole("DOCTOR")
-                .requiresAction(true)
+                .patientMrn("TEST-99999")
+                .patientName("Critical Test Patient")
+                .title("CRITICAL: System Test Alert")
+                .message("This is a test of critical notification system")
+                .details("Testing emergency notification broadcast to all roles")
+                .recommendations("No action required - this is a test")
+                .targetRole("ALL")
+                .requiresAction(false)
                 .build();
 
-        notificationService.sendCriticalNotification(notification);
+        notificationService.sendNotification(notification);
 
         return ResponseEntity.ok(Map.of(
                 "status", "success",
                 "message", "Test critical notification sent to all channels",
-                "type", "CRITICAL_VAS",
+                "type", "CRITICAL",
                 "priority", "CRITICAL"
         ));
     }
 
     /*
-     * Отправить персональное уведомление конкретному пользователю
-     */
-    @PostMapping("/test/personal/{userId}")
-    public ResponseEntity<Map<String, String>> sendTestPersonalNotification(@PathVariable String userId) {
-                .title("Персональное уведомление")
-                .message("Это тестовое персональное уведомление for пользователя " + userId)
-                .targetUserId(userId)
-                .build();
-
-        notificationService.sendPersonalNotification(notification, userId);
-
-        return ResponseEntity.ok(Map.of(
-                "status", "success",
-                "message", "Personal notification sent to user: " + userId,
-                "userId", userId
-        ));
-    }
-
-    /*
-     * Отправить уведомление for конкретной роли
-     */
-    @PostMapping("/test/role/{role}")
-    public ResponseEntity<Map<String, String>> sendTestRoleNotification(@PathVariable String role) {
-                .title("Уведомление for роли " + role)
-                .message("Это тестовое уведомление for allх пользователей с ролью " + role)
-                .targetRole(role)
-                .build();
-
-        notificationService.sendToRole(notification, role);
-
-        return ResponseEntity.ok(Map.of(
-                "status", "success",
-                "message", "Notification sent to role: " + role,
-                "role", role
-        ));
-    }
-
-    /*
-     * Проверить status WebSocket
+     * Check WebSocket connection status
      */
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getWebSocketStatus() {
         return ResponseEntity.ok(Map.of(
                 "status", "active",
-                "endpoint", "ws://localhost:8080/ws",
-                "sockjs_endpoint", "http://localhost:8080/ws",
-                "topics", Map.of(
-                        "anesthesiologists", "/topic/escalations/anesthesiologists",
-                        "doctors", "/topic/escalations/doctors",
-                        "critical", "/topic/escalations/critical",
-                        "dashboard", "/topic/escalations/dashboard",
-                        "emr_alerts", "/topic/emr-alerts"
+                "service", "WebSocket Notification Service",
+                "endpoints", Map.of(
+                        "connect", "/ws",
+                        "subscribe", "/topic/notifications/{role}"
                 ),
-                "frontend_example", "const socket = new SockJS('http://localhost:8080/ws'); const stompClient = Stomp.over(socket);",
-                "timestamp", LocalDateTime.now()
+                "timestamp", LocalDateTime.now().toString()
         ));
     }
 }
