@@ -1,10 +1,9 @@
-package pain_helper_back.common.persons.dto;
+﻿package pain_helper_back.common.persons.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import lombok.Data;
+import lombok.Getter;`nimport lombok.Setter;
 
-@Data
-public class ChangeCredentialsDTO {
+@Getter`n@Setter`npublic class ChangeCredentialsDTO {
     @NotBlank(message = "Current login is required")
     private String currentLogin;
     @NotBlank(message = "New login is required")

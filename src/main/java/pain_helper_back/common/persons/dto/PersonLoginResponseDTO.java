@@ -1,7 +1,7 @@
-package pain_helper_back.common.persons.dto;
+﻿package pain_helper_back.common.persons.dto;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;`nimport lombok.Setter;
 import lombok.NoArgsConstructor;
 
 @Data

@@ -1,8 +1,10 @@
 package pain_helper_back.client.dto;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
+@Getter
+@Setter
 public class AuthValidationResponse {
     private boolean valid;
     private String personId;
