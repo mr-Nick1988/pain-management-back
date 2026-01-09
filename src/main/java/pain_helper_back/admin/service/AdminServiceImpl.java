@@ -4,21 +4,17 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pain_helper_back.admin.dto.PersonDTO;
 import pain_helper_back.admin.dto.PersonRegisterRequestDTO;
 import pain_helper_back.admin.entity.Person;
 import pain_helper_back.admin.repository.PersonRepository;
-import pain_helper_back.analytics.event.PersonCreatedEvent;
-import pain_helper_back.analytics.event.PersonDeletedEvent;
-import pain_helper_back.analytics.event.PersonUpdatedEvent;
+import pain_helper_back.kafka.producer.AnalyticsEventProducer;
 import pain_helper_back.common.patients.dto.PatientDTO;
 import pain_helper_back.common.patients.repository.PatientRepository;
 import pain_helper_back.enums.Roles;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +28,7 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
     private final PersonRepository personRepository;
     private final PatientRepository patientRepository;
     private final ModelMapper modelMapper;
-    private final ApplicationEventPublisher eventPublisher;
+    private final AnalyticsEventProducer analyticsEventProducer;
 
     @Override
     public PersonDTO createPerson(PersonRegisterRequestDTO dto) {
@@ -46,15 +42,14 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
         person.setTemporaryCredentials(true);
         personRepository.save(person);
 
-        eventPublisher.publishEvent(new PersonCreatedEvent(
-                this,
+        // Publish person creation event to Kafka for analytics
+        analyticsEventProducer.sendPersonCreatedEvent(
                 person.getPersonId(),
                 person.getFirstName(),
                 person.getLastName(),
                 person.getRole().name(),
-                "admin", // TODO: заменить на реальный ID из Security Context
-                LocalDateTime.now()
-        ));
+                "admin" // TODO: replace with real ID from Security Context
+        );
         log.info("Person created: personId={}, role={}", person.getPersonId(), person.getRole());
         return modelMapper.map(person, PersonDTO.class);
     }
@@ -63,7 +58,7 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
     public PersonDTO updatePerson(String personId, PersonRegisterRequestDTO dto) {
         Person person = personRepository.findByPersonId(personId)
                 .orElseThrow(() -> new RuntimeException("Person not found"));
-        // Проверяем, не занят ли новый логин
+        // Check if new login is already taken
         if (!person.getLogin().equals(dto.getLogin()) &&
                 personRepository.existsByLogin(dto.getLogin())) {
             throw new RuntimeException("Person with this login already exists");
@@ -71,13 +66,13 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
         person.setFirstName(dto.getFirstName());
         person.setLastName(dto.getLastName());
         person.setLogin(dto.getLogin());
-        // Обновляем пароль только если он предоставлен
+        // Update password only if provided
         if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
             person.setPassword(dto.getPassword());
             person.setTemporaryCredentials(true);
         }
         person.setRole(Roles.valueOf(dto.getRole()));
-        //Отслеживаем изменения
+        // Track changes for analytics
         Map<String, String> changedFields = new HashMap<>();
         changedFields.put("firstName", person.getFirstName());
         changedFields.put("lastName", person.getLastName());
@@ -85,13 +80,12 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
         changedFields.put("role", person.getRole().name());
         personRepository.save(person);
 
-        eventPublisher.publishEvent(new PersonUpdatedEvent(
-                this,
+        // Publish person update event to Kafka for analytics
+        analyticsEventProducer.sendPersonUpdatedEvent(
                 person.getPersonId(),
-                "admin", // TODO: заменить на реальный ID из Security Context
-                LocalDateTime.now(),
+                "admin", // TODO: replace with real ID from Security Context
                 changedFields
-        ));
+        );
 
         log.info("Person updated: personId={}, changedFields={}", person.getPersonId(), changedFields.keySet());
         return modelMapper.map(person, PersonDTO.class);
@@ -101,23 +95,21 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
     public void deletePerson(String personId) {
         Person person = personRepository.findByPersonId(personId)
                 .orElseThrow(() -> new RuntimeException("Person not found"));
-        //Сохраняем данные перед удалением
+        // Save data before deletion for analytics
         String firstName = person.getFirstName();
         String lastName = person.getLastName();
         String role = person.getRole().name();
 
         personRepository.delete(person);
-        // Публикуем событие удаления сотрудника
-        eventPublisher.publishEvent(new PersonDeletedEvent(
-                this,
+        // Publish person deletion event to Kafka for analytics
+        analyticsEventProducer.sendPersonDeletedEvent(
                 personId,
                 firstName,
                 lastName,
                 role,
-                "admin", // TODO: заменить на реальный ID из Security Context
-                LocalDateTime.now(),
-                "Deleted by admin" // Причина удаления
-        ));
+                "admin", // TODO: replace with real ID from Security Context
+                "Deleted by admin" // Deletion reason
+        );
         log.warn("Person deleted: personId={}, role={}", personId, role);
     }
 

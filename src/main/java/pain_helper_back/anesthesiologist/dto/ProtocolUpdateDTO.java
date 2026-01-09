@@ -1,8 +1,10 @@
 package pain_helper_back.anesthesiologist.dto;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
+@Getter
+@Setter
 public class ProtocolUpdateDTO {
     private Long id;
 }

@@ -3,10 +3,12 @@ package pain_helper_back.admin.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import pain_helper_back.validation.ValidationGroups;
 
-@Data
+@Getter
+@Setter
 public class PersonRegisterRequestDTO {
     @NotBlank(message = "Document ID is required", groups = {ValidationGroups.Create.class, ValidationGroups.Update.class})
     @Size(max = 20, message = "Document ID must not exceed 20 characters")

@@ -9,10 +9,10 @@ import pain_helper_back.enums.Roles;
 public class Person {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // Технический ID для базы данных
+    private Long id; // Technical database ID
     
     @Column(nullable = false, unique = true)
-    private String personId; // ID документа человека
+    private String personId; // Person's document ID
     
     private String firstName;
     private String lastName;
@@ -23,6 +23,6 @@ public class Person {
     @Enumerated(EnumType.STRING)
     private Roles role;
     
-    // NOTE: password удален - аутентификация через Authentication Service (порт 8082)
+    // NOTE: password removed - authentication handled by Authentication Service (port 8082)
     private boolean temporaryCredentials = true;
 }

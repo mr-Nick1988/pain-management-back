@@ -1,24 +1,26 @@
 package pain_helper_back.anesthesiologist.dto;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import pain_helper_back.common.patients.dto.DrugRecommendationDTO;
 import java.util.List;
 
-@Data
+@Getter
+@Setter
 public class AnesthesiologistRecommendationCreateDTO {
 
     @NotNull
-    private Long previousRecommendationId; // ID старой рекомендации (для связи)
+    private Long previousRecommendationId; // ID of previous recommendation (for linking)
 
     @NotNull
-    private String patientMrn; // чтобы точно знать, кому создаём
+    private String patientMrn; // To precisely identify patient
 
     @NotNull
-    private Integer regimenHierarchy; // линия терапии
+    private Integer regimenHierarchy; // Treatment line
 
     @NotEmpty
-    private List<DrugRecommendationDTO> drugs; // препараты (main + alternative)
+    private List<DrugRecommendationDTO> drugs; // Drugs (main + alternative)
 
     private List<String> contraindications;
     private List<String> comments;

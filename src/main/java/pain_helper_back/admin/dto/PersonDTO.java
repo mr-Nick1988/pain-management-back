@@ -1,8 +1,10 @@
 package pain_helper_back.admin.dto;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
-@Data
+@Getter
+@Setter
 public class PersonDTO {
     private Long id;
     private String personId;
