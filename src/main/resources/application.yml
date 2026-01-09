@@ -28,10 +28,6 @@ spring:
           auth: false
           starttls:
             enable: false
-  data:
-    mongodb:
-      uri: ${LOGGING_MONGODB_URI:mongodb://localhost:27017/analyticsdb}
-      auto-index-creation: true
   kafka:
     bootstrap-servers: localhost:9092
     consumer:

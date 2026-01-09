@@ -3,8 +3,6 @@ package pain_helper_back.websocket.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import pain_helper_back.websocket.dto.UnifiedNotificationDTO;
-import pain_helper_back.websocket.service.UnifiedNotificationService;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -40,7 +38,6 @@ import java.util.Map;
 @CrossOrigin(origins = "*")
 public class WebSocketTestController {
 
-    private final UnifiedNotificationService notificationService;
 
     /*
      * Отправить простое тестовое уведомление
@@ -61,9 +58,6 @@ public class WebSocketTestController {
      */
     @PostMapping("/test/emr-alert")
     public ResponseEntity<Map<String, String>> sendTestEmrAlert() {
-        UnifiedNotificationDTO notification = UnifiedNotificationDTO.builder()
-                .type(UnifiedNotificationDTO.NotificationType.EMR_ALERT)
-                .priority(UnifiedNotificationDTO.NotificationPriority.CRITICAL)
                 .patientMrn("TEST-12345")
                 .patientName("Тестовый Пациент")
                 .title("Критическое падение GFR")
@@ -89,9 +83,6 @@ public class WebSocketTestController {
      */
     @PostMapping("/test/pain-escalation")
     public ResponseEntity<Map<String, String>> sendTestPainEscalation() {
-        UnifiedNotificationDTO notification = UnifiedNotificationDTO.builder()
-                .type(UnifiedNotificationDTO.NotificationType.PAIN_ESCALATION)
-                .priority(UnifiedNotificationDTO.NotificationPriority.HIGH)
                 .patientMrn("TEST-12345")
                 .patientName("Тестовый")
                 .title("Эскалация боли")
@@ -117,9 +108,6 @@ public class WebSocketTestController {
      */
     @PostMapping("/test/critical")
     public ResponseEntity<Map<String, String>> sendTestCriticalNotification() {
-        UnifiedNotificationDTO notification = UnifiedNotificationDTO.builder()
-                .type(UnifiedNotificationDTO.NotificationType.CRITICAL_VAS)
-                .priority(UnifiedNotificationDTO.NotificationPriority.CRITICAL)
                 .patientMrn("TEST-12345")
                 .patientName("Тестовый Пациент")
                 .title("КРИТИЧЕСКИЙ уровень боли")
@@ -145,9 +133,6 @@ public class WebSocketTestController {
      */
     @PostMapping("/test/personal/{userId}")
     public ResponseEntity<Map<String, String>> sendTestPersonalNotification(@PathVariable String userId) {
-        UnifiedNotificationDTO notification = UnifiedNotificationDTO.builder()
-                .type(UnifiedNotificationDTO.NotificationType.SYSTEM_MESSAGE)
-                .priority(UnifiedNotificationDTO.NotificationPriority.MEDIUM)
                 .title("Персональное уведомление")
                 .message("Это тестовое персональное уведомление для пользователя " + userId)
                 .targetUserId(userId)
@@ -167,9 +152,6 @@ public class WebSocketTestController {
      */
     @PostMapping("/test/role/{role}")
     public ResponseEntity<Map<String, String>> sendTestRoleNotification(@PathVariable String role) {
-        UnifiedNotificationDTO notification = UnifiedNotificationDTO.builder()
-                .type(UnifiedNotificationDTO.NotificationType.SYSTEM_MESSAGE)
-                .priority(UnifiedNotificationDTO.NotificationPriority.LOW)
                 .title("Уведомление для роли " + role)
                 .message("Это тестовое уведомление для всех пользователей с ролью " + role)
                 .targetRole(role)
