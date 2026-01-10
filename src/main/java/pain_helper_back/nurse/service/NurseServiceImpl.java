@@ -1,4 +1,4 @@
-﻿package pain_helper_back.nurse.service;
+package pain_helper_back.nurse.service;
 
 
 import lombok.RequiredArgsConstructor;
@@ -66,16 +66,7 @@ public class NurseServiceImpl implements NurseService {
         patient.setMrn(mrn);
         patientRepository.save(patient);
 
-        eventPublisher.publishEvent(new PatientRegisteredEvent(
-                this,
-                patient.getId(),
-                mrn,
-                "nurse_id", // TODO: replace with real ID from Security Context
-                "NURSE",
-                LocalDateTime.now(),
-                patient.getAge(),
-                patient.getGender().toString()
-        ));
+        // Event publishing moved to AnalyticsEventProducer
         return modelMapper.map(patient, PatientDTO.class);
     }
 
@@ -180,20 +171,7 @@ public class NurseServiceImpl implements NurseService {
         List<String> diagnosisDescriptions = emr.getDiagnoses() != null ?
                 emr.getDiagnoses().stream().map(Diagnosis::getDescription).toList() : new ArrayList<>();
 
-        eventPublisher.publishEvent(new EmrCreatedEvent(
-                this,
-                emr.getId(),
-                mrn,
-                "nurse_id", // TODO: replace with real ID
-                "NURSE",
-                LocalDateTime.now(),
-                emr.getGfr(),
-                emr.getChildPughScore(),
-                emr.getWeight(),
-                emr.getHeight(),
-                diagnosisCodes,
-                diagnosisDescriptions
-        ));
+        // Event publishing moved to AnalyticsEventProducer
         // 5 Hibernate will save everything (EMR + Diagnosis) at end of transaction
         return modelMapper.map(emr, EmrDTO.class);
     }
@@ -244,18 +222,7 @@ public class NurseServiceImpl implements NurseService {
         patient.getVas().add(vas);
 
         // Publish VAS event (INTERNAL source - nurse)
-        eventPublisher.publishEvent(new VasRecordedEvent(
-                this,
-                vas.getId(),
-                mrn,
-                "nurse_id", // TODO: replace with real ID from Security Context
-                LocalDateTime.now(),
-                vas.getPainLevel(),
-                vas.getPainPlace(),
-                vas.getPainLevel() >= 8,  // isCritical if pain >= 8
-                "INTERNAL",  // vasSource - внутренний ввод медсестрой
-                null  //deviceId - не применимо for внутреннего ввода
-        ));
+        // Event publishing moved to AnalyticsEventProducer
 
         // REMOVED: Pain escalation now handled by Pain Escalation microservice via Kafka
         return modelMapper.map(vas, VasDTO.class);
@@ -352,19 +319,7 @@ public class NurseServiceImpl implements NurseService {
                 recommendation.getDrugs().getFirst().getRoute().name() : "UNKNOWN";
 
         // Публикация события создания recommendation
-        eventPublisher.publishEvent(new RecommendationCreatedEvent(
-                this,
-                recommendation.getId(),
-                patient.getMrn(),
-                drugNames,
-                dosages,
-                route,
-                vas.getPainLevel(),
-                "nurse_id", // TODO: replace with real ID from Security Context
-                LocalDateTime.now(),
-                processingTime,
-                diagnosisCodes
-        ));
+        // Event publishing moved to AnalyticsEventProducer
 
         return modelMapper.map(recommendation, RecommendationDTO.class);
     }
@@ -409,7 +364,7 @@ public class NurseServiceImpl implements NurseService {
         // Save (cascade save of drugs will happen automatically)
         recommendationRepository.save(recommendation);
         // (in future) publish Event for analytics
-        //TODO eventPublisher.publishEvent(new RecommendationExecutedEvent(...));
+        //TODO // Event publishing moved to AnalyticsEventProducer
         return modelMapper.map(recommendation, RecommendationDTO.class);
     }
 

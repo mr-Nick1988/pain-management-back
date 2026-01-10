@@ -1,4 +1,4 @@
-﻿package pain_helper_back.common.patients.dto;
+package pain_helper_back.common.patients.dto;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;

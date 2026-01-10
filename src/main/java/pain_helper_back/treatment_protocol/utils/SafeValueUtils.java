@@ -1,4 +1,4 @@
-﻿package pain_helper_back.treatment_protocol.utils;
+package pain_helper_back.treatment_protocol.utils;
 
 import pain_helper_back.common.patients.entity.DrugRecommendation;
 import pain_helper_back.common.patients.entity.Recommendation;

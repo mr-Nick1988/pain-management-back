@@ -1,4 +1,4 @@
-﻿package pain_helper_back.common.patients.entity;
+package pain_helper_back.common.patients.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
@@ -104,8 +104,7 @@ public class Recommendation {
     private Patient patient;
 
     // ========== Doses checking ========== //
-    @OneToMany(mappedBy = "recommendation", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<DoseAdministration> doseAdministrations = new ArrayList<>();
+    // NOTE: DoseAdministration moved to Pain Escalation Tracking microservice
 
     // ========== EMR RECALCULATION FIELDS ========== // TODO - перенести в analytics
     @Column(name = "review_reason", length = 2000)

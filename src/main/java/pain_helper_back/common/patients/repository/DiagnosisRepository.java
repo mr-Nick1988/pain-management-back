@@ -1,4 +1,4 @@
-﻿package pain_helper_back.common.patients.repository;
+package pain_helper_back.common.patients.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

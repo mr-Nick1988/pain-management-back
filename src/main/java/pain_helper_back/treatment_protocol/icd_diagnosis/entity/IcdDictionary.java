@@ -1,4 +1,4 @@
-﻿package pain_helper_back.treatment_protocol.icd_diagnosis.entity;
+package pain_helper_back.treatment_protocol.icd_diagnosis.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Entity;

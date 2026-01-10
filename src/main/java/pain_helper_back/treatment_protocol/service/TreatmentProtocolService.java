@@ -1,4 +1,4 @@
-﻿package pain_helper_back.treatment_protocol.service;
+package pain_helper_back.treatment_protocol.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -67,10 +67,7 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
         person.setLastName(dto.getLastName());
         person.setLogin(dto.getLogin());
         // Update password only if provided
-        if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
-            person.setPassword(dto.getPassword());
-            person.setTemporaryCredentials(true);
-        }
+        if (dto.getPassword() != null && !dto.getPassword().isEmpty()) { /* Password managed by Auth Service */ }
         person.setRole(Roles.valueOf(dto.getRole()));
         // Track changes for analytics
         Map<String, String> changedFields = new HashMap<>();
@@ -155,7 +152,7 @@ public class AdminServiceImpl implements AdminService, CommandLineRunner {
             admin.setFirstName("Admin");
             admin.setLastName("User");
             admin.setLogin("admin");
-            admin.setPassword("admin");
+            // TODO: Password "admin" set via Authentication Service
             admin.setRole(Roles.ADMIN);
             admin.setTemporaryCredentials(false);
             personRepository.save(admin);

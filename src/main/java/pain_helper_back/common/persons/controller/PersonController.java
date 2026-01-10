@@ -1,4 +1,4 @@
-﻿package pain_helper_back.common.persons.controller;
+package pain_helper_back.common.persons.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

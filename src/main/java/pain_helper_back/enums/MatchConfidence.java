@@ -1,4 +1,4 @@
-﻿package pain_helper_back.enums;
+package pain_helper_back.enums;
 
 /**
  * level уверенности при сопоставлении patient from внешней системы с существующим patientом.

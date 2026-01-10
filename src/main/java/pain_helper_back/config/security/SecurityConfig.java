@@ -1,4 +1,4 @@
-﻿package pain_helper_back.config.security;
+package pain_helper_back.config.security;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;

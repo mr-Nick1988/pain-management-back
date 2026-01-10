@@ -163,6 +163,134 @@ public class AnalyticsEventProducer {
     }
 
     /**
+     * Publish EMR created event
+     */
+    public void sendEmrCreatedEvent(Long emrId, String mrn, String createdBy, String role,
+                                    LocalDateTime timestamp, String gfr, String childPughScore,
+                                    Double weight, Double height, java.util.List<String> diagnosisCodes,
+                                    java.util.List<String> diagnosisDescriptions) {
+        Map<String, Object> metadata = Map.of(
+                "emrId", emrId,
+                "mrn", mrn,
+                "gfr", gfr != null ? gfr : "",
+                "childPughScore", childPughScore != null ? childPughScore : "",
+                "weight", weight != null ? weight : 0.0,
+                "height", height != null ? height : 0.0,
+                "diagnosisCodes", diagnosisCodes,
+                "diagnosisDescriptions", diagnosisDescriptions
+        );
+        publishEvent("EMR_CREATED", createdBy, null, metadata, "nurse", "BUSINESS");
+    }
+
+    /**
+     * Publish VAS recorded event
+     */
+    public void sendVasRecordedEvent(Long vasId, String mrn, String recordedBy, LocalDateTime timestamp,
+                                     Integer painLevel, String painPlace, boolean isCritical,
+                                     String vasSource, String deviceId) {
+        Map<String, Object> metadata = Map.of(
+                "vasId", vasId,
+                "mrn", mrn,
+                "painLevel", painLevel,
+                "painPlace", painPlace != null ? painPlace : "",
+                "isCritical", isCritical,
+                "vasSource", vasSource,
+                "deviceId", deviceId != null ? deviceId : ""
+        );
+        publishEvent("VAS_RECORDED", recordedBy, null, metadata, "nurse", "BUSINESS");
+    }
+
+    /**
+     * Publish recommendation created event
+     */
+    public void sendRecommendationCreatedEvent(Long recommendationId, String mrn, java.util.List<String> drugNames,
+                                               java.util.List<String> drugRoutes, String createdBy, Integer painLevel,
+                                               String status, long processingTimeMs, java.util.List<String> contraindications) {
+        Map<String, Object> metadata = Map.of(
+                "recommendationId", recommendationId,
+                "mrn", mrn,
+                "drugNames", drugNames,
+                "drugRoutes", drugRoutes,
+                "painLevel", painLevel,
+                "status", status,
+                "processingTimeMs", processingTimeMs,
+                "contraindications", contraindications
+        );
+        publishEvent("RECOMMENDATION_CREATED", createdBy, null, metadata, "nurse", "BUSINESS");
+    }
+
+    /**
+     * Publish recommendation approved event
+     */
+    public void sendRecommendationApprovedEvent(Long recommendationId, String mrn, String approvedBy,
+                                                String role, String comment, Long patientId) {
+        Map<String, Object> metadata = Map.of(
+                "recommendationId", recommendationId,
+                "mrn", mrn,
+                "role", role,
+                "comment", comment != null ? comment : "",
+                "patientId", patientId
+        );
+        publishEvent("RECOMMENDATION_APPROVED", approvedBy, null, metadata, "doctor", "BUSINESS");
+    }
+
+    /**
+     * Publish recommendation rejected event
+     */
+    public void sendRecommendationRejectedEvent(Long recommendationId, String mrn, String rejectedBy,
+                                                String role, String reason, String comment, Long patientId) {
+        Map<String, Object> metadata = Map.of(
+                "recommendationId", recommendationId,
+                "mrn", mrn,
+                "role", role,
+                "reason", reason != null ? reason : "",
+                "comment", comment != null ? comment : "",
+                "patientId", patientId
+        );
+        publishEvent("RECOMMENDATION_REJECTED", rejectedBy, null, metadata, "doctor", "BUSINESS");
+    }
+
+    /**
+     * Publish person created event
+     */
+    public void sendPersonCreatedEvent(String personId, String firstName, String lastName,
+                                       String role, String createdBy) {
+        Map<String, Object> metadata = Map.of(
+                "personId", personId,
+                "firstName", firstName,
+                "lastName", lastName,
+                "role", role
+        );
+        publishEvent("PERSON_CREATED", createdBy, null, metadata, "admin", "BUSINESS");
+    }
+
+    /**
+     * Publish person updated event
+     */
+    public void sendPersonUpdatedEvent(String personId, String updatedBy, Map<String, String> changedFields) {
+        Map<String, Object> metadata = Map.of(
+                "personId", personId,
+                "changedFields", changedFields
+        );
+        publishEvent("PERSON_UPDATED", updatedBy, null, metadata, "admin", "BUSINESS");
+    }
+
+    /**
+     * Publish person deleted event
+     */
+    public void sendPersonDeletedEvent(String personId, String firstName, String lastName,
+                                       String role, String login, String deletedBy) {
+        Map<String, Object> metadata = Map.of(
+                "personId", personId,
+                "firstName", firstName,
+                "lastName", lastName,
+                "role", role,
+                "login", login
+        );
+        publishEvent("PERSON_DELETED", deletedBy, null, metadata, "admin", "BUSINESS");
+    }
+
+    /**
      * Internal method to publish event to Kafka
      */
     private void publishEventToKafka(AnalyticsEventDTO event) {

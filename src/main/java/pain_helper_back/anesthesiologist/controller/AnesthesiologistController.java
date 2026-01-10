@@ -1,4 +1,4 @@
-﻿package pain_helper_back.anesthesiologist.controller;
+package pain_helper_back.anesthesiologist.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

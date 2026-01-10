@@ -1,4 +1,4 @@
-﻿package pain_helper_back.enums;
+package pain_helper_back.enums;
 
 /**
  * typeы источников yesнных EMR (Electronic Medical Records).

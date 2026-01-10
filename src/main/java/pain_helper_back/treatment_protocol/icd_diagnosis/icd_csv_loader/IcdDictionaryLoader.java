@@ -1,4 +1,4 @@
-﻿package pain_helper_back.treatment_protocol.icd_diagnosis.icd_csv_loader;
+package pain_helper_back.treatment_protocol.icd_diagnosis.icd_csv_loader;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

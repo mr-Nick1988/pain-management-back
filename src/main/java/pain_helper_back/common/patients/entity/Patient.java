@@ -1,4 +1,4 @@
-﻿package pain_helper_back.common.patients.entity;
+package pain_helper_back.common.patients.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import pain_helper_back.enums.PatientsGenders;

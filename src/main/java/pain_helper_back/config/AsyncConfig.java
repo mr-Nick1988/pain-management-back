@@ -1,4 +1,4 @@
-﻿package pain_helper_back.config;
+package pain_helper_back.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;

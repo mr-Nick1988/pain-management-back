@@ -1,8 +1,8 @@
-﻿package pain_helper_back.kafka.dto;
+package pain_helper_back.kafka.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;`nimport lombok.Setter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;

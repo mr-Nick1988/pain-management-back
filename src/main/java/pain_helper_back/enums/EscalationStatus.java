@@ -1,4 +1,4 @@
-﻿package pain_helper_back.enums;
+package pain_helper_back.enums;
 
 //система должна определить, усorлась ли pain, и if да — уведомить doctorа/anesthesiologistа.
 //никакого разделения по приоритетам or состояниям (Pending, In Review, и т.д.) нет

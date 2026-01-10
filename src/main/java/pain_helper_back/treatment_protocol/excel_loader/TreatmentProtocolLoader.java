@@ -1,4 +1,4 @@
-﻿package pain_helper_back.treatment_protocol.excel_loader;
+package pain_helper_back.treatment_protocol.excel_loader;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

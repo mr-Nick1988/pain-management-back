@@ -1,4 +1,4 @@
-﻿package pain_helper_back.enums;
+package pain_helper_back.enums;
 
 public enum RecommendationStatus {
     PENDING,       // Создана, ждёт одобрения doctorа

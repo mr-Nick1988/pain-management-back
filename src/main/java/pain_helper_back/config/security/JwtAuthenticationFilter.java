@@ -1,4 +1,4 @@
-﻿package pain_helper_back.config.security;
+package pain_helper_back.config.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

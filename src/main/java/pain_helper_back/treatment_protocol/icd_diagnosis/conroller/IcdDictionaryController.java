@@ -1,4 +1,4 @@
-﻿package pain_helper_back.treatment_protocol.icd_diagnosis.conroller;
+package pain_helper_back.treatment_protocol.icd_diagnosis.conroller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -1,4 +1,4 @@
-﻿package pain_helper_back.anesthesiologist.service;
+package pain_helper_back.anesthesiologist.service;
 
 
 import pain_helper_back.common.patients.dto.*;

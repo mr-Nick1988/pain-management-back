@@ -1,4 +1,4 @@
-﻿package pain_helper_back.treatment_protocol.service.rule;
+package pain_helper_back.treatment_protocol.service.rule;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;

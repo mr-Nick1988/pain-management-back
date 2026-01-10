@@ -1,4 +1,4 @@
-﻿/*
+/*
  * UNIFIED WebSocket Configuration
  * 
  * ENDPOINTS:
