@@ -1,11 +1,14 @@
 package pain_helper_back.common.patients.dto;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * Универсальный DTO for действий Doctor / Anesthesiologist при requestе Recommendations.
  */
 
-@Data
+@Getter
+@Setter
 public class RecommendationWithVasDTO {
     private RecommendationDTO recommendation;
     private VasDTO vas;

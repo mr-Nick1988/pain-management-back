@@ -1,9 +1,6 @@
 package pain_helper_back.kafka.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -13,7 +10,7 @@ import java.time.LocalDateTime;
  * Published to topic: reporting-commands
  * Consumed by: Reporting Service
  */
-@Data
+@Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor

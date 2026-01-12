@@ -3,14 +3,16 @@ package pain_helper_back.common.patients.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import pain_helper_back.enums.PatientsGenders;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Data
+@Getter
+@Setter
 public class PatientDTO {
     private String mrn;
     @NotBlank(message = "Name is required")

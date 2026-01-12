@@ -4,7 +4,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Pattern;
-import lombok.Data;
+import lombok.Getter;
 import org.hibernate.validator.constraints.Range;
 import org.springframework.lang.Nullable;
 
@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
-@Data
+@Getter
 public class EmrUpdateDTO {
     @Range(min = 10, max = 330, message = "Weight must be between 10kg and 330kg")
     private Double weight;

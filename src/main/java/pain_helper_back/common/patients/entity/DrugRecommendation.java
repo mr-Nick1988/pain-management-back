@@ -1,12 +1,14 @@
 package pain_helper_back.common.patients.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import pain_helper_back.enums.DrugRole;
 import pain_helper_back.enums.DrugRoute;
 
 @Entity
-@Data
+@Getter
+@Setter
 @Table(name = "drug_recommendations")
 public class DrugRecommendation {
     @Id

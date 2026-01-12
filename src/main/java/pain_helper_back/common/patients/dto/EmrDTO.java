@@ -5,7 +5,7 @@ import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
-import lombok.Data;
+import lombok.Getter;
 import org.hibernate.validator.constraints.Range;
 import org.springframework.lang.Nullable;
 
@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
-@Data
+@Getter
 public class EmrDTO {
     @NotNull(message = "Height is required")
     @Range(min = 100, max = 250, message = "Height must be between 100cm and 250cm")

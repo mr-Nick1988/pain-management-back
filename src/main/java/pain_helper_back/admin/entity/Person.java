@@ -1,11 +1,13 @@
 package pain_helper_back.admin.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import pain_helper_back.enums.Roles;
 
 @Entity
-@Data
+@Getter
+@Setter
 public class Person {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,5 +26,6 @@ public class Person {
     private Roles role;
     
     // NOTE: password removed - authentication handled by Authentication Service (port 8082)
+    @Setter
     private boolean temporaryCredentials = true;
 }

@@ -1,10 +1,10 @@
 package pain_helper_back.common.patients.dto;
 
 
-import lombok.Data;
+import lombok.Getter;
 import pain_helper_back.enums.DrugRole;
 import pain_helper_back.enums.DrugRoute;
-@Data
+@Getter
 public class DrugRecommendationDTO {
 
     private String drugName;

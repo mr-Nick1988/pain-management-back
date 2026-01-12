@@ -3,9 +3,9 @@ package pain_helper_back.common.patients.dto;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import lombok.Data;
+import lombok.Getter;
 
-@Data
+@Getter
 public class DiagnosisDTO {
     @Pattern(
             regexp = "^[A-Z]?\\d{2,3}(?:\\.[A-Z0-9]{1,4})?$",

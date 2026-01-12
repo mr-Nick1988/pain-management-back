@@ -1,7 +1,8 @@
 package pain_helper_back.common.audit.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import pain_helper_back.admin.entity.Person;
 import pain_helper_back.enums.PatientRegistrationAuditAction;
 
@@ -9,7 +10,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "audit_trails")
-@Data
+@Getter
+@Setter
 //Fixation audit and all actions of medical staff
 public class AuditTrail {
     @Id

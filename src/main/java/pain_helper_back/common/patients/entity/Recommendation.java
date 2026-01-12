@@ -1,7 +1,8 @@
 package pain_helper_back.common.patients.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import pain_helper_back.enums.RecommendationStatus;
 
 import java.time.LocalDateTime;
@@ -17,7 +18,8 @@ import java.util.List;
  */
 
 @Entity
-@Data
+@Getter
+@Setter
 @Table(name = "recommendation")
 public class Recommendation {
     @Id
@@ -46,6 +48,7 @@ public class Recommendation {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "recommendation_comments", joinColumns = @JoinColumn(name = "recommendation_id"))
     @Column(name = "element")
+    @Setter
     private List<String> comments = new ArrayList<>();      // свободные комментарии
 
     // ========== NON-PERSISTENT (transient) FIELDS ========== //

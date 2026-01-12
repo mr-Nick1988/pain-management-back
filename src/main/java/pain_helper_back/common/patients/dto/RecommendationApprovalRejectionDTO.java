@@ -1,11 +1,12 @@
 package pain_helper_back.common.patients.dto;
 
 import jakarta.validation.constraints.Size;
-import lombok.Data;
+import lombok.Getter;
+
 /**
  * Универсальный DTO for действий Doctor / Anesthesiologist при работе с Recommendation.
  */
-@Data
+@Getter
 public class RecommendationApprovalRejectionDTO {
     @Size(max = 1000, message = "Comment must not exceed 1000 characters")
     private String comment;
