@@ -88,6 +88,7 @@ services:
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d pain_management_db"]
       interval: 10s
@@ -146,9 +147,14 @@ services:
       
       # JWT Secret (должен совпадать с монолитом!)
       JWT_SECRET: ${JWT_SECRET:-pain-management-secret-key-change-in-production-min-256-bits-required-for-hs256-algorithm-security}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+      JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-604800000}
       
       # CORS
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173}
+      CORS_ALLOWED_METHODS: ${CORS_ALLOWED_METHODS:-GET,POST,PUT,DELETE,OPTIONS,PATCH}
+      CORS_ALLOWED_HEADERS: ${CORS_ALLOWED_HEADERS:-Authorization,Content-Type,Accept,Origin,X-Requested-With}
+      CORS_ALLOW_CREDENTIALS: ${CORS_ALLOW_CREDENTIALS:-true}
     depends_on:
       - postgres
     networks:
@@ -319,14 +325,25 @@ services:
     ports:
       - "8091:8091"
     environment:
-      # Database
-      PG_JDBC_URL: jdbc:postgresql://postgres-analytics:5432/analytics_reporting
-      PG_USER: ${POSTGRES_ANALYTICS_USER:-analytics}
-      PG_PASSWORD: ${POSTGRES_ANALYTICS_PASSWORD:-analytics}
+      # Database (standard Spring Boot properties)
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-analytics:5432/analytics_reporting
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_ANALYTICS_USER:-analytics}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_ANALYTICS_PASSWORD:-analytics}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      
+      # Mail configuration (for dev - using fake SMTP or disabled)
+      SPRING_MAIL_HOST: ${MAIL_HOST:-localhost}
+      SPRING_MAIL_PORT: ${MAIL_PORT:-1025}
+      SPRING_MAIL_USERNAME: ${MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: false
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: false
       
       # Kafka
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       KAFKA_TOPIC_REPORTING_COMMANDS: reporting-commands
+      KAFKA_TOPICS_REPORTING_COMMANDS: reporting-commands
     depends_on:
       kafka:
         condition: service_healthy
