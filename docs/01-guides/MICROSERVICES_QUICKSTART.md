@@ -255,6 +255,8 @@ Observability (Prometheus, Grafana)
 ```
 
 ### Паттерны:
+- **API Gateway** - единая точка входа для всех запросов
+- **Circuit Breaker** - защита от каскадных сбоев (Resilience4j)
 - **Database per Service** - каждый микросервис имеет свою БД
 - **Event-Driven Architecture** - асинхронное общение через Kafka
 - **CQRS** - разделение команд и запросов

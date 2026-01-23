@@ -99,7 +99,7 @@
 **Функции:**
 - Request routing ко всем микросервисам
 - JWT валидация и user context propagation
-- Circuit Breaker для resilience
+- ✅ Circuit Breaker для resilience (Resilience4j)
 - Централизованный CORS
 - Request/Response logging
 - Rate limiting (готов к использованию)
@@ -214,15 +214,22 @@ analytics_reporting    ← Reporting Service
 
 1. **Microservices Architecture**
    - Database per Service
+   - API Gateway Pattern
    - API First
    - Decentralized Data Management
 
-2. **Event-Driven Architecture**
+2. **Resilience Patterns** ✅
+   - Circuit Breaker (Resilience4j)
+   - Retry with Exponential Backoff
+   - Fallback Methods
+   - Timeout Management
+
+3. **Event-Driven Architecture**
    - Asynchronous Communication
    - Event Sourcing
    - CQRS (Command Query Responsibility Segregation)
 
-3. **Domain-Driven Design**
+4. **Domain-Driven Design**
    - Bounded Contexts
    - Aggregates
    - Domain Events

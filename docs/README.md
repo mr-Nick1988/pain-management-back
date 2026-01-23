@@ -51,6 +51,9 @@ This documentation suite provides comprehensive guides for developing, deploying
 | Document | Description | Audience |
 |----------|-------------|----------|
 | **[02-architecture/BACKEND_ARCHITECTURE_OVERVIEW.md](02-architecture/BACKEND_ARCHITECTURE_OVERVIEW.md)** | 🎯 **Complete backend architecture** | **All** |
+| **[MICROSERVICES_PATTERNS_ROADMAP.md](MICROSERVICES_PATTERNS_ROADMAP.md)** | 🚀 **Microservices patterns roadmap** | **Architects, Developers** |
+| **[CIRCUIT_BREAKER_IMPLEMENTATION.md](CIRCUIT_BREAKER_IMPLEMENTATION.md)** | 🔥 **Circuit Breaker implementation guide** | **Developers** |
+| **[API_GATEWAY_INTEGRATION_GUIDE.md](API_GATEWAY_INTEGRATION_GUIDE.md)** | API Gateway integration | Developers |
 | **[02-architecture/MICROSERVICES_MIGRATION_STRATEGY.md](02-architecture/MICROSERVICES_MIGRATION_STRATEGY.md)** | Migration strategy | Architects, Lead Developers |
 | **[02-architecture/MIGRATION_ROADMAP.md](02-architecture/MIGRATION_ROADMAP.md)** | Migration roadmap | Project Managers, Developers |
 | **[06-api/event-schemas/KAFKA_EVENT_SCHEMAS.md](06-api/event-schemas/KAFKA_EVENT_SCHEMAS.md)** | Kafka event schemas | Developers |
