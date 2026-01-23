@@ -35,6 +35,11 @@ node "Docker Environment\n(docker-compose.dev.yml)" as docker {
     database "analytics_reporting" as db_analytics
   }
   
+  ' API Gateway
+  node "API Gateway Container" as gateway_node #LightGreen {
+    artifact "api-gateway-service\nSpring Cloud Gateway\nPort: 8000" as api_gateway
+  }
+  
   ' Microservices
   node "Auth Service Container" as auth_node #LightYellow {
     artifact "authentication-service\nJava 21 + Alpine\nPort: 8082" as auth_service
@@ -151,11 +156,18 @@ reporting_service ..> prometheus : metrics
 prometheus --> grafana : Data Source
 
 ' ============================================================================
-' CONNECTIONS: Frontend → Backend
+' CONNECTIONS: Frontend → API Gateway → Backend
 ' ============================================================================
-react_app --> monolith_dev : REST API\nHTTP
-react_app --> auth_service : Authentication
-react_app --> notif_service : WebSocket
+react_app --> api_gateway : REST API\nHTTP (Single Entry Point)
+
+api_gateway --> monolith_dev : /api/patients, /api/vas
+api_gateway --> auth_service : /api/auth
+api_gateway --> emr_service : /api/emr
+api_gateway --> notif_service : /api/notifications
+api_gateway --> escalation_service : /api/escalations
+api_gateway --> vas_service : /api/external-vas
+api_gateway --> reporting_service : /api/reports
+api_gateway --> backup_service : /api/backup
 
 ' ============================================================================
 ' CONNECTIONS: Tools

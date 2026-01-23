@@ -1,8 +1,8 @@
 # 🏗️ Backend Architecture Overview - Pain Management Platform
 
-**Last Updated:** January 22, 2026  
-**Status:** ✅ All Services Running  
-**Version:** 3.1
+**Last Updated:** January 23, 2026  
+**Status:** ✅ All Services Running + API Gateway  
+**Version:** 3.2
 
 ---
 
@@ -16,6 +16,13 @@
 │              React SPA (localhost:5173)                      │
 └──────────────────────┬──────────────────────────────────────┘
                        │ HTTP/REST
+┌──────────────────────▼──────────────────────────────────────┐
+│                  API GATEWAY LAYER                           │
+│            API Gateway (port 8000)                           │
+│  - JWT Validation  - Circuit Breaker  - CORS                │
+│  - Request Routing - Rate Limiting    - Logging             │
+└──────────────────────┬──────────────────────────────────────┘
+                       │
 ┌──────────────────────▼──────────────────────────────────────┐
 │              APPLICATION LAYER                               │
 │  ┌────────────────┐  ┌─────────────────────────────────┐   │
@@ -85,7 +92,28 @@
 
 ---
 
-### 2. Microservices (7 сервисов)
+### 2. API Gateway (Port 8000)
+
+**Роль:** Single Entry Point для всех клиентских запросов
+
+**Функции:**
+- Request routing ко всем микросервисам
+- JWT валидация и user context propagation
+- Circuit Breaker для resilience
+- Централизованный CORS
+- Request/Response logging
+- Rate limiting (готов к использованию)
+
+**Технологии:**
+- Spring Cloud Gateway (reactive)
+- Resilience4j (Circuit Breaker)
+- Java 21
+
+**Документация:** [api-gateway-service.md](../05-microservices/api-gateway-service.md)
+
+---
+
+### 3. Microservices (7 сервисов)
 
 #### 🔐 Authentication Service (Port 8082)
 - **Назначение:** JWT аутентификация, управление пользователями
@@ -348,7 +376,7 @@ docker-compose -f docker-compose.dev.yml --profile all --profile monitoring up -
 
 ---
 
-## ✅ Current Status (January 22, 2026)
+## ✅ Current Status (January 23, 2026)
 
 ### Infrastructure
 - ✅ Kafka Running (healthy)
@@ -357,6 +385,9 @@ docker-compose -f docker-compose.dev.yml --profile all --profile monitoring up -
 - ✅ Prometheus Running
 - ✅ Grafana Running
 - ✅ Kafdrop Running
+
+### API Gateway
+- ✅ API Gateway Service (8000) - Running
 
 ### Microservices
 - ✅ Authentication Service (8082) - Running
@@ -367,18 +398,20 @@ docker-compose -f docker-compose.dev.yml --profile all --profile monitoring up -
 - ✅ Reporting Service (8091) - Running
 - ✅ Backup & Restore Service (8085) - Running
 
-**Total:** 7/7 Microservices Running (100%)
+**Total:** 8/8 Services Running (100%)
 
 ---
 
 ## 🎯 Next Steps
 
-1. **API Gateway Implementation** - Nginx or Kong
-2. **Service Mesh** - Istio or Linkerd (future)
-3. **Distributed Tracing** - Zipkin or Jaeger
-4. **Centralized Logging** - ELK Stack
-5. **CI/CD Pipeline** - GitHub Actions
-6. **Production Deployment** - Kubernetes
+1. ✅ **API Gateway** - Complete (Spring Cloud Gateway)
+2. **Circuit Breaker Enhancement** - Add Resilience4j to all services (Phase 2)
+3. **Service Discovery** - Consul/Eureka (Phase 3)
+4. **Distributed Tracing** - Zipkin or Jaeger (Phase 7)
+5. **Centralized Logging** - ELK Stack (Phase 8)
+6. **Service Mesh** - Istio or Linkerd (Phase 9)
+7. **CI/CD Pipeline** - GitHub Actions
+8. **Production Deployment** - Kubernetes
 
 ---
 

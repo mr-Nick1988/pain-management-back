@@ -3,7 +3,7 @@
 skinparam backgroundColor #FEFEFE
 skinparam componentStyle rectangle
 
-title Pain Management Platform - Microservices Architecture (2026-01-09)
+title Pain Management Platform - Microservices Architecture (2026-01-23)
 
 ' ============================================================================
 ' FRONTEND LAYER
@@ -13,10 +13,15 @@ package "Frontend Layer" as frontend #LightBlue {
 }
 
 ' ============================================================================
-' API GATEWAY / LOAD BALANCER (Future)
+' API GATEWAY LAYER (Implemented)
 ' ============================================================================
-package "Gateway Layer (Future)" as gateway #LightGray {
-  [API Gateway\n(Nginx/Kong)] as api_gateway
+package "Gateway Layer" as gateway #LightGreen {
+  [API Gateway\n(Spring Cloud Gateway)\n(port 8000)] as api_gateway {
+    component "JWT Validation" as jwt
+    component "Circuit Breaker" as cb
+    component "Request Routing" as routing
+    component "CORS" as cors
+  }
 }
 
 ' ============================================================================
@@ -105,24 +110,24 @@ package "Observability (STAGE 4)" as observability #Lavender {
 }
 
 ' ============================================================================
-' CONNECTIONS: Frontend → Backend
+' CONNECTIONS: Frontend → API Gateway → Services
 ' ============================================================================
-react --> api_gateway : HTTPS
-api_gateway --> monolith : REST API
-api_gateway --> auth : REST API
-api_gateway --> emr : REST API
-api_gateway --> notif : REST API
-api_gateway --> escalation : REST API
-api_gateway --> vas : REST API
-api_gateway --> reporting : REST API
+react --> api_gateway : "HTTPS/REST\n(Single Entry Point)"
+
+' API Gateway routes to all services
+api_gateway --> monolith : "/api/patients/**\n/api/vas/**\netc"
+api_gateway --> auth : "/api/auth/**"
+api_gateway --> emr : "/api/emr/**\n/api/fhir/**"
+api_gateway --> notif : "/api/notifications/**"
+api_gateway --> escalation : "/api/escalations/**"
+api_gateway --> vas : "/api/external-vas/**"
+api_gateway --> reporting : "/api/reports/**"
+api_gateway --> backup : "/api/backup/**"
 
 ' ============================================================================
-' CONNECTIONS: Monolith → Microservices (REST)
+' CONNECTIONS: Monolith → Microservices (Internal)
 ' ============================================================================
-monolith --> auth : JWT validation
-monolith --> reporting : Generate reports
-monolith ..> emr : Optional sync
-monolith ..> notif : Send notifications
+monolith ..> notif : Internal calls
 
 ' ============================================================================
 ' CONNECTIONS: Microservices → Kafka (Publish)

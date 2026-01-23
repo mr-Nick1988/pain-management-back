@@ -1,8 +1,8 @@
 # 📚 Pain Management Platform - Complete Documentation
 
-**Version:** 3.1  
-**Last Updated:** January 22, 2026  
-**Status:** ✅ All 7 Microservices Running
+**Version:** 3.2  
+**Last Updated:** January 23, 2026  
+**Status:** ✅ All 8 Services Running (API Gateway + 7 Microservices)
 
 ---
 
@@ -12,6 +12,7 @@ This documentation suite provides comprehensive guides for developing, deploying
 
 ### System Architecture
 
+- **API Gateway** (Port 8000): Single entry point, routing, JWT validation
 - **Monolith** (Port 8080): Core business logic
 - **7 Microservices** (Ports 8082-8091): Specialized functions
 - **Infrastructure**: Kafka, PostgreSQL, Prometheus, Grafana
@@ -58,6 +59,7 @@ This documentation suite provides comprehensive guides for developing, deploying
 
 | Document | Service | Port |
 |----------|---------|------|
+| **[05-microservices/api-gateway-service.md](05-microservices/api-gateway-service.md)** | 🚪 **API Gateway - Single Entry Point** | **8000** |
 | **[05-microservices/authentication-service-docs.md](05-microservices/authentication-service-docs.md)** | Authentication & JWT | 8082 |
 | **[05-microservices/emr-integration-service-docs.md](05-microservices/emr-integration-service-docs.md)** | EMR & FHIR integration | 8086 |
 | **[05-microservices/NOTIFICATION_SERVICE.md](05-microservices/NOTIFICATION_SERVICE.md)** | Email, WebSocket, Push | 8087 |

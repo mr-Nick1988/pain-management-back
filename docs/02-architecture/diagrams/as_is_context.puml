@@ -1,28 +1,48 @@
 @startuml
-' AS-IS Integration Context (26.12.2025)
+' Current Integration Context (2026-01-23)
 skinparam monochrome true
 skinparam componentStyle rectangle
 
 actor User
-component "Monolith (Spring Boot)" as Monolith
+component "API Gateway\n(8000)" as GATEWAY
+component "Monolith\n(8080)" as Monolith
 queue "Kafka" as Kafka
-storage "Postgres Main\n(pain_management_db)" as PG
-storage "MongoDB\n(analyticsdb)" as MONGO
+storage "PostgreSQL Main\n(5432)" as PG
+storage "PostgreSQL Analytics\n(5433)" as PG_ANALYTICS
 component "HAPI FHIR Server\n(external)" as FHIR
-component "Authentication-Service\n(8082)" as AUTH
-component "Reporting-Service\n(8091)" as REPORT
-component "Logging-Service\n(8081->8083)" as LOG
-component "Backup-Restore\n(8085)" as BACKUP
+component "Authentication Service\n(8082)" as AUTH
+component "EMR Service\n(8086)" as EMR
+component "Notification Service\n(8087)" as NOTIF
+component "Pain Escalation\n(8088)" as ESCALATION
+component "External VAS\n(8089)" as VAS
+component "Reporting Service\n(8091)" as REPORT
+component "Backup\n(8085)" as BACKUP
 
-User --> Monolith : UI / REST
+User --> GATEWAY : HTTP/REST (Single Entry Point)
+GATEWAY --> Monolith : /api/patients, /api/vas, etc
+GATEWAY --> AUTH : /api/auth
+GATEWAY --> EMR : /api/emr, /api/fhir
+GATEWAY --> NOTIF : /api/notifications
+GATEWAY --> ESCALATION : /api/escalations
+GATEWAY --> VAS : /api/external-vas
+GATEWAY --> REPORT : /api/reports
+GATEWAY --> BACKUP : /api/backup
+
 Monolith --> PG : JPA/Hibernate
-Monolith --> MONGO : Spring Data Mongo
-Kafka --> Monolith : emr.changes (consume)
-Monolith --> FHIR : HAPI FHIR (HTTP)
+AUTH --> PG
+EMR --> PG
+NOTIF --> PG
+ESCALATION --> PG
+VAS --> PG
+BACKUP --> PG
 
-' Planned/available, not wired from monolith yet
-Monolith ..> AUTH : planned: JWT validate/login via REST
-Monolith ..> REPORT : planned: Kafka reporting-commands\n + REST /api/reports
-Monolith ..> LOG : planned: Kafka logging-events (producer)
-Monolith ..> BACKUP : optional ops REST
+REPORT --> PG_ANALYTICS
+
+Monolith --> Kafka : analytics-events (producer)
+EMR --> Kafka : emr.changes, emr.created (producer)
+ESCALATION --> Kafka : pain.escalated (producer)
+REPORT <-- Kafka : reporting-commands (consumer)
+NOTIF <-- Kafka : pain.escalated (consumer)
+
+EMR --> FHIR : HAPI FHIR (HTTP)
 @enduml

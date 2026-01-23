@@ -1,8 +1,8 @@
 # 🚀 Pain Management Platform - Complete DevOps Guide
 
-**Version:** 3.0  
-**Last Updated:** January 12, 2026  
-**Architecture:** Microservices (Transitioning from Monolith)
+**Version:** 3.2  
+**Last Updated:** January 23, 2026  
+**Architecture:** Microservices with API Gateway
 
 ---
 
@@ -35,9 +35,10 @@
 
 The Pain Management Platform consists of:
 
-1. **Monolith Application** (port 8080) - Core business logic
-2. **6 Microservices** (ports 8082-8091) - Specialized functions
-3. **Infrastructure**:
+1. **API Gateway** (port 8000) - Single entry point for all requests
+2. **Monolith Application** (port 8080) - Core business logic
+3. **7 Microservices** (ports 8082-8091) - Specialized functions
+4. **Infrastructure**:
    - Apache Kafka (port 9092) - Event streaming
    - PostgreSQL x2 (ports 5432, 5433) - Databases
    - Prometheus (port 9090) - Metrics collection
@@ -61,6 +62,13 @@ The Pain Management Platform consists of:
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                         FRONTEND (port 5173)                     │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    API GATEWAY (port 8000)                       │
+│  - Request Routing       - JWT Validation                        │
+│  - Circuit Breaker       - CORS Management                       │
 └──────────────────────────────┬──────────────────────────────────┘
                                │
                                ▼
@@ -160,6 +168,7 @@ Ensure the following ports are available:
 | 3000  | Grafana                    | Optional |
 | 5432  | PostgreSQL (Main)          | ✅       |
 | 5433  | PostgreSQL (Analytics)     | Optional |
+| 8000  | API Gateway                | ✅       |
 | 8080  | Monolith                   | ✅       |
 | 8082  | Authentication Service     | ✅       |
 | 8085  | Backup/Restore Service     | Optional |

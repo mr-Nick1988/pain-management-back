@@ -1,7 +1,7 @@
 # 🚀 БЫСТРЫЙ СТАРТ: МИКРОСЕРВИСНАЯ АРХИТЕКТУРА
 
-**Дата:** 22.01.2026  
-**Статус:** ✅ Все 7 микросервисов работают
+**Дата:** 23.01.2026  
+**Статус:** ✅ API Gateway + 7 микросервисов работают
 
 ---
 
@@ -23,6 +23,11 @@
 ---
 
 ## ✅ ТЕКУЩЕЕ СОСТОЯНИЕ СИСТЕМЫ
+
+### API Gateway (1/1)
+```
+✅ API Gateway (8000) - Single Entry Point
+```
 
 ### Инфраструктура (6/6)
 ```
@@ -64,6 +69,7 @@ C:\backend_projects\
 │   └── .env.development              # Шаблон переменных окружения
 │
 └── microservices/                    # Все микросервисы
+    ├── api-gateway-service/          # Порт 8000 - Single Entry Point
     ├── authentication-service/       # Порт 8082
     ├── emr-integration-service/      # Порт 8086
     ├── notification-service/         # Порт 8087
@@ -138,6 +144,9 @@ curl http://localhost:9092  # Kafka (должен ответить)
 curl http://localhost:9090  # Prometheus
 curl http://localhost:3000  # Grafana
 curl http://localhost:9000  # Kafdrop
+
+# API Gateway
+curl http://localhost:8000/actuator/health  # API Gateway
 
 # Микросервисы
 curl http://localhost:8082/actuator/health  # Auth
@@ -233,6 +242,8 @@ docker exec -it dev_postgres psql -U postgres -d pain_management_db -c "\dt"
 
 ```
 Frontend (React)
+       ↓
+API Gateway (8000) - Single Entry Point
        ↓
 Application Layer (Monolith + 7 Microservices)
        ↓

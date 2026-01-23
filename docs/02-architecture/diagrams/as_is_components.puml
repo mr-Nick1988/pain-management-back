@@ -1,32 +1,54 @@
 @startuml
-' AS-IS Components inside Monolith and touchpoints
+' Current Architecture - Microservices (2026-01-23)
 skinparam monochrome true
 skinparam componentStyle rectangle
 
-package "Monolith" {
+package "API Gateway (8000)" {
+  [Routing]
+  [JWT Validation]
+  [Circuit Breaker]
+}
+
+package "Monolith (8080)" {
   [Admin]
   [Doctor]
   [Nurse]
   [Anesthesiologist]
-  [Reporting (internal)]
-  [Analytics (Mongo)]
-  [External EMR Integration]
-  [EMR Recalculation]
-  [WebSocket Notifications]
-  [Common/Persons (Login)]
+  [Treatment Protocol]
 }
 
-[External EMR Integration] --> [EMR Recalculation] : EMR updates
-[Common/Persons (Login)] --> [Analytics (Mongo)] : publish domain events
-[Reporting (internal)] --> PG : query/aggregate
-[Analytics (Mongo)] --> MONGO : save events/logs
-[EMR Recalculation] --> [WebSocket Notifications] : notify UI
+package "Microservices" {
+  [Auth Service (8082)]
+  [EMR Service (8086)]
+  [Notification (8087)]
+  [Pain Escalation (8088)]
+  [External VAS (8089)]
+  [Reporting (8091)]
+  [Backup (8085)]
+}
+
+[API Gateway (8000)] --> [Monolith (8080)]
+[API Gateway (8000)] --> [Auth Service (8082)]
+[API Gateway (8000)] --> [EMR Service (8086)]
+[API Gateway (8000)] --> [Notification (8087)]
+[API Gateway (8000)] --> [Pain Escalation (8088)]
+[API Gateway (8000)] --> [External VAS (8089)]
+[API Gateway (8000)] --> [Reporting (8091)]
 
 queue "Kafka" as Kafka
-Kafka --> [EMR Recalculation] : emr.changes
-[External EMR Integration] --> FHIR : HAPI FHIR HTTP
+[Monolith (8080)] --> Kafka : analytics-events
+[EMR Service (8086)] --> Kafka : emr.changes
+[Pain Escalation (8088)] --> Kafka : pain.escalated
+[EMR Service (8086)] --> FHIR : HAPI FHIR HTTP
 
-storage "Postgres Main" as PG
-storage "Mongo analyticsdb" as MONGO
-component FHIR
+storage "PostgreSQL Main" as PG
+component "FHIR Server" as FHIR
+
+[Monolith (8080)] --> PG
+[Auth Service (8082)] --> PG
+[EMR Service (8086)] --> PG
+[Notification (8087)] --> PG
+[Pain Escalation (8088)] --> PG
+[External VAS (8089)] --> PG
+[Backup (8085)] --> PG
 @enduml
