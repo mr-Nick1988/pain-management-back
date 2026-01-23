@@ -52,6 +52,7 @@ This documentation suite provides comprehensive guides for developing, deploying
 |----------|-------------|----------|
 | **[02-architecture/BACKEND_ARCHITECTURE_OVERVIEW.md](02-architecture/BACKEND_ARCHITECTURE_OVERVIEW.md)** | 🎯 **Complete backend architecture** | **All** |
 | **[MICROSERVICES_PATTERNS_ROADMAP.md](MICROSERVICES_PATTERNS_ROADMAP.md)** | 🚀 **Microservices patterns roadmap** | **Architects, Developers** |
+| **[SERVICE_DISCOVERY_IMPLEMENTATION.md](SERVICE_DISCOVERY_IMPLEMENTATION.md)** | 🔍 **Service Discovery with Consul** | **Developers, DevOps** |
 | **[CIRCUIT_BREAKER_IMPLEMENTATION.md](CIRCUIT_BREAKER_IMPLEMENTATION.md)** | 🔥 **Circuit Breaker implementation guide** | **Developers** |
 | **[API_GATEWAY_INTEGRATION_GUIDE.md](API_GATEWAY_INTEGRATION_GUIDE.md)** | API Gateway integration | Developers |
 | **[02-architecture/MICROSERVICES_MIGRATION_STRATEGY.md](02-architecture/MICROSERVICES_MIGRATION_STRATEGY.md)** | Migration strategy | Architects, Lead Developers |

@@ -16,6 +16,8 @@ API Gateway is the **single entry point** for all client requests to the Pain Ma
 ## 🎯 Responsibilities
 
 - **Request Routing** - Route requests to 7 microservices + monolith
+- **Service Discovery** - Dynamic routing via Consul registry ✅
+- **Load Balancing** - Round-robin between service instances ✅
 - **JWT Validation** - Centralized authentication for protected routes
 - **Circuit Breaking** - Resilience against service failures
 - **CORS Management** - Single CORS configuration point
@@ -30,9 +32,38 @@ API Gateway is the **single entry point** for all client requests to the Pain Ma
 - **Framework:** Spring Cloud Gateway (reactive)
 - **Language:** Java 21
 - **Build:** Maven 3.9
+- **Service Discovery:** Spring Cloud Consul ✅
+- **Load Balancer:** Spring Cloud LoadBalancer ✅
 - **Circuit Breaker:** Resilience4j
 - **Metrics:** Micrometer + Prometheus
 - **Container:** Docker (multi-stage build)
+
+---
+
+## 🔍 Service Discovery Integration
+
+**Consul Registration:**
+- Gateway registers itself as `api-gateway` service
+- Queries Consul for downstream services
+- Uses `lb://service-name` for load-balanced routing
+- Health checks every 10s to `/actuator/health`
+
+**Dynamic Routing Example:**
+```yaml
+routes:
+  - id: authentication-service
+    uri: lb://authentication-service  # Load balanced!
+    predicates:
+      - Path=/api/auth/**
+```
+
+**Benefits:**
+- No hardcoded service URLs
+- Automatic service discovery
+- Load balancing between multiple instances
+- Health-based routing (only to healthy services)
+
+**Consul UI:** http://localhost:8500/ui
 
 ---
 

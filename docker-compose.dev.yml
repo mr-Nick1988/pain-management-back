@@ -125,6 +125,33 @@ services:
       - dev-net
 
   # ==========================================================================
+  # INFRASTRUCTURE: Consul - Service Discovery & Configuration
+  # ==========================================================================
+  # Service Registry для динамической регистрации микросервисов
+  # HTTP API: 8500, DNS: 8600
+  # UI: http://localhost:8500/ui
+  consul:
+    image: hashicorp/consul:1.17
+    container_name: dev_consul
+    hostname: consul
+    ports:
+      - "8500:8500"   # HTTP API + Web UI
+      - "8600:8600/udp"  # DNS interface
+    command: agent -server -bootstrap -ui -client=0.0.0.0 -bind=0.0.0.0
+    environment:
+      CONSUL_BIND_INTERFACE: eth0
+    volumes:
+      - consul-data:/consul/data
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - dev-net
+
+  # ==========================================================================
   # API GATEWAY (порт 8000) - ЕДИНАЯ ТОЧКА ВХОДА
   # ==========================================================================
   # Все запросы от Frontend идут через API Gateway
@@ -148,8 +175,15 @@ services:
       # Redis (опционально для rate limiting)
       REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: ${REDIS_PORT:-6379}
+      
+      # Consul Service Discovery
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-consul}
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
     depends_on:
       kafka:
+        condition: service_healthy
+      consul:
         condition: service_healthy
     networks:
       - dev-net
@@ -191,8 +225,15 @@ services:
       CORS_ALLOWED_METHODS: ${CORS_ALLOWED_METHODS:-GET,POST,PUT,DELETE,OPTIONS,PATCH}
       CORS_ALLOWED_HEADERS: ${CORS_ALLOWED_HEADERS:-Authorization,Content-Type,Accept,Origin,X-Requested-With}
       CORS_ALLOW_CREDENTIALS: ${CORS_ALLOW_CREDENTIALS:-true}
+      
+      # Consul Service Discovery
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-consul}
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
     depends_on:
       - postgres
+      consul:
+        condition: service_healthy
     networks:
       - dev-net
 
@@ -227,10 +268,17 @@ services:
       
       # Sync settings
       EMR_SYNC_ENABLED: ${EMR_SYNC_ENABLED:-false}
+      
+      # Consul Service Discovery
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-consul}
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
     depends_on:
       kafka:
         condition: service_healthy
       postgres:
+        condition: service_healthy
+      consul:
         condition: service_healthy
     networks:
       - dev-net
@@ -264,10 +312,17 @@ services:
       MAIL_PORT: ${MAIL_PORT:-1025}
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      
+      # Consul Service Discovery
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-consul}
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
     depends_on:
       kafka:
         condition: service_healthy
       postgres:
+        condition: service_healthy
+      consul:
         condition: service_healthy
     networks:
       - dev-net
@@ -300,10 +355,17 @@ services:
       PAIN_ESCALATION_THRESHOLD: 2    # VAS increase to trigger escalation
       PAIN_ANALYSIS_WINDOW: 24         # Hours
       PAIN_CRITICAL_VAS: 7             # Critical pain level
+      
+      # Consul Service Discovery
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-consul}
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
     depends_on:
       kafka:
         condition: service_healthy
       postgres:
+        condition: service_healthy
+      consul:
         condition: service_healthy
     networks:
       - dev-net
@@ -337,10 +399,17 @@ services:
       VAS_HIGH_PAIN: 7                 # High pain threshold
       API_KEY_LENGTH: 64               # API key length
       API_KEY_DEFAULT_RATE_LIMIT: 100  # Requests per minute
+      
+      # Consul Service Discovery
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-consul}
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
     depends_on:
       kafka:
         condition: service_healthy
       postgres:
+        condition: service_healthy
+      consul:
         condition: service_healthy
     networks:
       - dev-net
@@ -380,10 +449,17 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       KAFKA_TOPIC_REPORTING_COMMANDS: reporting-commands
       KAFKA_TOPICS_REPORTING_COMMANDS: reporting-commands
+      
+      # Consul Service Discovery
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-consul}
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
     depends_on:
       kafka:
         condition: service_healthy
       postgres-analytics:
+        condition: service_healthy
+      consul:
         condition: service_healthy
     networks:
       - dev-net
@@ -421,10 +497,17 @@ services:
       BACKUP_BASE_DIR: /app/backups
       BACKUP_RETENTION_DAYS: 30
       BACKUP_SCHEDULER_ENABLED: ${BACKUP_SCHEDULER_ENABLED:-false}
+      
+      # Consul Service Discovery
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-consul}
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
     volumes:
       - ./backups:/app/backups
     depends_on:
       - postgres
+      consul:
+        condition: service_healthy
     networks:
       - dev-net
 
@@ -520,6 +603,8 @@ volumes:
     name: painmgmt-postgres-data
   postgres-analytics-data:
     name: painmgmt-analytics-data
+  consul-data:
+    name: painmgmt-consul-data
   prometheus-data:
     name: painmgmt-prometheus-data
   grafana-data:
@@ -578,6 +663,8 @@ volumes:
 # Infrastructure:
 #   5432  - PostgreSQL (монолит)
 #   5433  - PostgreSQL Analytics
+#   8500  - Consul (Service Discovery UI)
+#   8600  - Consul DNS
 #   9092  - Kafka
 #   9000  - Kafdrop (Kafka UI)
 #

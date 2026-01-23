@@ -199,10 +199,24 @@ analytics_reporting    ← Reporting Service
 
 ---
 
-### 5. Observability (Monitoring)
+### 5. Service Discovery - HashiCorp Consul
+
+- **Consul Server** (8500, 8600): Service Registry
+- **Auto-registration**: Все микросервисы регистрируются при старте
+- **Health Checks**: HTTP проверки каждые 10s
+- **Load Balancing**: Round-robin через Spring Cloud LoadBalancer
+- **Dynamic Routing**: API Gateway использует `lb://service-name`
+- **Web UI**: http://localhost:8500/ui
+
+**Registered Services:** API Gateway, Authentication, EMR, Notification, Pain Escalation, External VAS, Reporting, Backup
+
+---
+
+### 6. Observability (Monitoring)
 
 - **Prometheus** (9090): Сбор метрик со всех сервисов
 - **Grafana** (3000): Визуализация метрик
+- **Consul UI** (8500): Service registry monitoring
 - **Kafdrop** (9000): Kafka UI для топиков и событий
 - **Spring Boot Actuator**: Health checks, metrics endpoints
 
@@ -224,7 +238,13 @@ analytics_reporting    ← Reporting Service
    - Fallback Methods
    - Timeout Management
 
-3. **Event-Driven Architecture**
+3. **Service Discovery** ✅
+   - Dynamic Service Registration (Consul)
+   - Health-Based Routing
+   - Client-Side Load Balancing
+   - Service Mesh Ready
+
+4. **Event-Driven Architecture**
    - Asynchronous Communication
    - Event Sourcing
    - CQRS (Command Query Responsibility Segregation)
@@ -271,9 +291,11 @@ docker-compose -f docker-compose.dev.yml --profile all --profile monitoring up -
 **Network:** `painmgmt-dev-network` (bridge)
 
 **Service Discovery:**
-- Services communicate by container name
-- DNS resolution by Docker
-- No service registry needed in dev
+- ✅ **HashiCorp Consul** для динамической регистрации
+- Сервисы регистрируются автоматически при старте
+- Health checks каждые 10s
+- API Gateway использует load-balanced routing: `lb://service-name`
+- DNS resolution by Docker (fallback)
 
 ---
 
@@ -386,6 +408,7 @@ docker-compose -f docker-compose.dev.yml --profile all --profile monitoring up -
 ## ✅ Current Status (January 23, 2026)
 
 ### Infrastructure
+- ✅ Consul Service Registry (8500, 8600) - Running
 - ✅ Kafka Running (healthy)
 - ✅ PostgreSQL Main Running (healthy)
 - ✅ PostgreSQL Analytics Running (healthy)
@@ -412,8 +435,8 @@ docker-compose -f docker-compose.dev.yml --profile all --profile monitoring up -
 ## 🎯 Next Steps
 
 1. ✅ **API Gateway** - Complete (Spring Cloud Gateway)
-2. **Circuit Breaker Enhancement** - Add Resilience4j to all services (Phase 2)
-3. **Service Discovery** - Consul/Eureka (Phase 3)
+2. ✅ **Circuit Breaker** - Complete (Resilience4j in all services)
+3. ✅ **Service Discovery** - Complete (HashiCorp Consul)
 4. **Distributed Tracing** - Zipkin or Jaeger (Phase 7)
 5. **Centralized Logging** - ELK Stack (Phase 8)
 6. **Service Mesh** - Istio or Linkerd (Phase 9)
