@@ -125,6 +125,42 @@ services:
       - dev-net
 
   # ==========================================================================
+  # API GATEWAY (порт 8000) - ЕДИНАЯ ТОЧКА ВХОДА
+  # ==========================================================================
+  # Все запросы от Frontend идут через API Gateway
+  # Функции: routing, JWT validation, CORS, circuit breaker, rate limiting
+  api-gateway:
+    build:
+      context: C:/backend_projects/microservices/api-gateway-service
+      dockerfile: Dockerfile
+    image: pain-mgmt/api-gateway:dev
+    container_name: dev_api_gateway
+    profiles: ["gateway", "all", "core"]
+    ports:
+      - "8000:8000"
+    environment:
+      # JWT Secret (должен совпадать со всеми сервисами!)
+      JWT_SECRET: ${JWT_SECRET:-pain-management-secret-key-change-in-production-min-256-bits-required-for-hs256-algorithm-security}
+      
+      # CORS
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000}
+      
+      # Redis (опционально для rate limiting)
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - dev-net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000/actuator/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 40s
+
+  # ==========================================================================
   # MICROSERVICE: Authentication Service (порт 8082)
   # ==========================================================================
   # JWT аутентификация и управление пользователями
@@ -536,6 +572,9 @@ volumes:
 # ============================================================================
 # PORTS SUMMARY
 # ============================================================================
+# API Gateway:
+#   8000  - API Gateway (ЕДИНАЯ ТОЧКА ВХОДА для Frontend)
+#
 # Infrastructure:
 #   5432  - PostgreSQL (монолит)
 #   5433  - PostgreSQL Analytics
