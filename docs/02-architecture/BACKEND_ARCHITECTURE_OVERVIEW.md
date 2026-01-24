@@ -1,14 +1,14 @@
 # 🏗️ Backend Architecture Overview - Pain Management Platform
 
-**Last Updated:** January 23, 2026  
-**Status:** ✅ All Services Running + API Gateway  
-**Version:** 3.2
+**Last Updated:** January 24, 2026  
+**Status:** ✅ All Services Running + API Gateway + Distributed Tracing  
+**Version:** 3.3
 
 ---
 
-## 🎯 Общая Архитектура Бэкенда
+## 🎯 Backend Architecture Overview
 
-### Слои Архитектуры
+### Architecture Layers
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -40,7 +40,7 @@
             │   ┌─────────────────▼─────────────────┐
             │   │   EVENT STREAMING LAYER           │
             │   │   Apache Kafka (port 9092)        │
-            │   │   - 8 Topics для async events     │
+            │   │   - 8 Topics for async events     │
             │   └─────────────────┬─────────────────┘
             │                     │
 ┌───────────▼─────────────────────▼─────────────────────────┐
@@ -202,22 +202,41 @@ analytics_reporting    ← Reporting Service
 ### 5. Service Discovery - HashiCorp Consul
 
 - **Consul Server** (8500, 8600): Service Registry
-- **Auto-registration**: Все микросервисы регистрируются при старте
-- **Health Checks**: HTTP проверки каждые 10s
-- **Load Balancing**: Round-robin через Spring Cloud LoadBalancer
-- **Dynamic Routing**: API Gateway использует `lb://service-name`
+- **Auto-registration**: All microservices register on startup
+- **Health Checks**: HTTP checks every 10s
+- **Load Balancing**: Round-robin via Spring Cloud LoadBalancer
+- **Dynamic Routing**: API Gateway uses `lb://service-name`
 - **Web UI**: http://localhost:8500/ui
 
 **Registered Services:** API Gateway, Authentication, EMR, Notification, Pain Escalation, External VAS, Reporting, Backup
 
 ---
 
-### 6. Observability (Monitoring)
+### 6. Distributed Tracing - Jaeger + OpenTelemetry
 
-- **Prometheus** (9090): Сбор метрик со всех сервисов
-- **Grafana** (3000): Визуализация метрик
+- **Jaeger Server** (16686, 4317, 4318): Trace collection and visualization
+- **Protocol**: OpenTelemetry OTLP HTTP
+- **Instrumentation**: Automatic via Micrometer Tracing Bridge
+- **Sampling**: 100% (development), configurable for production
+- **Trace Propagation**: Automatic across HTTP, JDBC, Kafka
+- **Log Correlation**: TraceID in logs `[service,traceId,spanId]`
+- **Web UI**: http://localhost:16686
+
+**Features:**
+- End-to-end request tracking across all 8 services
+- Performance bottleneck identification
+- Service dependency visualization
+- Error correlation and debugging
+
+---
+
+### 7. Observability (Monitoring)
+
+- **Prometheus** (9090): Metrics collection from all services
+- **Grafana** (3000): Metrics visualization
+- **Jaeger UI** (16686): Distributed tracing visualization
 - **Consul UI** (8500): Service registry monitoring
-- **Kafdrop** (9000): Kafka UI для топиков и событий
+- **Kafdrop** (9000): Kafka UI for topics and events
 - **Spring Boot Actuator**: Health checks, metrics endpoints
 
 ---
@@ -244,12 +263,18 @@ analytics_reporting    ← Reporting Service
    - Client-Side Load Balancing
    - Service Mesh Ready
 
-4. **Event-Driven Architecture**
+4. **Distributed Tracing** ✅
+   - End-to-End Request Tracking (Jaeger)
+   - OpenTelemetry Instrumentation
+   - Trace Propagation (HTTP, Kafka, JDBC)
+   - Performance Analysis
+
+5. **Event-Driven Architecture**
    - Asynchronous Communication
    - Event Sourcing
    - CQRS (Command Query Responsibility Segregation)
 
-4. **Domain-Driven Design**
+6. **Domain-Driven Design**
    - Bounded Contexts
    - Aggregates
    - Domain Events
@@ -409,6 +434,7 @@ docker-compose -f docker-compose.dev.yml --profile all --profile monitoring up -
 
 ### Infrastructure
 - ✅ Consul Service Registry (8500, 8600) - Running
+- ✅ Jaeger Distributed Tracing (16686, 4317, 4318) - Running
 - ✅ Kafka Running (healthy)
 - ✅ PostgreSQL Main Running (healthy)
 - ✅ PostgreSQL Analytics Running (healthy)
@@ -437,7 +463,7 @@ docker-compose -f docker-compose.dev.yml --profile all --profile monitoring up -
 1. ✅ **API Gateway** - Complete (Spring Cloud Gateway)
 2. ✅ **Circuit Breaker** - Complete (Resilience4j in all services)
 3. ✅ **Service Discovery** - Complete (HashiCorp Consul)
-4. **Distributed Tracing** - Zipkin or Jaeger (Phase 7)
+4. ✅ **Distributed Tracing** - Complete (Jaeger + OpenTelemetry)
 5. **Centralized Logging** - ELK Stack (Phase 8)
 6. **Service Mesh** - Istio or Linkerd (Phase 9)
 7. **CI/CD Pipeline** - GitHub Actions

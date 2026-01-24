@@ -69,6 +69,25 @@ node "Docker Environment\n(docker-compose.dev.yml)" as docker {
     artifact "backup-restore-service\nJava 21 + Alpine\nPort: 8085" as backup_service
   }
   
+  ' Service Discovery
+  node "Consul Container" as consul_node #LightCyan {
+    artifact "Consul 1.17\nService Registry\nPorts: 8500, 8600" as consul
+  }
+  
+  ' Distributed Tracing
+  node "Jaeger Container" as jaeger_node #Lavender {
+    artifact "Jaeger 1.53\nAll-in-one\nPorts: 16686, 4317, 4318" as jaeger
+  }
+  
+  ' Monitoring
+  node "Prometheus Container\n(Optional)" as prometheus_node #LightGray {
+    artifact "Prometheus\nPort: 9090" as prometheus
+  }
+  
+  node "Grafana Container\n(Optional)" as grafana_node #LightGray {
+    artifact "Grafana\nPort: 3000" as grafana
+  }
+  
   ' Tools
   node "Kafdrop Container\n(Optional)" as kafdrop_node #LightGray {
     artifact "Kafdrop UI\nPort: 9000" as kafdrop

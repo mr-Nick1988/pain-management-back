@@ -1,8 +1,8 @@
 # 🚀 Pain Management Platform - Complete DevOps Guide
 
-**Version:** 3.2  
-**Last Updated:** January 23, 2026  
-**Architecture:** Microservices with API Gateway
+**Version:** 3.3  
+**Last Updated:** January 24, 2026  
+**Architecture:** Microservices with API Gateway + Service Discovery + Distributed Tracing
 
 ---
 
@@ -39,6 +39,8 @@ The Pain Management Platform consists of:
 2. **Monolith Application** (port 8080) - Core business logic
 3. **7 Microservices** (ports 8082-8091) - Specialized functions
 4. **Infrastructure**:
+   - Consul (ports 8500, 8600) - Service Discovery & Registry
+   - Jaeger (ports 16686, 4317, 4318) - Distributed Tracing
    - Apache Kafka (port 9092) - Event streaming
    - PostgreSQL x2 (ports 5432, 5433) - Databases
    - Prometheus (port 9090) - Metrics collection

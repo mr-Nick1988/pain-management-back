@@ -177,13 +177,18 @@ services:
       REDIS_PORT: ${REDIS_PORT:-6379}
       
       # Consul Service Discovery
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-consul}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-consul,tracing}
       CONSUL_HOST: consul
       CONSUL_PORT: 8500
+      
+      # Distributed Tracing
+      OTLP_ENDPOINT: http://jaeger:4318/v1/traces
     depends_on:
       kafka:
         condition: service_healthy
       consul:
+        condition: service_healthy
+      jaeger:
         condition: service_healthy
     networks:
       - dev-net
@@ -227,12 +232,17 @@ services:
       CORS_ALLOW_CREDENTIALS: ${CORS_ALLOW_CREDENTIALS:-true}
       
       # Consul Service Discovery
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-consul}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-consul,tracing}
       CONSUL_HOST: consul
       CONSUL_PORT: 8500
+      
+      # Distributed Tracing
+      OTLP_ENDPOINT: http://jaeger:4318/v1/traces
     depends_on:
       - postgres
       consul:
+        condition: service_healthy
+      jaeger:
         condition: service_healthy
     networks:
       - dev-net
@@ -270,15 +280,20 @@ services:
       EMR_SYNC_ENABLED: ${EMR_SYNC_ENABLED:-false}
       
       # Consul Service Discovery
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-consul}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-consul,tracing}
       CONSUL_HOST: consul
       CONSUL_PORT: 8500
+      
+      # Distributed Tracing
+      OTLP_ENDPOINT: http://jaeger:4318/v1/traces
     depends_on:
       kafka:
         condition: service_healthy
       postgres:
         condition: service_healthy
       consul:
+        condition: service_healthy
+      jaeger:
         condition: service_healthy
     networks:
       - dev-net
@@ -314,15 +329,20 @@ services:
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
       
       # Consul Service Discovery
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-consul}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-consul,tracing}
       CONSUL_HOST: consul
       CONSUL_PORT: 8500
+      
+      # Distributed Tracing
+      OTLP_ENDPOINT: http://jaeger:4318/v1/traces
     depends_on:
       kafka:
         condition: service_healthy
       postgres:
         condition: service_healthy
       consul:
+        condition: service_healthy
+      jaeger:
         condition: service_healthy
     networks:
       - dev-net
@@ -357,15 +377,20 @@ services:
       PAIN_CRITICAL_VAS: 7             # Critical pain level
       
       # Consul Service Discovery
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-consul}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-consul,tracing}
       CONSUL_HOST: consul
       CONSUL_PORT: 8500
+      
+      # Distributed Tracing
+      OTLP_ENDPOINT: http://jaeger:4318/v1/traces
     depends_on:
       kafka:
         condition: service_healthy
       postgres:
         condition: service_healthy
       consul:
+        condition: service_healthy
+      jaeger:
         condition: service_healthy
     networks:
       - dev-net
@@ -401,15 +426,20 @@ services:
       API_KEY_DEFAULT_RATE_LIMIT: 100  # Requests per minute
       
       # Consul Service Discovery
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-consul}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-consul,tracing}
       CONSUL_HOST: consul
       CONSUL_PORT: 8500
+      
+      # Distributed Tracing
+      OTLP_ENDPOINT: http://jaeger:4318/v1/traces
     depends_on:
       kafka:
         condition: service_healthy
       postgres:
         condition: service_healthy
       consul:
+        condition: service_healthy
+      jaeger:
         condition: service_healthy
     networks:
       - dev-net
@@ -451,15 +481,20 @@ services:
       KAFKA_TOPICS_REPORTING_COMMANDS: reporting-commands
       
       # Consul Service Discovery
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-consul}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-consul,tracing}
       CONSUL_HOST: consul
       CONSUL_PORT: 8500
+      
+      # Distributed Tracing
+      OTLP_ENDPOINT: http://jaeger:4318/v1/traces
     depends_on:
       kafka:
         condition: service_healthy
       postgres-analytics:
         condition: service_healthy
       consul:
+        condition: service_healthy
+      jaeger:
         condition: service_healthy
     networks:
       - dev-net
@@ -499,14 +534,19 @@ services:
       BACKUP_SCHEDULER_ENABLED: ${BACKUP_SCHEDULER_ENABLED:-false}
       
       # Consul Service Discovery
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-consul}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-consul,tracing}
       CONSUL_HOST: consul
       CONSUL_PORT: 8500
+      
+      # Distributed Tracing
+      OTLP_ENDPOINT: http://jaeger:4318/v1/traces
     volumes:
       - ./backups:/app/backups
     depends_on:
       - postgres
       consul:
+        condition: service_healthy
+      jaeger:
         condition: service_healthy
     networks:
       - dev-net
@@ -586,6 +626,34 @@ services:
       - prometheus
     networks:
       - dev-net
+
+  # ==========================================================================
+  # OBSERVABILITY: Jaeger - Distributed Tracing (порты 16686, 4317, 4318)
+  # ==========================================================================
+  # Distributed tracing для отслеживания запросов через микросервисы
+  # Web UI: http://localhost:16686
+  # OpenTelemetry OTLP gRPC: 4317
+  # OpenTelemetry OTLP HTTP: 4318
+  jaeger:
+    image: jaegertracing/all-in-one:1.53
+    container_name: dev_jaeger
+    profiles: ["monitoring", "all"]
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "4317:4317"    # OTLP gRPC receiver
+      - "4318:4318"    # OTLP HTTP receiver
+    environment:
+      # Memory storage (dev only, use Cassandra/Elasticsearch in prod)
+      COLLECTOR_OTLP_ENABLED: "true"
+      LOG_LEVEL: info
+    networks:
+      - dev-net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:16686/"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
 
 # ============================================================================
 # NETWORKS
@@ -667,6 +735,13 @@ volumes:
 #   8600  - Consul DNS
 #   9092  - Kafka
 #   9000  - Kafdrop (Kafka UI)
+#
+# Observability:
+#   3000  - Grafana (Metrics Visualization)
+#   9090  - Prometheus (Metrics Collection)
+#   16686 - Jaeger UI (Distributed Tracing)
+#   4317  - Jaeger OTLP gRPC
+#   4318  - Jaeger OTLP HTTP
 #
 # Microservices:
 #   8080  - Монолит (запускать отдельно через IDE или mvn spring-boot:run)

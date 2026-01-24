@@ -3,7 +3,7 @@
 skinparam backgroundColor #FEFEFE
 skinparam componentStyle rectangle
 
-title Pain Management Platform - Microservices Architecture (2026-01-23)
+title Pain Management Platform - Microservices Architecture (2026-01-24)
 
 ' ============================================================================
 ' FRONTEND LAYER
@@ -102,9 +102,21 @@ package "External Systems" as external #LightGray {
 }
 
 ' ============================================================================
-' MONITORING (STAGE 4)
+' SERVICE DISCOVERY & OBSERVABILITY
 ' ============================================================================
-package "Observability (STAGE 4)" as observability #Lavender {
+package "Service Discovery" as service_discovery #LightCyan {
+  [Consul\n(port 8500, 8600)] as consul {
+    component "Service Registry" as registry
+    component "Health Checks" as health
+    component "DNS Interface" as dns
+  }
+}
+
+package "Observability" as observability #Lavender {
+  [Jaeger\n(port 16686, 4318)] as jaeger {
+    component "Trace Collector" as collector
+    component "Trace UI" as trace_ui
+  }
   [Prometheus\n(port 9090)] as prometheus
   [Grafana\n(port 3000)] as grafana
 }
@@ -176,7 +188,31 @@ backup ..> postgres : pg_dump/\npg_restore
 backup ..> postgres_analytics : pg_dump/\npg_restore
 
 ' ============================================================================
-' CONNECTIONS: Monitoring (STAGE 4)
+' CONNECTIONS: Service Discovery (Consul)
+' ============================================================================
+api_gateway ..> consul : Register +\nQuery services
+auth ..> consul : Register +\nHealth checks
+emr ..> consul : Register
+notif ..> consul : Register
+escalation ..> consul : Register
+vas ..> consul : Register
+reporting ..> consul : Register
+backup ..> consul : Register
+
+' ============================================================================
+' CONNECTIONS: Distributed Tracing (Jaeger)
+' ============================================================================
+api_gateway ..> jaeger : Send traces\n(OTLP HTTP)
+auth ..> jaeger : Traces
+emr ..> jaeger : Traces
+notif ..> jaeger : Traces
+escalation ..> jaeger : Traces
+vas ..> jaeger : Traces
+reporting ..> jaeger : Traces
+backup ..> jaeger : Traces
+
+' ============================================================================
+' CONNECTIONS: Monitoring (Prometheus + Grafana)
 ' ============================================================================
 monolith ..> prometheus : /actuator/\nprometheus
 auth ..> prometheus : metrics
@@ -214,12 +250,22 @@ note bottom of postgres
   - NO MongoDB anymore!
 end note
 
+note right of service_discovery
+  **Service Discovery (Phase 3) ✅**
+  - HashiCorp Consul 1.17
+  - Auto service registration
+  - Health checks every 10s
+  - Load balancing (Round Robin)
+  - Dynamic routing: lb://service-name
+end note
+
 note right of observability
-  **STAGE 4: Observability**
-  - Prometheus scrapes metrics
-  - Grafana visualizes
+  **Observability Stack**
+  - **Jaeger (Phase 7) ✅**: Distributed tracing
+  - **Prometheus**: Metrics collection
+  - **Grafana**: Visualization
   - Spring Boot Actuator
-  - Micrometer registry
+  - Micrometer + OpenTelemetry
 end note
 
 @enduml

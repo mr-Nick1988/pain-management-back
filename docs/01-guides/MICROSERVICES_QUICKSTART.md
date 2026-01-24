@@ -1,7 +1,7 @@
-# 🚀 БЫСТРЫЙ СТАРТ: МИКРОСЕРВИСНАЯ АРХИТЕКТУРА
+# 🚀 MICROSERVICES QUICKSTART GUIDE
 
-**Дата:** 23.01.2026  
-**Статус:** ✅ API Gateway + 7 микросервисов работают
+**Date:** January 24, 2026  
+**Status:** ✅ API Gateway + 7 Microservices + Distributed Tracing Running
 
 ---
 

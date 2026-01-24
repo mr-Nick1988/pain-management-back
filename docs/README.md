@@ -1,8 +1,8 @@
 # 📚 Pain Management Platform - Complete Documentation
 
-**Version:** 3.2  
-**Last Updated:** January 23, 2026  
-**Status:** ✅ All 8 Services Running (API Gateway + 7 Microservices)
+**Version:** 3.3  
+**Last Updated:** January 24, 2026  
+**Status:** ✅ All 8 Services Running (API Gateway + 7 Microservices) + Distributed Tracing (Jaeger)
 
 ---
 
@@ -12,10 +12,11 @@ This documentation suite provides comprehensive guides for developing, deploying
 
 ### System Architecture
 
-- **API Gateway** (Port 8000): Single entry point, routing, JWT validation
+- **API Gateway** (Port 8000): Single entry point, routing, JWT validation, Circuit Breaker
 - **Monolith** (Port 8080): Core business logic
 - **7 Microservices** (Ports 8082-8091): Specialized functions
-- **Infrastructure**: Kafka, PostgreSQL, Prometheus, Grafana
+- **Infrastructure**: Kafka, PostgreSQL, Consul (Service Discovery), Jaeger (Distributed Tracing)
+- **Observability**: Prometheus, Grafana, Jaeger UI (port 16686)
 - **Tools**: Kafdrop, Docker Compose
 
 ---
@@ -53,6 +54,7 @@ This documentation suite provides comprehensive guides for developing, deploying
 | **[02-architecture/BACKEND_ARCHITECTURE_OVERVIEW.md](02-architecture/BACKEND_ARCHITECTURE_OVERVIEW.md)** | 🎯 **Complete backend architecture** | **All** |
 | **[MICROSERVICES_PATTERNS_ROADMAP.md](MICROSERVICES_PATTERNS_ROADMAP.md)** | 🚀 **Microservices patterns roadmap** | **Architects, Developers** |
 | **[SERVICE_DISCOVERY_IMPLEMENTATION.md](SERVICE_DISCOVERY_IMPLEMENTATION.md)** | 🔍 **Service Discovery with Consul** | **Developers, DevOps** |
+| **[DISTRIBUTED_TRACING_IMPLEMENTATION.md](DISTRIBUTED_TRACING_IMPLEMENTATION.md)** | 🔭 **Distributed Tracing with Jaeger** | **Developers, DevOps** |
 | **[CIRCUIT_BREAKER_IMPLEMENTATION.md](CIRCUIT_BREAKER_IMPLEMENTATION.md)** | 🔥 **Circuit Breaker implementation guide** | **Developers** |
 | **[API_GATEWAY_INTEGRATION_GUIDE.md](API_GATEWAY_INTEGRATION_GUIDE.md)** | API Gateway integration | Developers |
 | **[02-architecture/MICROSERVICES_MIGRATION_STRATEGY.md](02-architecture/MICROSERVICES_MIGRATION_STRATEGY.md)** | Migration strategy | Architects, Lead Developers |
