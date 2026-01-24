@@ -1,0 +1,29 @@
+# ==============================================================================
+# Logstash Main Configuration
+# ==============================================================================
+
+# Pipeline Configuration
+pipeline:
+  workers: 2
+  batch:
+    size: 125
+    delay: 50
+
+# HTTP API Settings
+http:
+  host: "0.0.0.0"
+  port: 9600
+
+# Logging
+log:
+  level: info
+  format: json
+
+# Monitoring
+monitoring:
+  enabled: false
+  
+# X-Pack Settings (disabled for dev)
+xpack:
+  monitoring:
+    enabled: false

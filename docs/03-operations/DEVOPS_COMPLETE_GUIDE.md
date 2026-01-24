@@ -1,8 +1,8 @@
 # 🚀 Pain Management Platform - Complete DevOps Guide
 
-**Version:** 3.3  
+**Version:** 3.4  
 **Last Updated:** January 24, 2026  
-**Architecture:** Microservices with API Gateway + Service Discovery + Distributed Tracing
+**Architecture:** Microservices with API Gateway + Service Discovery + Distributed Tracing + Centralized Logging
 
 ---
 
@@ -41,6 +41,10 @@ The Pain Management Platform consists of:
 4. **Infrastructure**:
    - Consul (ports 8500, 8600) - Service Discovery & Registry
    - Jaeger (ports 16686, 4317, 4318) - Distributed Tracing
+   - **ELK Stack (Centralized Logging):**
+     - Elasticsearch (ports 9200, 9300) - Log Storage
+     - Logstash (ports 5000, 5044, 9600) - Log Processing
+     - Kibana (port 5601) - Log Visualization
    - Apache Kafka (port 9092) - Event streaming
    - PostgreSQL x2 (ports 5432, 5433) - Databases
    - Prometheus (port 9090) - Metrics collection

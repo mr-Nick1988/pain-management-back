@@ -182,7 +182,7 @@ services:
       CONSUL_PORT: 8500
       
       # Distributed Tracing
-      OTLP_ENDPOINT: http://jaeger:4318/v1/traces
+      OTLP_ENDPOINT: http://jaeger:4318/v1/traces`n      `n      # Centralized Logging`n      LOGSTASH_HOST: logstash`n      LOGSTASH_PORT: 5000
     depends_on:
       kafka:
         condition: service_healthy
@@ -237,7 +237,7 @@ services:
       CONSUL_PORT: 8500
       
       # Distributed Tracing
-      OTLP_ENDPOINT: http://jaeger:4318/v1/traces
+      OTLP_ENDPOINT: http://jaeger:4318/v1/traces`n      `n      # Centralized Logging`n      LOGSTASH_HOST: logstash`n      LOGSTASH_PORT: 5000
     depends_on:
       - postgres
       consul:
@@ -285,7 +285,7 @@ services:
       CONSUL_PORT: 8500
       
       # Distributed Tracing
-      OTLP_ENDPOINT: http://jaeger:4318/v1/traces
+      OTLP_ENDPOINT: http://jaeger:4318/v1/traces`n      `n      # Centralized Logging`n      LOGSTASH_HOST: logstash`n      LOGSTASH_PORT: 5000
     depends_on:
       kafka:
         condition: service_healthy
@@ -334,7 +334,7 @@ services:
       CONSUL_PORT: 8500
       
       # Distributed Tracing
-      OTLP_ENDPOINT: http://jaeger:4318/v1/traces
+      OTLP_ENDPOINT: http://jaeger:4318/v1/traces`n      `n      # Centralized Logging`n      LOGSTASH_HOST: logstash`n      LOGSTASH_PORT: 5000
     depends_on:
       kafka:
         condition: service_healthy
@@ -382,7 +382,7 @@ services:
       CONSUL_PORT: 8500
       
       # Distributed Tracing
-      OTLP_ENDPOINT: http://jaeger:4318/v1/traces
+      OTLP_ENDPOINT: http://jaeger:4318/v1/traces`n      `n      # Centralized Logging`n      LOGSTASH_HOST: logstash`n      LOGSTASH_PORT: 5000
     depends_on:
       kafka:
         condition: service_healthy
@@ -431,7 +431,7 @@ services:
       CONSUL_PORT: 8500
       
       # Distributed Tracing
-      OTLP_ENDPOINT: http://jaeger:4318/v1/traces
+      OTLP_ENDPOINT: http://jaeger:4318/v1/traces`n      `n      # Centralized Logging`n      LOGSTASH_HOST: logstash`n      LOGSTASH_PORT: 5000
     depends_on:
       kafka:
         condition: service_healthy
@@ -486,7 +486,7 @@ services:
       CONSUL_PORT: 8500
       
       # Distributed Tracing
-      OTLP_ENDPOINT: http://jaeger:4318/v1/traces
+      OTLP_ENDPOINT: http://jaeger:4318/v1/traces`n      `n      # Centralized Logging`n      LOGSTASH_HOST: logstash`n      LOGSTASH_PORT: 5000
     depends_on:
       kafka:
         condition: service_healthy
@@ -655,6 +655,136 @@ services:
       retries: 3
       start_period: 10s
 
+  # ==========================================================================
+  # OBSERVABILITY: Elasticsearch - Log Storage (port 9200)
+  # ==========================================================================
+  # Central log storage for ELK Stack
+  # Web API: http://localhost:9200
+  # Single-node cluster for development (use cluster in production)
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.3
+    container_name: dev_elasticsearch
+    profiles: ["logging", "all"]
+    ports:
+      - "9200:9200"   # REST API
+      - "9300:9300"   # Node communication
+    environment:
+      # Single node setup for dev
+      discovery.type: single-node
+      
+      # Disable security for dev (enable in production!)
+      xpack.security.enabled: "false"
+      xpack.security.enrollment.enabled: "false"
+      
+      # Memory settings (adjust for your machine)
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+      
+      # Cluster name
+      cluster.name: painmgmt-logs-dev
+      node.name: es-node-01
+      
+      # Performance tuning for dev
+      bootstrap.memory_lock: "false"
+      
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - dev-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  # ==========================================================================
+  # OBSERVABILITY: Logstash - Log Processing Pipeline (ports 5000, 5044)
+  # ==========================================================================
+  # Log aggregation and transformation pipeline
+  # Input: JSON logs from microservices (port 5000)
+  # Output: Elasticsearch
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.3
+    container_name: dev_logstash
+    profiles: ["logging", "all"]
+    ports:
+      - "5000:5000"   # JSON input from services
+      - "5044:5044"   # Beats input (Filebeat)
+      - "9600:9600"   # Monitoring API
+    environment:
+      # Performance settings
+      LS_JAVA_OPTS: "-Xms256m -Xmx256m"
+      
+      # Pipeline settings
+      PIPELINE_WORKERS: 2
+      PIPELINE_BATCH_SIZE: 125
+      
+      # Elasticsearch output
+      ELASTICSEARCH_HOSTS: "http://elasticsearch:9200"
+      
+    volumes:
+      - ./logging/logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./logging/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - dev-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9600"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ==========================================================================
+  # OBSERVABILITY: Kibana - Log Visualization (port 5601)
+  # ==========================================================================
+  # Web UI for searching and visualizing logs
+  # Web UI: http://localhost:5601
+  # Default: No authentication in dev (enable in production)
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.3
+    container_name: dev_kibana
+    profiles: ["logging", "all"]
+    ports:
+      - "5601:5601"
+    environment:
+      # Elasticsearch connection
+      ELASTICSEARCH_HOSTS: "http://elasticsearch:9200"
+      
+      # Server settings
+      SERVER_NAME: painmgmt-kibana-dev
+      SERVER_HOST: "0.0.0.0"
+      
+      # Disable security for dev
+      XPACK_SECURITY_ENABLED: "false"
+      XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY: "painmgmt-kibana-dev-encryption-key-min-32-chars"
+      
+      # Performance
+      LOGGING_QUIET: "true"
+      
+    volumes:
+      - kibana-data:/usr/share/kibana/data
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - dev-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5601/api/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
 # ============================================================================
 # NETWORKS
 # ============================================================================
@@ -677,6 +807,10 @@ volumes:
     name: painmgmt-prometheus-data
   grafana-data:
     name: painmgmt-grafana-data
+  elasticsearch-data:
+    name: painmgmt-elasticsearch-data
+  kibana-data:
+    name: painmgmt-kibana-data
   # MongoDB volume УДАЛЕН - больше не используется!
 
 # ============================================================================
@@ -742,6 +876,12 @@ volumes:
 #   16686 - Jaeger UI (Distributed Tracing)
 #   4317  - Jaeger OTLP gRPC
 #   4318  - Jaeger OTLP HTTP
+#   5601  - Kibana (Log Visualization)
+#   9200  - Elasticsearch (Log Storage)
+#   9300  - Elasticsearch Node Communication
+#   5000  - Logstash JSON Input
+#   5044  - Logstash Beats Input
+#   9600  - Logstash Monitoring API
 #
 # Microservices:
 #   8080  - Монолит (запускать отдельно через IDE или mvn spring-boot:run)
@@ -754,3 +894,4 @@ volumes:
 #   8091  - Reporting Service
 #
 # ============================================================================
+

@@ -1,8 +1,8 @@
 # 📚 Pain Management Platform - Complete Documentation
 
-**Version:** 3.3  
+**Version:** 3.4  
 **Last Updated:** January 24, 2026  
-**Status:** ✅ All 8 Services Running (API Gateway + 7 Microservices) + Distributed Tracing (Jaeger)
+**Status:** ✅ All 8 Services Running (API Gateway + 7 Microservices) + Distributed Tracing + Centralized Logging
 
 ---
 
@@ -16,7 +16,10 @@ This documentation suite provides comprehensive guides for developing, deploying
 - **Monolith** (Port 8080): Core business logic
 - **7 Microservices** (Ports 8082-8091): Specialized functions
 - **Infrastructure**: Kafka, PostgreSQL, Consul (Service Discovery), Jaeger (Distributed Tracing)
-- **Observability**: Prometheus, Grafana, Jaeger UI (port 16686)
+- **Observability**: 
+  - Prometheus + Grafana (Metrics)
+  - Jaeger (Distributed Tracing - port 16686)
+  - ELK Stack (Centralized Logging - Kibana port 5601)
 - **Tools**: Kafdrop, Docker Compose
 
 ---
@@ -55,6 +58,7 @@ This documentation suite provides comprehensive guides for developing, deploying
 | **[MICROSERVICES_PATTERNS_ROADMAP.md](MICROSERVICES_PATTERNS_ROADMAP.md)** | 🚀 **Microservices patterns roadmap** | **Architects, Developers** |
 | **[SERVICE_DISCOVERY_IMPLEMENTATION.md](SERVICE_DISCOVERY_IMPLEMENTATION.md)** | 🔍 **Service Discovery with Consul** | **Developers, DevOps** |
 | **[DISTRIBUTED_TRACING_IMPLEMENTATION.md](DISTRIBUTED_TRACING_IMPLEMENTATION.md)** | 🔭 **Distributed Tracing with Jaeger** | **Developers, DevOps** |
+| **[CENTRALIZED_LOGGING_IMPLEMENTATION.md](CENTRALIZED_LOGGING_IMPLEMENTATION.md)** | 📊 **Centralized Logging with ELK Stack** | **Developers, DevOps** |
 | **[CIRCUIT_BREAKER_IMPLEMENTATION.md](CIRCUIT_BREAKER_IMPLEMENTATION.md)** | 🔥 **Circuit Breaker implementation guide** | **Developers** |
 | **[API_GATEWAY_INTEGRATION_GUIDE.md](API_GATEWAY_INTEGRATION_GUIDE.md)** | API Gateway integration | Developers |
 | **[02-architecture/MICROSERVICES_MIGRATION_STRATEGY.md](02-architecture/MICROSERVICES_MIGRATION_STRATEGY.md)** | Migration strategy | Architects, Lead Developers |
